@@ -1,0 +1,33 @@
+/* ============================================================
+   Feedly Threat Intelligence — Base reset & document defaults
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  line-height: var(--leading-normal);
+  color: var(--text-primary);
+  background: var(--surface-page);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-family: var(--font-display);
+  color: var(--text-primary);
+}
+
+p { margin: 0; }
+
+a { color: var(--text-link); text-decoration: none; }
+
+button { font-family: inherit; }
+
+::selection { background: var(--fdl-green-200); color: var(--fdl-ink-1000); }

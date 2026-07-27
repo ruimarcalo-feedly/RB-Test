@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="./support.js"></script>
+<template id="__bundler_thumbnail" data-bg-color="#061427">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#061427"/>
+    <rect x="380" y="230" width="440" height="340" rx="24" fill="#ffffff"/>
+    <rect x="430" y="290" width="250" height="26" rx="13" fill="#061427" opacity="0.85"/>
+    <rect x="430" y="345" width="340" height="16" rx="8" fill="#061427" opacity="0.18"/>
+    <rect x="430" y="381" width="300" height="16" rx="8" fill="#061427" opacity="0.18"/>
+    <rect x="430" y="417" width="330" height="16" rx="8" fill="#061427" opacity="0.18"/>
+    <rect x="430" y="480" width="150" height="42" rx="21" fill="#2BB24C"/>
+  </svg>
+</template>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/feedly-design-system-2ce70007-045c-42a8-9e53-f2b615f6b343/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/feedly-design-system-2ce70007-045c-42a8-9e53-f2b615f6b343/tokens/colors.css">
+<link rel="stylesheet" href="_ds/feedly-design-system-2ce70007-045c-42a8-9e53-f2b615f6b343/tokens/typography.css">
+<link rel="stylesheet" href="_ds/feedly-design-system-2ce70007-045c-42a8-9e53-f2b615f6b343/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/feedly-design-system-2ce70007-045c-42a8-9e53-f2b615f6b343/tokens/base.css">
+<link rel="stylesheet" href="_ds/feedly-design-system-2ce70007-045c-42a8-9e53-f2b615f6b343/styles.css">
+<script src="_ds/feedly-design-system-2ce70007-045c-42a8-9e53-f2b615f6b343/_ds_bundle.js"></script>
+<style>
+  html,body{margin:0;height:100%}
+  .ni{transition:background var(--dur-fast) var(--ease-standard);cursor:pointer}
+  .ni:hover{background:var(--surface-subtle)}
+  .sc::-webkit-scrollbar{width:10px}
+  .sc::-webkit-scrollbar-thumb{background:var(--fdl-neutral-250);border-radius:8px;border:3px solid var(--surface-page)}
+</style>
+</helmet>
+
+<div style="display:flex;height:100vh;overflow:hidden;background:var(--surface-page);font-family:var(--font-body);color:var(--text-primary)">
+
+  <!-- SIDEBAR -->
+  <aside class="sc" style="flex:0 0 296px;width:296px;height:100%;overflow-y:auto;border-right:1px solid var(--border-subtle);padding:14px 12px 40px;box-sizing:border-box">
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 8px 4px;margin-bottom:14px">
+      <div style="width:26px;height:26px;flex:0 0 26px;border-radius:7px;background:linear-gradient(135deg,#22E059,#2BB24C);display:flex;align-items:center;justify-content:center">
+        <span style="display:inline-flex;width:20px;height:20px;color:#fff">{{ si.feedly }}</span>
+      </div>
+      <div style="font-weight:600;font-size:15px;letter-spacing:-0.01em;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Feedly / Threat Intelligence</div>
+      <span style="display:inline-flex;width:20px;height:20px;color:var(--text-secondary)">{{ si.chevDown }}</span>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:1px;margin-bottom:14px">
+      <div class="ni" style="display:flex;align-items:center;gap:11px;height:34px;padding:0 8px;border-radius:8px;font-size:14px;font-weight:500"><span style="display:inline-flex;width:20px;height:20px;color:var(--fdl-neutral-700)">{{ si.plus }}</span>Create Intel Agent</div>
+      <div class="ni" style="display:flex;align-items:center;gap:11px;height:34px;padding:0 8px;border-radius:8px;font-size:14px;font-weight:500"><span style="display:inline-flex;width:20px;height:20px;color:var(--fdl-neutral-700)">{{ si.robot }}</span>Create AI Feed</div>
+      <div class="ni" style="display:flex;align-items:center;gap:11px;height:34px;padding:0 8px;border-radius:8px;font-size:14px;font-weight:500"><span style="display:inline-flex;width:20px;height:20px;color:var(--fdl-neutral-700)">{{ si.globe }}</span>Follow Sources</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:1px;margin-bottom:16px">
+      <div class="ni" onClick="{{ goToReportBuilder }}" style="display:flex;align-items:center;gap:11px;height:34px;padding:0 8px;border-radius:8px;font-size:14px;font-weight:500"><span style="display:inline-flex;width:20px;height:20px;color:var(--fdl-neutral-700)">{{ rbIconNav }}</span><span style="flex:1">Report Builder</span><span style="font-size:12px;color:var(--text-tertiary)">Beta</span></div>
+      <div class="ni" style="display:flex;align-items:center;gap:11px;height:34px;padding:0 8px;border-radius:8px;font-size:14px;font-weight:500"><span style="display:inline-flex;width:20px;height:20px;color:var(--fdl-neutral-700)">{{ si.radar }}</span>Today</div>
+      <div class="ni" style="display:flex;align-items:center;gap:11px;height:34px;padding:0 8px;border-radius:8px;font-size:14px;font-weight:500"><span style="display:inline-flex;width:20px;height:20px;color:var(--fdl-neutral-700)">{{ si.shieldL }}</span>Threat Landscape</div>
+      <div class="ni" style="display:flex;align-items:center;gap:11px;height:34px;padding:0 8px;border-radius:8px;font-size:14px;font-weight:500"><span style="display:inline-flex;width:20px;height:20px;color:var(--fdl-neutral-700)">{{ si.plane }}</span>Automated Newsletters</div>
+      <div class="ni" style="display:flex;align-items:center;gap:11px;height:34px;padding:0 8px;border-radius:8px;font-size:14px;font-weight:500"><span style="display:inline-flex;width:20px;height:20px;color:var(--fdl-neutral-700)">{{ si.shieldU }}</span>Intel Profile</div>
+      <div class="ni" style="display:flex;align-items:center;gap:11px;height:34px;padding:0 8px;border-radius:8px;font-size:14px;font-weight:500"><span style="display:inline-flex;width:20px;height:20px;color:var(--fdl-neutral-700)">{{ si.gear }}</span>Integrations &amp; API</div>
+    </div>
+
+    <div style="padding:6px 8px 4px;font-size:11px;font-weight:600;letter-spacing:0.04em;color:var(--text-tertiary)">Intel Agents</div>
+    <div class="ni" style="display:flex;align-items:center;gap:8px;height:32px;padding:0 8px;border-radius:8px;font-size:14px;font-weight:500"><span style="display:inline-flex;width:18px;height:18px;color:var(--text-secondary)">{{ si.chevDown }}</span>Custom Agent</div>
+    <div style="padding-left:14px;display:flex;flex-direction:column;gap:1px;margin-bottom:4px">
+      <div class="ni" style="display:flex;align-items:center;gap:10px;height:30px;padding:0 8px;border-radius:8px;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="display:inline-flex;width:16px;height:16px;color:var(--fdl-neutral-600)">{{ si.lightning }}</span>Ransomware campaigns targeting…</div>
+      <div class="ni" style="display:flex;align-items:center;gap:10px;height:30px;padding:0 8px;border-radius:8px;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="display:inline-flex;width:16px;height:16px;color:var(--fdl-neutral-600)">{{ si.lightning }}</span>Lazarus Group TTPs</div>
+    </div>
+    <div class="ni" style="display:flex;align-items:center;gap:8px;height:32px;padding:0 8px;border-radius:8px;font-size:14px;font-weight:500"><span style="display:inline-flex;width:18px;height:18px;color:var(--text-secondary)">{{ si.chevDown }}</span>TTPs</div>
+    <div style="padding-left:14px;display:flex;flex-direction:column;gap:1px;margin-bottom:4px">
+      <div class="ni" style="display:flex;align-items:center;gap:10px;height:30px;padding:0 8px;border-radius:8px;font-size:13px"><span style="display:inline-flex;width:16px;height:16px;color:var(--fdl-neutral-600)">{{ si.crosshairs }}</span>basic 7 days</div>
+      <div class="ni" style="display:flex;align-items:center;gap:10px;height:30px;padding:0 8px;border-radius:8px;font-size:13px"><span style="display:inline-flex;width:16px;height:16px;color:var(--fdl-neutral-600)">{{ si.crosshairs }}</span>Lazarus Group - Last 30 days</div>
+      <div class="ni" style="display:flex;align-items:center;gap:10px;height:30px;padding:0 8px;border-radius:8px;font-size:13px"><span style="display:inline-flex;width:16px;height:16px;color:var(--fdl-neutral-600)">{{ si.crosshairs }}</span>Russian TA</div>
+    </div>
+    <div class="ni" style="display:flex;align-items:center;gap:8px;height:32px;padding:0 8px;border-radius:8px;font-size:14px;font-weight:500"><span style="display:inline-flex;width:18px;height:18px;color:var(--text-secondary)">{{ si.chevDown }}</span>Vulnerabilities</div>
+    <div style="padding-left:14px;display:flex;flex-direction:column;gap:1px">
+      <div class="ni" style="display:flex;align-items:center;gap:10px;height:30px;padding:0 8px;border-radius:8px;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="display:inline-flex;width:16px;height:16px;color:var(--fdl-neutral-600)">{{ si.bug }}</span>vulns with exploit trending…</div>
+      <div class="ni" style="display:flex;align-items:center;gap:10px;height:30px;padding:0 8px;border-radius:8px;font-size:13px;font-weight:600;background:var(--surface-subtle)"><span style="display:inline-flex;width:16px;height:16px;color:var(--fdl-neutral-600)">{{ si.bug }}</span>Trending High+ CVEs</div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT + ASK AI -->
+  <div style="flex:1;display:flex;height:100%;min-width:0;overflow:hidden">
+
+    <!-- CVE main content -->
+    <div style="flex:1;display:flex;flex-direction:column;height:100%;min-width:0;overflow:hidden">
+      <!-- Header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 24px;border-bottom:1px solid var(--border-subtle);flex:0 0 auto">
+        <div style="font-size:17px;font-weight:600;color:var(--text-primary);letter-spacing:-0.01em">Trending High+ CVEs</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;color:var(--text-tertiary);cursor:pointer" class="ni">{{ si.plane }}</span>
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;color:var(--text-tertiary);cursor:pointer" class="ni">{{ si.spy }}</span>
+          <div style="position:relative">
+            <div onClick="{{ toggleCreateReport }}" class="ni" style="display:inline-flex;align-items:center;height:30px;border-radius:6px;background:var(--surface-card);border:1px solid var(--border-subtle);color:var(--text-primary);font-size:13px;font-weight:500;cursor:pointer;overflow:hidden">
+              <span style="display:inline-flex;align-items:center;gap:7px;padding:0 12px"><span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;color:var(--text-secondary)">{{ rbIconBtn }}</span>Create report</span>
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:30px;color:var(--text-tertiary)">{{ crChevron }}</span>
+            </div>
+            <sc-if value="{{ crOpen }}" hint-placeholder-val="{{ false }}">
+              <div onClick="{{ closeCreateReport }}" style="position:fixed;inset:0;z-index:290"></div>
+              <div style="position:absolute;top:calc(100% + 8px);right:0;z-index:300;width:322px;background:#fff;border:1px solid var(--border-subtle);border-radius:14px;box-shadow:0 14px 40px rgba(6,20,39,0.18);padding:6px">
+                <sc-if value="{{ crStepTemplate }}" hint-placeholder-val="{{ true }}">
+                  <div style="padding:9px 12px 7px;font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-tertiary)">Select template</div>
+                  <sc-for list="{{ crTemplateItems }}" as="t" hint-placeholder-count="6">
+                    <div class="ni" onClick="{{ t.selectFn }}" style="display:flex;align-items:center;gap:12px;min-height:44px;padding:8px 12px;border-radius:9px;cursor:pointer;font-size:14px;font-weight:500;color:var(--text-primary)">
+                      <span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;flex:0 0 20px">{{ t.iconImg }}</span>
+                      <span style="flex:1">{{ t.title }}</span>
+                      <span style="display:inline-flex;width:17px;height:17px;color:var(--text-tertiary);flex:0 0 17px">{{ crChevRight }}</span>
+                    </div>
+                  </sc-for>
+                </sc-if>
+                <sc-if value="{{ crStepAudience }}" hint-placeholder-val="{{ false }}">
+                  <div class="ni" onClick="{{ backToTemplates }}" style="display:flex;align-items:center;gap:9px;height:42px;padding:0 12px;border-radius:9px 9px 0 0;cursor:pointer;font-size:13px;font-weight:600;color:var(--text-secondary);border-bottom:1px solid var(--border-subtle);margin-bottom:4px">
+                    <span style="display:inline-flex;width:16px;height:16px;flex:0 0 16px;color:var(--text-tertiary)">{{ crChevLeft }}</span>
+                    <span style="flex:1">{{ crTemplateLabel }}</span>
+                  </div>
+                  <div style="padding:9px 12px 7px;font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-tertiary)">Select audience</div>
+                  <sc-for list="{{ crAudienceItems }}" as="a" hint-placeholder-count="4">
+                    <div class="ni" onClick="{{ a.selectFn }}" style="display:flex;align-items:center;min-height:44px;padding:8px 12px;border-radius:9px;cursor:pointer;font-size:14px;font-weight:500;color:var(--text-primary)">
+                      <span style="flex:1">{{ a.label }}</span>
+                    </div>
+                  </sc-for>
+                </sc-if>
+              </div>
+            </sc-if>
+          </div>
+          <span onClick="{{ toggleAskAi }}" style="display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 12px;border-radius:6px;border:1px solid var(--border-subtle);font-size:13px;font-weight:500;color:var(--text-primary);cursor:pointer" class="ni"><span style="display:inline-flex;width:14px;height:14px">{{ si.sparkles }}</span>Analyze</span>
+          <span style="display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:6px;border:1px solid var(--border-strong);font-size:13px;font-weight:500;color:var(--text-primary);cursor:pointer" class="ni">Save Changes</span>
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;color:var(--text-tertiary);cursor:pointer" class="ni">{{ si.ellipsis }}</span>
+        </div>
+      </div>
+      <!-- Scrollable body -->
+      <div class="sc" style="flex:1;overflow-y:auto">
+        <div style="padding:18px 52px 60px">
+          <!-- Filters -->
+          <div style="margin-bottom:14px">
+            <span style="display:inline-flex;align-items:center;height:28px;padding:0 14px;border-radius:6px;border:1px solid var(--border-strong);font-size:13px;color:var(--text-primary);cursor:pointer" class="ni">Show Filters</span>
+          </div>
+          <!-- Tabs -->
+          <div style="display:flex;border-bottom:1px solid var(--border-subtle);margin-bottom:22px">
+            <div style="height:36px;padding:0 4px;margin-right:20px;display:flex;align-items:center;font-size:14px;font-weight:600;color:var(--text-primary);border-bottom:2px solid var(--fdl-green-700);cursor:pointer">Vulnerabilities</div>
+            <div style="height:36px;padding:0 4px;display:flex;align-items:center;font-size:14px;color:var(--text-secondary);cursor:pointer" class="ni">Trends &amp; Visualizations</div>
+          </div>
+          <!-- Stats -->
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:26px">
+            <div style="padding:14px 18px;border:1px solid var(--border-subtle);border-radius:12px">
+              <div style="font-size:12px;color:var(--text-secondary);margin-bottom:5px">Total vulnerabilities</div>
+              <div style="font-size:26px;font-weight:700;color:var(--text-primary);letter-spacing:-0.02em;font-family:var(--font-display)">32</div>
+            </div>
+            <div style="padding:14px 18px;border:1px solid var(--border-subtle);border-radius:12px">
+              <div style="font-size:12px;color:var(--text-secondary);margin-bottom:5px">Weaponized vulnerabilities</div>
+              <div style="font-size:26px;font-weight:700;color:var(--text-primary);letter-spacing:-0.02em;font-family:var(--font-display)">3</div>
+            </div>
+            <div style="padding:14px 18px;border:1px solid var(--border-subtle);border-radius:12px">
+              <div style="font-size:12px;color:var(--text-secondary);margin-bottom:5px">Exploited vulnerabilities</div>
+              <div style="font-size:26px;font-weight:700;color:var(--text-primary);letter-spacing:-0.02em;font-family:var(--font-display)">4</div>
+            </div>
+          </div>
+          <!-- Table -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div style="font-size:15px;font-weight:600;color:var(--text-primary)">Vulnerabilities</div>
+            <span style="display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px;border-radius:6px;border:1px solid var(--border-subtle);font-size:12px;color:var(--text-secondary);cursor:pointer" class="ni">&#8644; Reorder columns</span>
+          </div>
+          <div style="display:grid;grid-template-columns:82px 1fr 100px 100px 1fr;gap:14px;padding:0 10px 8px;border-bottom:1px solid var(--border-subtle)">
+            <div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.04em">Status</div>
+            <div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.04em">CVE ID</div>
+            <div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.04em">Published</div>
+            <div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.04em">Patched</div>
+            <div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.04em">What? So what?</div>
+          </div>
+          <sc-for list="{{ cves }}" as="cve" hint-placeholder-count="4">
+            <div style="display:grid;grid-template-columns:82px 1fr 100px 100px 1fr;gap:14px;padding:13px 10px;border-bottom:1px solid var(--border-subtle);align-items:start">
+              <div><span style="display:inline-flex;align-items:center;height:19px;padding:0 7px;border-radius:4px;background:#FFF3CD;color:#856404;font-size:11px;font-weight:600">Updated</span></div>
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--fdl-blue-1000);margin-bottom:3px;cursor:pointer">{{ cve.id }}</div>
+                <div style="font-size:12px;color:var(--text-secondary);line-height:1.5">{{ cve.desc }}</div>
+              </div>
+              <div style="font-size:12px;color:var(--text-secondary);padding-top:2px">{{ cve.published }}</div>
+              <div style="font-size:12px;color:var(--text-secondary);padding-top:2px">{{ cve.patched }}</div>
+              <div style="display:flex;flex-direction:column;gap:5px">
+                <sc-for list="{{ cve.bullets }}" as="b" hint-placeholder-count="2">
+                  <div style="display:flex;gap:6px;font-size:12px;color:var(--text-secondary);line-height:1.5;align-items:flex-start">
+                    <span style="flex:0 0 4px;margin-top:6px;width:4px;height:4px;border-radius:50%;background:var(--text-tertiary);display:inline-block"></span>
+                    <span>{{ b }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <!-- ASK AI PANEL (toggled by Analyze) -->
+    <sc-if value="{{ askAiOpen }}" hint-placeholder-val="{{ false }}">
+      <div class="sc" style="flex:0 0 400px;width:400px;border-left:1px solid var(--border-subtle);overflow-y:auto;background:#fff;height:100%">
+        <div style="display:flex;align-items:center;padding:16px 16px 14px;border-bottom:1px solid var(--border-subtle)">
+          <span style="font-size:15px;font-weight:700;color:var(--text-primary);flex:1">Ask AI</span>
+          <div style="display:flex;gap:10px;align-items:center">
+            <span style="display:inline-flex;align-items:center;justify-content:center;color:var(--text-tertiary);cursor:pointer" class="ni">{{ histIcon }}</span>
+            <span style="display:inline-flex;align-items:center;justify-content:center;color:var(--text-tertiary);cursor:pointer" class="ni">{{ helpIcon }}</span>
+            <span onClick="{{ toggleAskAi }}" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;color:var(--text-tertiary);cursor:pointer" class="ni">{{ si.cross }}</span>
+          </div>
+        </div>
+        <div style="padding:14px 16px;border-bottom:1px solid var(--border-subtle)">
+          <div style="border:1px solid var(--border-subtle);border-radius:10px;overflow:hidden">
+            <div style="padding:10px 12px;font-size:14px;color:var(--text-tertiary);line-height:1.5;min-height:48px">Ask about a threat actor, a CVE, or any cyber topic</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-top:1px solid var(--border-subtle)">
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;color:var(--text-tertiary);cursor:pointer" class="ni">{{ si.plus }}</span>
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;background:var(--fdl-neutral-100);border:1px solid var(--border-subtle);color:var(--text-secondary);cursor:pointer">{{ si.arrow }}</span>
+            </div>
+          </div>
+        </div>
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border-subtle)">
+          <div style="display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid var(--border-subtle);border-radius:10px;font-size:13px;color:var(--text-primary);cursor:pointer">
+            <span style="display:inline-flex;width:14px;height:14px;color:var(--fdl-neutral-500)">{{ si.bug }}</span>
+            Trending High+ CVEs
+            <span style="display:inline-flex;width:12px;height:12px;color:var(--text-tertiary);margin-left:2px">{{ si.cross }}</span>
+          </div>
+        </div>
+        <div style="padding:16px">
+          <div style="font-size:13px;font-weight:500;color:var(--text-secondary);margin-bottom:10px">Favorites</div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:4px">
+            <div class="ni" style="padding:10px 12px;border:1px solid var(--border-subtle);border-radius:8px;cursor:pointer;display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+              <div><div style="font-size:13px;color:var(--text-primary);line-height:1.4">test prompt</div><div style="font-size:12px;color:var(--text-tertiary);margin-top:2px">test angelo</div></div>
+              <span style="display:inline-flex;width:18px;height:18px;color:var(--text-tertiary);flex:0 0 18px">{{ si.ellipsis }}</span>
+            </div>
+            <div class="ni" style="padding:10px 12px;border:1px solid var(--border-subtle);border-radius:8px;cursor:pointer;display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+              <span style="font-size:13px;color:var(--text-primary);line-height:1.4">What are the latest developments for these vulnerabilities in the past 24 hours?</span>
+              <span style="display:inline-flex;width:18px;height:18px;color:var(--text-tertiary);flex:0 0 18px">{{ si.ellipsis }}</span>
+            </div>
+            <div class="ni" style="padding:10px 12px;border:1px solid var(--border-subtle);border-radius:8px;cursor:pointer;display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+              <span style="font-size:13px;color:var(--text-primary);line-height:1.4">How should I prioritize these CVEs?</span>
+              <span style="display:inline-flex;width:18px;height:18px;color:var(--text-tertiary);flex:0 0 18px">{{ si.ellipsis }}</span>
+            </div>
+          </div>
+          <div style="font-size:13px;color:var(--fdl-blue-1000);cursor:pointer;padding:6px 0 16px">See more</div>
+          <div style="font-size:13px;font-weight:500;color:var(--text-secondary);margin-bottom:10px">Suggestions</div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+            <div class="ni" style="padding:10px 12px;border:1px solid var(--border-subtle);border-radius:8px;cursor:pointer;display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+              <span style="font-size:13px;color:var(--text-primary);line-height:1.4">What are the latest developments for these vulnerabilities in the past 24 hours?</span>
+              <span style="display:inline-flex;width:18px;height:18px;color:var(--text-tertiary);flex:0 0 18px">{{ si.ellipsis }}</span>
+            </div>
+            <div class="ni" style="padding:10px 12px;border:1px solid var(--border-subtle);border-radius:8px;cursor:pointer;display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+              <span style="font-size:13px;color:var(--text-primary);line-height:1.4">How should I prioritize these CVEs?</span>
+              <span style="display:inline-flex;width:18px;height:18px;color:var(--text-tertiary);flex:0 0 18px">{{ si.ellipsis }}</span>
+            </div>
+            <div class="ni" style="padding:10px 12px;border:1px solid var(--border-subtle);border-radius:8px;cursor:pointer;display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+              <span style="font-size:13px;color:var(--text-primary);line-height:1.4">What is the most effective detection and mitigation strategy for prioritizing patches?</span>
+              <span style="display:inline-flex;width:18px;height:18px;color:var(--text-tertiary);flex:0 0 18px">{{ si.ellipsis }}</span>
+            </div>
+            <div class="ni" style="padding:10px 12px;border:1px solid var(--border-subtle);border-radius:8px;cursor:pointer;display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+              <span style="font-size:13px;color:var(--text-primary);line-height:1.4">Create a patch notification email for [CVE code].</span>
+              <span style="display:inline-flex;width:18px;height:18px;color:var(--text-tertiary);flex:0 0 18px">{{ si.ellipsis }}</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;height:36px;border-radius:8px;border:1px solid var(--border-strong);font-size:13px;color:var(--text-secondary);cursor:pointer" class="ni">Explore more prompts</div>
+        </div>
+      </div>
+    </sc-if>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { askAiOpen: false, crOpen: false, crStep: 'audience', crAudience: null };
+  componentDidMount() {
+    if (window.DesignSystem_2ce700) return;
+    const t = setInterval(() => { if (window.DesignSystem_2ce700) { clearInterval(t); this.forceUpdate(); } }, 50);
+    setTimeout(() => clearInterval(t), 15000);
+  }
+
+  renderVals() {
+    const ns = window.DesignSystem_2ce700 || {};
+    const React = window.React;
+    const ico = (name) => {
+      const C = ns[name];
+      return C ? React.createElement(C, { size: 'sm', style: { color: 'currentColor', flex: '0 0 auto' } }) : null;
+    };
+
+    const si = {
+      plus: ico('Plus'), robot: ico('Robot'), globe: ico('Globe'),
+      sparkles: ico('Sparkles'), arrow: ico('ArrowUpRight'), star: ico('Star'),
+      bullseye: ico('BullseyeArrow'), radar: ico('RadarAlt'),
+      shieldL: ico('ShieldLightning'), plane: ico('Paperplane'),
+      shieldU: ico('ShieldUser'), gear: ico('Gear'),
+      chevDown: ico('ChevronDown'), lightning: ico('Lightning'),
+      crosshairs: ico('Crosshairs'), bug: ico('Bug'),
+      feedly: ico('Feedly'), ellipsis: ico('Ellipsis'),
+      cross: ico('Cross'), spy: ico('Spy'),
+    };
+
+    const askAiOpen = this.state.askAiOpen;
+    const toggleAskAi = () => this.setState(s => ({ askAiOpen: !s.askAiOpen }));
+
+    const histIcon = React.createElement('svg', { viewBox: '0 0 18 18', width: 16, height: 16, fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round' },
+      React.createElement('path', { d: 'M3 9a6 6 0 1 0 1.5-3.9M3 4.5V9h4.5' }));
+    const helpIcon = React.createElement('svg', { viewBox: '0 0 18 18', width: 16, height: 16, fill: 'none', stroke: 'currentColor', strokeWidth: 1.5 },
+      React.createElement('circle', { cx: 9, cy: 9, r: 7 }),
+      React.createElement('path', { d: 'M9 13v.5', strokeWidth: 2, strokeLinecap: 'round' }),
+      React.createElement('path', { d: 'M9 10.5c0-1.2 1.5-1.8 1.5-3A1.5 1.5 0 0 0 7.5 7.5', strokeLinecap: 'round' }));
+
+    const cves = [
+      { id: 'CVE-2026-55200', desc: "libssh2 through 1.11.1 contains an out-of-bounds write in ssh2_transport_read() (transport.c) caused by an unchecked packet_length value, enabling pre-authentication remote code execution…", published: 'Jun 17, 2026', patched: 'Jun 17, 2026', bullets: ['Malicious SSH server can corrupt heap memory in any client that links libssh2 — curl, Git, PHP ssh2, backup agents, CI/CD runners and IoT firmware.', 'CVSS 9.2, no credentials or user interaction needed. Public PoC since late June 2026; no confirmed in-the-wild exploitation. Rebuild statically linked copies, not just libssh2.so.'] },
+      { id: 'CVE-2026-55199', desc: "libssh2 through 1.11.1 contains an out-of-bounds read and infinite loop in the SSH_MSG_EXT_INFO handler (packet.c), causing pre-authentication denial of service…", published: 'Jun 17, 2026', patched: 'Jun 17, 2026', bullets: ['A malicious server supplies crafted extension counts during key exchange, trapping the connecting client in a compute loop for 60+ seconds.', 'CVSS 8.2. Disclosed alongside CVE-2026-55200 and fixed by commit 1762685; no in-the-wild exploitation confirmed. Stalls backup jobs, deploy pipelines and monitoring agents.'] },
+      { id: 'CVE-2026-48558', desc: "SimpleHelp remote support software contains an authentication bypass in its OpenID Connect flow: forged IdP assertions with arbitrary identity claims yield a fully authenticated Technician session…", published: 'Jun 12, 2026', patched: 'Jun 12, 2026', bullets: ['Unauthenticated attackers create and authenticate as a new Technician on deployments using generic or Azure AD OIDC — full remote-support control of managed endpoints.', 'CVSS 10.0, added to CISA KEV with a July 2, 2026 federal deadline. Exploitation delivers TaskWeaver and Djinn Stealer, which harvests cloud, source-control and registry credentials.'] },
+      { id: 'CVE-2026-46817', desc: "Improper privilege management and missing authentication in the File Transmission component of Oracle Payments (Oracle E-Business Suite 12.2.3–12.2.15) allows full product takeover…", published: 'May 28, 2026', patched: 'May 28, 2026', bullets: ['Unauthenticated attackers reach the ibytransmit endpoint over HTTP and redirect an internal Java call to read arbitrary server files, leading to takeover of Oracle Payments.', 'CVSS 9.8 and exploited in the wild since June 27, 2026 — before any public PoC. Patched in Oracle\u2019s May 2026 Critical Security Patch Update.'] },
+      { id: 'CVE-2026-45504', desc: "Server-side request forgery in Microsoft Exchange Server: missing scheme validation on the WebApplicationUrl returned from attacker-controlled WOPI endpoints permits arbitrary file read…", published: 'Jun 9, 2026', patched: 'Jun 12, 2026', bullets: ['A low-privileged authenticated user creates an EWS ReferenceAttachment with a crafted ProviderEndpointUrl; previewing it makes Exchange fetch attacker-supplied file:// paths.', 'CVSS 8.8, not in CISA KEV, ~6% EPSS. Fixed in KB5094139/KB5094140/KB5094142/KB5094144 for Exchange 2019 CU14/CU15 and Subscription Edition.'] },
+    ];
+
+    const goToReportBuilder = () => { window.location.href = 'index.html'; };
+
+    // Report Builder pen-sparkle icon (currentColor)
+    const rbPaths = [
+      'M13.6325 4.4268C14.4834 3.73251 15.7386 3.78191 16.5319 4.57524L17.0914 5.13481C17.9375 5.98094 17.9375 7.35313 17.0914 8.19926L8.88246 16.4073C8.54183 16.7479 8.09775 16.9656 7.61976 17.0254L4.85316 17.3711C4.70021 17.3901 4.54711 17.3376 4.43812 17.2286C4.32914 17.1196 4.27657 16.9665 4.29555 16.8135L4.64125 14.0469C4.70106 13.5689 4.91882 13.1248 5.25941 12.7842L13.4674 4.57524L13.6325 4.4268ZM15.8248 5.28227C15.3693 4.82672 14.631 4.82682 14.1754 5.28227L5.96644 13.4913C5.78307 13.6746 5.66566 13.9136 5.63344 14.1709L5.36683 16.2989L7.49574 16.0332C7.7531 16.001 7.99207 15.8836 8.17543 15.7002L16.3844 7.49125C16.8398 7.03563 16.8399 6.2974 16.3844 5.84184L15.8248 5.28227Z',
+      'M12.1465 6.31311C12.3417 6.11785 12.6582 6.11785 12.8535 6.31311L15.3535 8.81311C15.5487 9.00838 15.5487 9.32488 15.3535 9.52014C15.1582 9.71541 14.8417 9.71541 14.6465 9.52014L12.1465 7.02014C11.9512 6.82488 11.9512 6.50837 12.1465 6.31311Z',
+      'M5.0016 1.16663C5.27771 1.16766 5.50064 1.39247 5.49965 1.66858C5.49587 2.64029 5.73166 3.31495 6.15394 3.75354C6.57517 4.19085 7.26316 4.47651 8.34437 4.49964C8.61856 4.5057 8.83708 4.73219 8.83363 5.00647C8.83007 5.28069 8.60591 5.50053 8.33168 5.49964C7.34398 5.4959 6.68537 5.75788 6.25746 6.19397C5.82347 6.63643 5.55101 7.33519 5.49965 8.35804C5.4861 8.62802 5.26012 8.83907 4.98988 8.83362C4.71955 8.82806 4.50207 8.60791 4.49965 8.33753C4.49092 7.37021 4.26986 6.68074 3.85609 6.23304C3.44973 5.79359 2.77625 5.49964 1.66664 5.49964C1.39189 5.49964 1.16861 5.27828 1.16664 5.00354C1.16469 4.72879 1.38507 4.50354 1.6598 4.49964C2.65766 4.48543 3.34482 4.23893 3.7848 3.81409C4.22071 3.39305 4.49587 2.7172 4.49965 1.66468C4.50072 1.38865 4.7256 1.16573 5.0016 1.16663ZM4.99672 3.86096C4.85544 4.11015 4.68468 4.33519 4.48012 4.53284C4.29543 4.71123 4.08918 4.86114 3.86586 4.98694C4.13926 5.13913 4.38076 5.32772 4.58949 5.55335C4.76594 5.74417 4.91215 5.95622 5.03285 6.18421C5.17273 5.92938 5.34286 5.69843 5.54359 5.49378C5.73203 5.30171 5.94259 5.13924 6.17347 5.00452C5.89568 4.85429 5.64781 4.66975 5.43324 4.4469C5.26215 4.26921 5.11775 4.07293 4.99672 3.86096Z',
+    ];
+    const mkRbIcon = () => React.createElement('svg', { viewBox: '0 0 20 20', width: '100%', height: '100%', fill: 'currentColor' }, rbPaths.map((d, i) => React.createElement('path', { key: i, d, fill: 'currentColor' })));
+    const rbIconNav = mkRbIcon();
+    const rbIconBtn = mkRbIcon();
+
+    // ---- Create report dropdown (template -> compatible audiences) ----
+    const crOpen = this.state.crOpen || false;
+    const crStep = this.state.crStep || 'template';
+    const crStepTemplate = crStep === 'template';
+    const crStepAudience = crStep === 'audience';
+    const crTemplateLabel = this.state.crTemplate;
+    const toggleCreateReport = () => this.setState(s => ({ crOpen: !s.crOpen, crStep: 'template', crTemplate: null }));
+    const closeCreateReport = () => this.setState({ crOpen: false });
+    const backToTemplates = () => this.setState({ crStep: 'template' });
+
+    const chev = (d) => React.createElement('svg', { viewBox: '0 0 20 20', width: 16, height: 16, fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round' }, React.createElement('path', { d }));
+    const crChevron = chev('M5 8l5 5 5-5');
+    const crChevRight = chev('M8 5l5 5-5 5');
+    const crChevLeft = chev('M12 5l-5 5 5 5');
+
+    const crAudienceMap = {
+      'CISO': ['Vulnerability Advisory', 'Periodic Threat Briefing', 'Third-Party Breach Report', 'Executive Memo', 'Supply Chain Attack Report', 'Flash Report'],
+      'Detection Engineering': ['Vulnerability Advisory', 'Red Team Adversary Emulation Report', 'Flash Report'],
+      'Executive / Board': ['Executive Memo'],
+      'IT Ops': ['Supply Chain Attack Report', 'Vulnerability Advisory'],
+      'M&A': ['Mergers & Acquisitions Due Diligence'],
+      'Red Team': ['Red Team Adversary Emulation Report', 'Flash Report'],
+      'SOC / IR Team': ['Supply Chain Attack Report', 'Periodic Threat Briefing', 'Flash Report', 'Vulnerability Advisory', 'Threat Hunting Report', 'Third-Party Breach Report'],
+      'Third Party Risk Management (TPRM)': ['Third-Party Breach Report'],
+      'Threat Hunting Team': ['Periodic Threat Briefing', 'Threat Hunting Report'],
+      'Vulnerability Management Team': ['Periodic Threat Briefing', 'Supply Chain Attack Report', 'Vulnerability Advisory'],
+    };
+    const crAudienceList = ['CISO', 'Detection Engineering', 'Executive / Board', 'IT Ops', 'M&A', 'Red Team', 'SOC / IR Team', 'Third Party Risk Management (TPRM)', 'Threat Hunting Team', 'Vulnerability Management Team'];
+    // template glyphs matching the Report Builder template cards
+    const crTemplateList = [
+      { title: 'Vulnerability Advisory', iconSrc: "data:image/svg+xml;utf8,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Cpath%20d%3D%22M10.0001%204.85718C7.20579%204.85718%205.21436%206.95417%205.21436%2010C5.21436%2013.1072%207.26008%2015.5%2010.0001%2015.5C12.74%2015.5%2014.7858%2013.1071%2014.7858%2010C14.7858%206.9542%2012.7943%204.85718%2010.0001%204.85718ZM10.0001%205.85718C12.2301%205.85718%2013.7858%207.49526%2013.7858%2010C13.7858%2012.5866%2012.1499%2014.5%2010.0001%2014.5C7.85018%2014.5%206.21436%2012.5866%206.21436%2010C6.21436%207.49524%207.76995%205.85718%2010.0001%205.85718Z%22%20fill%3D%22black%22%3E%3C%2Fpath%3E%0A%3Cpath%20d%3D%22M13.5234%2013.4545L13.5909%2013.5145L14.8011%2014.8002C14.8412%2014.8428%2014.8734%2014.892%2014.8963%2014.9454L14.9237%2015.0284L15.327%2016.7426C15.3903%2017.0114%2015.2236%2017.2806%2014.9548%2017.3439C14.7159%2017.4001%2014.4767%2017.2747%2014.382%2017.0573L14.3536%2016.9717L13.9812%2015.3882L12.8627%2014.1999C12.6945%2014.0211%2012.6834%2013.7512%2012.8242%2013.5605L12.8841%2013.4931C13.0405%2013.3459%2013.2667%2013.3189%2013.4486%2013.4089L13.5234%2013.4545ZM7.11576%2013.4931C7.2945%2013.6613%207.32194%2013.93%207.19291%2014.1289L7.13718%2014.1998L6.01918%2015.3872L5.64633%2016.9717C5.59011%2017.2106%205.37118%2017.3688%205.13444%2017.3566L5.04511%2017.3439C4.80617%2017.2876%204.64796%2017.0687%204.66017%2016.832L4.67292%2016.7426L5.07628%2015.0284C5.08969%2014.9714%205.11296%2014.9174%205.14482%2014.8688L5.19889%2014.8002L6.40898%2013.5145C6.59823%2013.3134%206.91467%2013.3038%207.11576%2013.4931ZM16.0504%2010.7857C16.2164%2010.7857%2016.3696%2010.8679%2016.4619%2011.0018L16.5028%2011.0728L17.3095%2012.7871C17.4271%2013.037%2017.3199%2013.3348%2017.07%2013.4524C16.8479%2013.5569%2016.5879%2013.4838%2016.4503%2013.2908L16.4047%2013.2129L15.7322%2011.7852L14.437%2011.7857C14.1915%2011.7857%2013.9874%2011.6089%2013.945%2011.3756L13.937%2011.2857C13.937%2011.0403%2014.1138%2010.8361%2014.3471%2010.7938L14.437%2010.7857H16.0504ZM5.56299%2010.7857C5.83913%2010.7857%206.06299%2011.0096%206.06299%2011.2857C6.06299%2011.5312%205.88611%2011.7353%205.65287%2011.7777L5.56299%2011.7857L4.26618%2011.7852L3.59523%2013.2129C3.49071%2013.435%203.24375%2013.5444%203.01467%2013.4834L2.92992%2013.4524C2.70782%2013.3479%202.59842%2013.1009%202.65943%2012.8719L2.69041%2012.7871L3.49713%2011.0728C3.56782%2010.9226%203.70741%2010.819%203.86782%2010.7924L3.94954%2010.7857H5.56299ZM16.4789%204.35772L16.5683%204.37047C16.8072%204.42669%2016.9654%204.64562%2016.9532%204.88236L16.9405%204.97169L16.1337%208.40026C16.1013%208.53825%2016.0122%208.6546%2015.8906%208.72241L15.814%208.75706L14.6039%209.18563C14.3436%209.27782%2014.0578%209.14154%2013.9656%208.88124C13.8837%208.64987%2013.9823%208.39838%2014.188%208.2806L14.27%208.243L15.2232%207.90516L15.967%204.74266C16.0233%204.50372%2016.2422%204.34551%2016.4789%204.35772ZM4.00446%204.65701L4.03289%204.74266L4.77618%207.90516L5.72991%208.243C5.96129%208.32495%206.09468%208.55983%206.05671%208.79383L6.0343%208.88124C5.95236%209.11262%205.71748%209.24601%205.48348%209.20804L5.39607%209.18563L4.18598%208.75706C4.05236%208.70973%203.94642%208.6085%203.89228%208.48025L3.8662%208.40027L3.05947%204.97169C2.99623%204.70289%203.16286%204.43371%203.43166%204.37047C3.6706%204.31425%203.90983%204.43966%204.00446%204.65701ZM8.00853%203.17116L8.04773%203.25244L8.85446%205.3953C8.95175%205.65373%208.82112%205.94211%208.56268%206.0394C8.33296%206.12588%208.07959%206.03228%207.95779%205.8289L7.91858%205.74763L7.11186%203.60477C7.01457%203.34633%207.1452%203.05796%207.40363%202.96066C7.60464%202.88499%207.82375%202.9472%207.95699%203.10018L8.00853%203.17116ZM12.5963%202.96066C12.826%203.04715%2012.9547%203.28461%2012.9122%203.51781L12.888%203.60477L12.0813%205.74762C11.984%206.00606%2011.6957%206.13669%2011.4372%206.0394C11.2075%205.95292%2011.0788%205.71546%2011.1213%205.48225L11.1455%205.3953L11.9522%203.25244C12.0495%202.994%2012.3378%202.86337%2012.5963%202.96066Z%22%20fill%3D%22black%22%3E%3C%2Fpath%3E%0A%3C%2Fsvg%3E" },
+      { title: 'Periodic Threat Briefing', iconSrc: "data:image/svg+xml;utf8,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Cpath%20d%3D%22M15.7143%203.92857H4.28571C3.29949%203.92857%202.5%204.72806%202.5%205.71429V15.7143C2.5%2016.7005%203.29949%2017.5%204.28571%2017.5H15.7143C16.7005%2017.5%2017.5%2016.7005%2017.5%2015.7143V5.71429C17.5%204.72806%2016.7005%203.92857%2015.7143%203.92857ZM4.28571%204.64286H15.7143C16.306%204.64286%2016.7857%205.12255%2016.7857%205.71429V15.7143C16.7857%2016.306%2016.306%2016.7857%2015.7143%2016.7857H4.28571C3.69398%2016.7857%203.21429%2016.306%203.21429%2015.7143V5.71429C3.21429%205.12255%203.69398%204.64286%204.28571%204.64286Z%22%20fill%3D%22black%22%3E%3C%2Fpath%3E%0A%3Cpath%20d%3D%22M12.8571%202.5C13.0325%202.5%2013.1783%202.62634%2013.2085%202.79295L13.2143%202.85714V5.71429C13.2143%205.91153%2013.0544%206.07143%2012.8571%206.07143C12.6818%206.07143%2012.536%205.94509%2012.5058%205.77848L12.5%205.71429V2.85714C12.5%202.6599%2012.6599%202.5%2012.8571%202.5Z%22%20fill%3D%22black%22%3E%3C%2Fpath%3E%0A%3Cpath%20d%3D%22M7.14286%202.5C7.31819%202.5%207.46401%202.62634%207.49425%202.79295L7.5%202.85714V5.71429C7.5%205.91153%207.3401%206.07143%207.14286%206.07143C6.96753%206.07143%206.82171%205.94509%206.79147%205.77848L6.78571%205.71429V2.85714C6.78571%202.6599%206.94561%202.5%207.14286%202.5Z%22%20fill%3D%22black%22%3E%3C%2Fpath%3E%0A%3Cpath%20d%3D%22M16.4286%208.21429C16.6258%208.21429%2016.7857%208.37418%2016.7857%208.57143C16.7857%208.74676%2016.6594%208.89258%2016.4928%208.92282L16.4286%208.92857H3.57143C3.37418%208.92857%203.21429%208.76867%203.21429%208.57143C3.21429%208.3961%203.34063%208.25028%203.50723%208.22004L3.57143%208.21429H16.4286Z%22%20fill%3D%22black%22%3E%3C%2Fpath%3E%0A%3C%2Fsvg%3E" },
+      { title: 'Flash Report', iconSrc: "data:image/svg+xml;utf8,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Cpath%20d%3D%22M4.42742%2011.4642L4.39514%2011.5161C4.27732%2011.746%204.44184%2012.0341%204.71429%2012.0341L9.83645%2012.0335L8.54486%2017.634C8.45784%2018.0112%208.94916%2018.2379%209.17974%2017.927L16.144%208.5357L16.1763%208.48385C16.2941%208.25399%2016.1296%207.96583%2015.8572%207.96583L10.7343%207.96569L12.0266%202.36598C12.1136%201.98879%2011.6223%201.76203%2011.3917%202.07296L4.42742%2011.4642ZM10.945%203.87283L9.93773%208.24268L9.92903%208.30331C9.9175%208.50355%2010.0769%208.68011%2010.2857%208.68011L15.1472%208.67998L9.62574%2016.1264L10.6337%2011.7573L10.6424%2011.6966C10.654%2011.4964%2010.4945%2011.3198%2010.2857%2011.3198L5.42359%2011.3193L10.945%203.87283Z%22%20fill%3D%22black%22%3E%3C%2Fpath%3E%0A%3C%2Fsvg%3E" },
+      { title: 'Third-Party Breach Report', iconSrc: "data:image/svg+xml;utf8,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Cpath%20fill-rule%3D%22evenodd%22%20clip-rule%3D%22evenodd%22%20d%3D%22M3.22611%202.02454C3.00921%202.03716%202.85717%202.20783%202.85717%202.39129V6.93042C2.85657%2011.4999%205.79214%2015.7294%2010%2017.9316C14.2074%2015.7288%2017.1429%2011.4998%2017.1429%206.93042V2.39129C17.1429%202.20785%2016.9908%202.03716%2016.7739%202.02454C16.273%202.1099%2015.8153%202.19138%2015.3871%202.26762C13.4222%202.61744%2012.0759%202.85713%2010%202.85713C7.92418%202.85713%206.57792%202.61745%204.613%202.26763C4.18474%202.19138%203.7271%202.10991%203.22611%202.02454ZM2.14288%202.39129C2.14288%201.78153%202.65195%201.30951%203.25191%201.30951C3.27197%201.30951%203.29201%201.3112%203.31179%201.31457C3.8379%201.40405%204.31352%201.48864%204.75476%201.56712C6.71115%201.9151%207.99153%202.14284%2010%202.14284C12.0085%202.14284%2013.2889%201.9151%2015.2453%201.56711C15.6866%201.48864%2016.1622%201.40404%2016.6882%201.31457C16.708%201.3112%2016.7281%201.30951%2016.7481%201.30951C17.348%201.30951%2017.8572%201.78151%2017.8572%202.39129V6.93042C17.8572%2011.8711%2014.6532%2016.3732%2010.1616%2018.6518C10.0601%2018.7033%209.94007%2018.7033%209.83852%2018.6518C5.34637%2016.3738%202.14226%2011.8713%202.14288%206.93042V6.93042V2.39129Z%22%20fill%3D%22black%22%3E%3C%2Fpath%3E%0A%3Cpath%20fill-rule%3D%22evenodd%22%20clip-rule%3D%22evenodd%22%20d%3D%22M10%205.35713C9.2768%205.35713%208.6905%205.94342%208.6905%206.66665C8.6905%207.38988%209.2768%207.97618%2010%207.97618C10.7233%207.97618%2011.3096%207.38988%2011.3096%206.66665C11.3096%205.94342%2010.7233%205.35713%2010%205.35713ZM7.97622%206.66665C7.97622%205.54893%208.88231%204.64284%2010%204.64284C11.1177%204.64284%2012.0238%205.54893%2012.0238%206.66665C12.0238%207.78437%2011.1177%208.69046%2010%208.69046C8.88231%208.69046%207.97622%207.78437%207.97622%206.66665Z%22%20fill%3D%22black%22%3E%3C%2Fpath%3E%0A%3Cpath%20fill-rule%3D%22evenodd%22%20clip-rule%3D%22evenodd%22%20d%3D%22M7.14288%2012.5C7.14288%2010.922%208.42207%209.64284%2010%209.64284C11.578%209.64284%2012.8572%2010.922%2012.8572%2012.5C12.8572%2012.6972%2012.6973%2012.8571%2012.5%2012.8571C12.3028%2012.8571%2012.1429%2012.6972%2012.1429%2012.5C12.1429%2011.3165%2011.1835%2010.3571%2010%2010.3571C8.81656%2010.3571%207.85717%2011.3165%207.85717%2012.5C7.85717%2012.6972%207.69727%2012.8571%207.50003%2012.8571C7.30278%2012.8571%207.14288%2012.6972%207.14288%2012.5Z%22%20fill%3D%22black%22%3E%3C%2Fpath%3E%0A%3C%2Fsvg%3E" },
+      { title: 'Supply Chain Attack Report', iconSrc: "data:image/svg+xml;utf8,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Cpath%20fill-rule%3D%22evenodd%22%20clip-rule%3D%22evenodd%22%20d%3D%22M4.3827%202.85818C4.22594%202.8708%204.10714%203.00023%204.10714%203.1522V7.23742C4.10662%2011.3471%206.36938%2015.1254%209.99997%2017.0955C13.6302%2015.1249%2015.8929%2011.347%2015.8929%207.23742V3.1522C15.8929%203.00025%2015.774%202.8708%2015.6173%202.85818C13.1458%203.28948%2011.2688%203.50934%2010%203.50934C8.73117%203.50934%206.8542%203.28948%204.3827%202.85818ZM3.39286%203.1522C3.39286%202.59183%203.85025%202.14288%204.4079%202.14288C4.42853%202.14288%204.44912%202.14467%204.46944%202.14823C6.95075%202.5823%208.78963%202.79505%2010%202.79505C11.2104%202.79505%2013.0493%202.5823%2015.5305%202.14823C15.5509%202.14467%2015.5715%202.14288%2015.5921%202.14288C16.1497%202.14288%2016.6071%202.59181%2016.6071%203.1522V7.23742C16.6071%2011.6774%2014.1257%2015.7501%2010.1652%2017.8167C10.0617%2017.8707%209.93834%2017.8707%209.83483%2017.8167C5.87387%2015.7506%203.39231%2011.6775%203.39286%207.23742C3.39286%207.23743%203.39286%207.2374%203.39286%207.23742V3.1522Z%22%20fill%3D%22black%22%3E%3C%2Fpath%3E%0A%3Cpath%20fill-rule%3D%22evenodd%22%20clip-rule%3D%22evenodd%22%20d%3D%22M10.1597%205.51392C10.3361%205.60213%2010.4076%205.81666%2010.3194%205.99308L8.9112%208.80955H11.6667C11.7904%208.80955%2011.9054%208.87364%2011.9705%208.97893C12.0355%209.08422%2012.0415%209.2157%2011.9861%209.32641L10.3194%2012.6597C10.2312%2012.8362%2010.0167%2012.9077%209.84028%2012.8195C9.66386%2012.7313%209.59235%2012.5167%209.68056%2012.3403L11.0888%209.52384H8.33333C8.20956%209.52384%208.0946%209.45975%208.02953%209.35445C7.96446%209.24916%207.95854%209.11768%208.01389%209.00697L9.68056%205.67364C9.76877%205.49722%209.9833%205.42571%2010.1597%205.51392Z%22%20fill%3D%22black%22%3E%3C%2Fpath%3E%0A%3C%2Fsvg%3E" },
+      { title: 'Threat Hunting Report', iconSrc: "data:image/svg+xml;utf8,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Cpath%20fill-rule%3D%22evenodd%22%20clip-rule%3D%22evenodd%22%20d%3D%22M3.74875%202.30066L6.9382%202.30066C7.04119%202.30066%207.13916%202.34512%207.20698%202.42262L10.0633%205.68701L12.9196%202.42274C12.9874%202.34523%2013.0854%202.30078%2013.1883%202.30078L16.3778%202.30078C16.4725%202.30078%2016.5634%202.3384%2016.6303%202.40538C16.6973%202.47236%2016.7349%202.5632%2016.7349%202.65792V5.84737C16.7349%205.95036%2016.6905%206.04833%2016.613%206.11615L13.1161%209.17591L14.6412%2010.9189L14.9118%2011.1895L15.7225%2010.3789C16.1555%209.94584%2016.8576%209.94585%2017.2907%2010.3789C17.7237%2010.812%2017.7237%2011.5141%2017.2907%2011.9471L16.4801%2012.7577L18.8854%2015.1631C18.9398%2015.2175%2018.9752%2015.2881%2018.9863%2015.3643L19.2567%2017.2247C19.2731%2017.3373%2019.2348%2017.451%2019.1537%2017.5307L18.8855%2017.7944L18.6264%2018.058C18.5469%2018.1389%2018.4336%2018.1772%2018.3213%2018.1612L16.4562%2017.8955C16.3796%2017.8846%2016.3087%2017.8491%2016.254%2017.7945L13.8487%2015.3891L13.0381%2016.1997C12.605%2016.6328%2011.9029%2016.6328%2011.4698%2016.1997C11.0368%2015.7667%2011.0368%2015.0646%2011.4698%2014.6315L12.2805%2013.8209L12.0098%2013.5503L10.0633%2011.8471L8.11672%2013.5504L7.84608%2013.821L8.6567%2014.6316C9.08975%2015.0647%209.08975%2015.7668%208.6567%2016.1999C8.22364%2016.6329%207.52152%2016.6329%207.08847%2016.1999L6.27786%2015.3892L3.87252%2017.7946C3.82517%2017.8419%203.76547%2017.875%203.70022%2017.8901L1.97234%2018.2885C1.85237%2018.3161%201.72662%2018.2801%201.63956%2018.193L1.24184%2017.7953L1.24114%2017.7946L0.841792%2017.3974C0.754172%2017.3103%200.717822%2017.1841%200.745685%2017.0637L1.14573%2015.3352C1.16081%2015.2701%201.19386%2015.2105%201.24114%2015.1632L3.64648%2012.7579L2.83586%2011.9472C2.40281%2011.5142%202.40281%2010.8121%202.83586%2010.379C3.26892%209.94596%203.97104%209.94596%204.40409%2010.379L5.21471%2011.1896L5.48534%2010.919L7.01055%209.17589L3.51357%206.11603C3.43606%206.04822%203.39161%205.95024%203.39161%205.84726L3.39161%202.6578C3.39161%202.56308%203.42923%202.47224%203.49621%202.40526C3.56319%202.33829%203.65403%202.30066%203.74875%202.30066ZM7.54811%209.64625L6.01506%2011.3983C6.00984%2011.4043%206.00442%2011.4101%205.99882%2011.4157L5.71978%2011.6947L7.34101%2013.3159L7.62005%2013.0369C7.62565%2013.0313%207.63144%2013.0259%207.6374%2013.0207L9.52099%2011.3725L7.54811%209.64625ZM4.15155%2013.2629L1.81855%2015.5959L1.48639%2017.0311L1.74621%2017.2895L2.0047%2017.548L3.43989%2017.2171L5.77278%2014.8842L4.15155%2013.2629ZM12.7855%2013.3158L14.4068%2011.6946L14.1277%2011.4156C14.1221%2011.4099%2014.1167%2011.4042%2014.1115%2011.3982L6.77614%203.01494L4.10589%203.01495V5.6852L12.4891%2013.0205C12.4951%2013.0258%2012.5009%2013.0312%2012.5065%2013.0368L12.7855%2013.3158ZM14.3538%2014.884L16.6749%2017.2052L18.2435%2017.4286L18.3824%2017.2872L18.5238%2017.1483L18.2965%2015.5843L15.975%2013.2628L14.3538%2014.884ZM12.6457%208.63835L16.0207%205.68531V3.01506L13.3504%203.01506L10.5379%206.22937L12.6457%208.63835ZM16.7856%2010.884C16.6315%2010.7299%2016.3816%2010.7299%2016.2275%2010.884L11.9749%2015.1366C11.8208%2015.2907%2011.8208%2015.5405%2011.9749%2015.6947C12.129%2015.8488%2012.3789%2015.8488%2012.533%2015.6947L16.7856%2011.442C16.9397%2011.2879%2016.9397%2011.0381%2016.7856%2010.884ZM3.89902%2010.8841C3.74491%2010.73%203.49505%2010.73%203.34094%2010.8841C3.18683%2011.0382%203.18683%2011.2881%203.34094%2011.4422L7.59355%2015.6948C7.74765%2015.8489%207.99751%2015.8489%208.15162%2015.6948C8.30573%2015.5407%208.30573%2015.2908%208.15162%2015.1367L3.89902%2010.8841Z%22%20fill%3D%22black%22%3E%3C%2Fpath%3E%0A%3C%2Fsvg%3E" },
+      { title: 'Red Team Adversary Emulation Report', iconSrc: "data:image/svg+xml;utf8,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Cpath%20fill-rule%3D%22evenodd%22%20clip-rule%3D%22evenodd%22%20d%3D%22M9.8118%205.88902C9.19316%205.50557%208.59578%205.33704%208.01342%205.35901C7.20364%205.38957%206.89952%205.53175%206.07894%205.91538C5.97296%205.96493%205.85836%206.01851%205.73295%206.07639C4.67298%206.56561%203.71394%206.97252%202.73066%206.67754C2.49454%206.6067%202.27771%206.51946%202.08417%206.41366C2.31328%209.33308%202.67836%2011.2982%203.15841%2012.3543C3.53006%2013.172%204.30914%2013.832%205.15952%2014.2922C6.01324%2014.7542%206.87059%2014.9783%207.33328%2014.9783C7.99663%2014.9783%208.84091%2014.7985%209.87648%2014.417C9.95618%2014.3876%2010.0437%2014.3876%2010.1234%2014.417C11.159%2014.7985%2012.0033%2014.9783%2012.6666%2014.9783C13.1293%2014.9783%2013.9867%2014.7542%2014.8404%2014.2922C15.6908%2013.832%2016.4698%2013.172%2016.8415%2012.3543C17.3215%2011.2982%2017.6866%209.33308%2017.9157%206.41366C17.7222%206.51946%2017.5054%206.6067%2017.2692%206.67754C16.286%206.97252%2015.3269%206.56561%2014.267%206.07639C14.1415%206.01851%2014.0269%205.96493%2013.921%205.91539C13.1004%205.53175%2012.7963%205.38957%2011.9865%205.35901C11.4041%205.33704%2010.8067%205.50557%2010.1881%205.88902C10.0728%205.96046%209.92706%205.96046%209.8118%205.88902ZM9.99995%205.17067C9.34237%204.80078%208.66963%204.61945%207.98648%204.64523C7.02792%204.68141%206.60403%204.8801%205.77545%205.2685C5.66887%205.31846%205.55559%205.37156%205.43362%205.42785C4.32692%205.93864%203.61929%206.19839%202.93591%205.99338C2.4252%205.84016%202.12312%205.62636%201.96378%205.38735C1.87407%205.25279%201.70515%205.1953%201.55199%205.24721C1.39883%205.29911%201.29966%205.44745%201.31024%205.60882C1.53224%208.99439%201.92238%2011.3612%202.50815%2012.6499C2.96984%2013.6656%203.8991%2014.4223%204.81955%2014.9204C5.73666%2015.4167%206.71264%2015.6926%207.33328%2015.6926C8.08434%2015.6926%208.9763%2015.4993%209.99995%2015.1321C11.0236%2015.4993%2011.9156%2015.6926%2012.6666%2015.6926C13.2873%2015.6926%2014.2632%2015.4167%2015.1803%2014.9204C16.1008%2014.4223%2017.0301%2013.6656%2017.4917%2012.6499C18.0775%2011.3612%2018.4677%208.9944%2018.6897%205.60882C18.7002%205.44745%2018.6011%205.29911%2018.4479%205.24721C18.2948%205.1953%2018.1258%205.25279%2018.0361%205.38735C17.8768%205.62636%2017.5747%205.84016%2017.064%205.99338C16.3806%206.19839%2015.673%205.93864%2014.5663%205.42785C14.4443%205.37156%2014.331%205.31846%2014.2245%205.2685C13.3959%204.8801%2012.972%204.68141%2012.0134%204.64523C11.3303%204.61945%2010.6575%204.80078%209.99995%205.17067ZM5.17637%208.98597C6.01699%208.809%206.69604%208.80213%207.27956%208.99664C7.81622%209.17553%208.28573%209.40634%208.70096%209.95269C9.00136%2010.348%209.12307%2010.8528%209.10695%2011.4288C9.10233%2011.5939%208.98513%2011.7342%208.82353%2011.7683C7.74407%2011.9955%206.80882%2012.0584%206.02898%2011.9384C5.17249%2011.8067%204.29466%2011.1357%203.39343%2010.0655C3.32047%209.97886%203.29293%209.86273%203.31923%209.75255C3.34553%209.64237%203.42254%209.55119%203.52677%209.50683C4.06442%209.27803%204.61437%209.10429%205.17637%208.98597ZM7.05368%209.67427C6.6372%209.53544%206.09944%209.52159%205.32353%209.68494C4.96841%209.7597%204.61808%209.85866%204.27244%209.98194C5.00345%2010.7677%205.62561%2011.1537%206.13759%2011.2325C6.73875%2011.325%207.48549%2011.2943%208.3861%2011.1269C8.35959%2010.8051%208.26838%2010.564%208.13227%2010.3849C7.83703%209.99641%207.51701%209.82872%207.05368%209.67427ZM12.7203%208.99664C13.3039%208.80213%2013.9829%208.809%2014.8235%208.98597C15.3855%209.10429%2015.9355%209.27803%2016.4731%209.50683C16.5774%209.55119%2016.6544%209.64237%2016.6807%209.75255C16.707%209.86273%2016.6794%209.97886%2016.6065%2010.0655C15.7052%2011.1357%2014.8274%2011.8067%2013.9709%2011.9384C13.1911%2012.0584%2012.2558%2011.9955%2011.1764%2011.7683C11.0148%2011.7342%2010.8976%2011.5939%2010.8929%2011.4288C10.8768%2010.8528%2010.9985%2010.348%2011.2989%209.95269C11.7142%209.40634%2012.1837%209.17553%2012.7203%208.99664ZM14.6764%209.68494C13.9005%209.52159%2013.3627%209.53544%2012.9462%209.67427C12.4829%209.82872%2012.1629%209.99641%2011.8676%2010.3849C11.7315%2010.564%2011.6403%2010.8051%2011.6138%2011.1269C12.5144%2011.2943%2013.2612%2011.325%2013.8623%2011.2325C14.3743%2011.1537%2014.9965%2010.7677%2015.7275%209.98194C15.3818%209.85866%2015.0315%209.7597%2014.6764%209.68494Z%22%20fill%3D%22black%22%3E%3C%2Fpath%3E%0A%3C%2Fsvg%3E" },
+      { title: 'Executive Memo', iconSrc: "data:image/svg+xml;utf8,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Cpath%20d%3D%22M4.83333%203.80955C3.89971%203.80955%203.14286%204.5664%203.14286%205.50003C3.14286%206.43365%203.89971%207.1905%204.83333%207.1905C5.76696%207.1905%206.52381%206.43365%206.52381%205.50003C6.52381%204.5664%205.76696%203.80955%204.83333%203.80955ZM4.83333%204.52384C5.37247%204.52384%205.80952%204.96089%205.80952%205.50003C5.80952%206.03916%205.37247%206.47622%204.83333%206.47622C4.2942%206.47622%203.85714%206.03916%203.85714%205.50003C3.85714%204.96089%204.2942%204.52384%204.83333%204.52384Z%22%20fill%3D%22black%22%3E%3C%2Fpath%3E%0A%3Cpath%20d%3D%22M5%208.14288C5.19724%208.14288%205.35714%208.30278%205.35714%208.50003C5.35714%208.69727%205.19724%208.85717%205%208.85717C3.8588%208.85717%202.92596%209.74925%202.86078%2010.8741L2.85714%2011V12.1429H3.5C3.6601%2012.1429%203.79793%2012.2489%203.84228%2012.3979L3.85438%2012.4557L4.315%2016.1422L6%2016.1429C6.17533%2016.1429%206.32115%2016.2692%206.35139%2016.4358L6.35714%2016.5C6.35714%2016.6754%206.2308%2016.8212%206.0642%2016.8514L6%2016.8572H4C3.8399%2016.8572%203.70206%2016.7512%203.65772%2016.6021L3.64561%2016.5443L3.18429%2012.8572H2.5C2.32467%2012.8572%202.17885%2012.7308%202.14861%2012.5642L2.14286%2012.5V11C2.14286%209.42207%203.42204%208.14288%205%208.14288Z%22%20fill%3D%22black%22%3E%3C%2Fpath%3E%0A%3Cpath%20d%3D%22M15.1667%203.80955C14.233%203.80955%2013.4762%204.5664%2013.4762%205.50003C13.4762%206.43365%2014.233%207.1905%2015.1667%207.1905C16.1003%207.1905%2016.8571%206.43365%2016.8571%205.50003C16.8571%204.5664%2016.1003%203.80955%2015.1667%203.80955ZM15.1667%204.52384C15.7058%204.52384%2016.1429%204.96089%2016.1429%205.50003C16.1429%206.03916%2015.7058%206.47622%2015.1667%206.47622C14.6275%206.47622%2014.1905%206.03916%2014.1905%205.50003C14.1905%204.96089%2014.6275%204.52384%2015.1667%204.52384Z%22%20fill%3D%22black%22%3E%3C%2Fpath%3E%0A%3Cpath%20d%3D%22M15%208.14288C16.5301%208.14288%2017.7793%209.34572%2017.8536%2010.8574L17.8571%2011V12.5C17.8571%2012.6754%2017.7308%2012.8212%2017.5642%2012.8514L17.5%2012.8572H16.815L16.3544%2016.5443C16.3345%2016.7032%2016.2123%2016.8268%2016.0589%2016.8523L16%2016.8572H14C13.8028%2016.8572%2013.6429%2016.6973%2013.6429%2016.5C13.6429%2016.3247%2013.7692%2016.1789%2013.9358%2016.1486L14%2016.1429L15.6843%2016.1422L16.1456%2012.4557C16.1655%2012.2969%2016.2877%2012.1732%2016.4411%2012.1477L16.5%2012.1429H17.1429V11C17.1429%209.85883%2016.2508%208.92598%2015.1259%208.86081L15%208.85717C14.8028%208.85717%2014.6429%208.69727%2014.6429%208.50003C14.6429%208.30278%2014.8028%208.14288%2015%208.14288Z%22%20fill%3D%22black%22%3E%3C%2Fpath%3E%0A%3Cpath%20d%3D%22M10%202.14288C8.69819%202.14288%207.64286%203.19821%207.64286%204.50003C7.64286%205.80184%208.69819%206.85717%2010%206.85717C11.3018%206.85717%2012.3571%205.80184%2012.3571%204.50003C12.3571%203.19821%2011.3018%202.14288%2010%202.14288ZM10%202.85717C10.9073%202.85717%2011.6429%203.5927%2011.6429%204.50003C11.6429%205.40735%2010.9073%206.14288%2010%206.14288C9.09267%206.14288%208.35714%205.40735%208.35714%204.50003C8.35714%203.5927%209.09267%202.85717%2010%202.85717Z%22%20fill%3D%22black%22%3E%3C%2Fpath%3E%0A%3Cpath%20d%3D%22M10%207.14288C7.86976%207.14288%206.14286%208.86979%206.14286%2011V12.5L6.14861%2012.5642C6.17885%2012.7308%206.32467%2012.8572%206.5%2012.8572H7.67643L8.14463%2017.5356C8.16289%2017.7181%208.31652%2017.8572%208.5%2017.8572H11.5L11.5599%2017.8522C11.716%2017.8257%2011.8391%2017.6978%2011.8554%2017.5356L12.3229%2012.8572H13.5C13.6972%2012.8572%2013.8571%2012.6973%2013.8571%2012.5V11C13.8571%208.86979%2012.1302%207.14288%2010%207.14288ZM10.1523%207.86079C11.8173%207.94022%2013.1429%209.31533%2013.1429%2011L13.1421%2012.1429H12L11.9401%2012.1479C11.784%2012.1743%2011.6609%2012.3022%2011.6446%2012.4645L11.1764%2017.1429H8.82286L8.35537%2012.4645L8.34442%2012.4054C8.3026%2012.2527%208.1631%2012.1429%208%2012.1429H6.85714V11C6.85714%209.26427%208.26425%207.85717%2010%207.85717L10.1523%207.86079Z%22%20fill%3D%22black%22%3E%3C%2Fpath%3E%0A%3C%2Fsvg%3E" },
+      { title: 'Mergers & Acquisitions Due Diligence', iconSrc: "data:image/svg+xml;utf8,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Cpath%20d%3D%22M3%202.3913C3.00001%202.29133%203.0835%202.18226%203.22266%202.16864C3.70003%202.25007%204.13688%202.32811%204.54688%202.40106C4.86757%202.45813%205.17291%202.51132%205.4668%202.56219L7.86523%208.92645C7.93861%209.12107%208.12504%209.24956%208.33301%209.24969H11.6494L12.0049%2011.737C12.0202%2011.8446%2012.0704%2011.9446%2012.1475%2012.0212L14.335%2014.194C13.1747%2015.6434%2011.6912%2016.8718%2010.001%2017.7682C5.86814%2015.5765%203%2011.414%203%206.93036V2.3913ZM17%206.93036C17.0003%209.24023%2016.2397%2011.4632%2014.9346%2013.3796L12.9717%2011.4294L12.5781%208.67938L12.5576%208.59052C12.4904%208.39022%2012.3009%208.24969%2012.083%208.24969H8.67871L6.60449%202.74481C7.66974%202.90218%208.68865%202.99969%2010%202.99969C12.5377%202.99969%2013.9986%202.64281%2016.7783%202.16864C16.9169%202.18266%2017%202.29153%2017%202.3913V6.93036ZM2%206.93036C2%2011.9336%205.24244%2016.4802%209.77344%2018.779C9.9156%2018.8511%2010.0844%2018.8511%2010.2266%2018.779C12.2791%2017.738%2014.0618%2016.2401%2015.4004%2014.4509C17.0242%2012.2805%2018.0004%209.67312%2018%206.93036V2.3913C18%201.69773%2017.4219%201.16669%2016.748%201.16669L16.6641%201.17352C13.798%201.66099%2012.446%201.99969%2010%201.99969C8.41894%201.99969%207.28794%201.85737%205.91699%201.62567C5.54162%201.56223%205.14878%201.49251%204.72266%201.41669C4.29709%201.34096%203.83884%201.25906%203.33594%201.17352L3.25195%201.16669C2.57816%201.16669%202.00001%201.6977%202%202.3913V6.93036Z%22%20fill%3D%22black%22%3E%3C%2Fpath%3E%0A%3C%2Fsvg%3E" },
+    ];
+    const crTemplateItems = crTemplateList.map(t => ({
+      title: t.title, iconImg: React.createElement('img', { src: t.iconSrc, alt: '', style: { width: 20, height: 20, display: 'block' } }),
+      selectFn: () => this.setState({ crTemplate: t.title, crStep: 'audience' }),
+    }));
+    const crAudienceItems = crAudienceList
+      .filter(a => (crAudienceMap[a] || []).includes(crTemplateLabel))
+      .map(label => ({
+        label,
+        selectFn: () => { window.location.href = 'index.html?template=' + encodeURIComponent(crTemplateLabel || '') + '&audience=' + encodeURIComponent(label); },
+      }));
+
+    return {
+      si, askAiOpen, toggleAskAi, histIcon, helpIcon, cves, goToReportBuilder,
+      crOpen, crStepAudience, crStepTemplate,
+      toggleCreateReport, closeCreateReport,
+      crChevron, crChevRight, crChevLeft, crAudienceItems, crTemplateItems, crTemplateLabel,
+      backToTemplates,
+      rbIconNav, rbIconBtn,
+    };
+  }
+}
+</script>
+</body>
+</html>

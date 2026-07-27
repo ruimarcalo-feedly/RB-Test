@@ -1,0 +1,107 @@
+/* ============================================================
+   Feedly Threat Intelligence — Color tokens
+   Extracted from "Website 2026" Figma variable collection.
+   Primitives (the raw palette) + semantic aliases (use these).
+   ============================================================ */
+
+:root {
+  /* ---- Brand green (the Feedly signal green) ---- */
+  --fdl-green-50:   rgb(244, 251, 246);
+  --fdl-green-100:  rgb(234, 247, 237);
+  --fdl-green-150:  rgb(223, 243, 228);
+  --fdl-green-200:  rgb(213, 240, 219);
+  --fdl-green-300:  rgb(191, 232, 201);
+  --fdl-green-400:  rgb(170, 224, 183);
+  --fdl-green-500:  rgb(149, 217, 165);
+  --fdl-green-700:  rgb(107, 201, 130);
+  --fdl-green-900:  rgb(64, 186, 94);
+  --fdl-green-1000: rgb(43, 178, 76);   /* core brand green #2BB24C */
+  --fdl-green-1200: rgb(34, 142, 61);
+  --fdl-green-1500: rgb(22, 89, 38);
+  --fdl-green-1700: rgb(13, 53, 23);
+  --fdl-green-vivid: rgb(34, 224, 89);  /* logo gradient top #22E059 */
+  --fdl-green-tint:  rgb(232, 255, 242); /* lightest brand wash #E8FFF2 */
+
+  /* ---- Ink / dark blue (primary text + dark sections) ---- */
+  --fdl-ink-1000: rgb(6, 20, 39);     /* primary text / dark surface #061427 */
+  --fdl-ink-800:  rgb(48, 66, 90);
+  --fdl-ink-500:  rgb(113, 134, 164);
+  --fdl-ink-50:   rgb(242, 242, 245);
+  --fdl-navy-vivid: rgb(9, 5, 46);    /* deep marketing navy #09052E */
+
+  /* ---- Neutral grays ---- */
+  --fdl-white:      rgb(255, 255, 255);
+  --fdl-neutral-50:   rgb(252, 252, 252);
+  --fdl-neutral-100:  rgb(242, 242, 242);
+  --fdl-neutral-150:  rgb(236, 237, 238);
+  --fdl-neutral-200:  rgb(230, 230, 230);
+  --fdl-neutral-250:  rgb(217, 217, 217);
+  --fdl-neutral-300:  rgb(191, 191, 191);
+  --fdl-neutral-400:  rgb(158, 158, 158);
+  --fdl-neutral-500:  rgb(117, 117, 117);  /* secondary text #757575 */
+  --fdl-neutral-600:  rgb(100, 100, 100);
+  --fdl-neutral-700:  rgb(76, 76, 76);
+  --fdl-neutral-800:  rgb(51, 51, 51);
+  --fdl-neutral-900:  rgb(38, 38, 38);
+  --fdl-neutral-950:  rgb(32, 32, 32);
+  --fdl-neutral-1000: rgb(26, 26, 26);
+  --fdl-neutral-1100: rgb(18, 18, 18);
+  --fdl-surface-grey: rgb(246, 247, 248);   /* light section bg #F6F7F8 */
+
+  /* ---- Accents ---- */
+  --fdl-blue-100:  rgb(235, 242, 250);
+  --fdl-blue-1000: rgb(57, 121, 204);   /* info / link #3979CC */
+  --fdl-blue-1800: rgb(14, 30, 51);
+  --fdl-indigo:    rgb(47, 81, 153);    /* deep accent #2F5199 */
+  --fdl-yellow-100: rgb(255, 247, 214);
+  --fdl-yellow:     rgb(241, 201, 37);  /* aware / highlight #F1C925 */
+  --fdl-yellow-300: rgb(255, 239, 182);
+  --fdl-teal:       rgb(0, 168, 158);   /* #00A89E */
+  --fdl-lime:       rgb(194, 212, 46);  /* #C2D42E */
+  --fdl-red-100:  rgb(254, 236, 235);
+  --fdl-red-1000: rgb(244, 67, 54);     /* danger #F44336 */
+  --fdl-red-1200: rgb(195, 54, 43);
+
+  /* ============================================================
+     SEMANTIC ALIASES — prefer these in product & marketing work
+     ============================================================ */
+
+  /* Text */
+  --text-primary:    var(--fdl-ink-1000);
+  --text-secondary:  var(--fdl-neutral-500);
+  --text-tertiary:   var(--fdl-neutral-400);
+  --text-disabled:   var(--fdl-neutral-300);
+  --text-brand:      var(--fdl-green-1000);
+  --text-link:       var(--fdl-blue-1000);
+  --text-on-dark:    var(--fdl-white);
+  --text-on-dark-secondary: rgba(255, 255, 255, 0.66);
+  --text-on-brand:   var(--fdl-white);
+
+  /* Surfaces */
+  --surface-page:        var(--fdl-white);
+  --surface-subtle:      var(--fdl-surface-grey);
+  --surface-sunken:      var(--fdl-neutral-100);
+  --surface-card:        var(--fdl-white);
+  --surface-dark:        var(--fdl-ink-1000);
+  --surface-dark-vivid:  var(--fdl-navy-vivid);
+  --surface-brand:       var(--fdl-green-1000);
+  --surface-brand-bold:  var(--fdl-green-1200);
+  --surface-brand-subtle:var(--fdl-green-tint);
+  --surface-aware:       var(--fdl-yellow-100);
+  --surface-danger:      var(--fdl-red-100);
+  --surface-info:        var(--fdl-blue-100);
+
+  /* Borders */
+  --border-subtle:  rgba(6, 20, 39, 0.08);
+  --border-default: var(--fdl-neutral-200);
+  --border-strong:  var(--fdl-neutral-250);
+  --border-brand:   var(--fdl-green-1000);
+  --border-focus:   var(--fdl-green-1000);
+  --border-on-dark: rgba(255, 255, 255, 0.18);
+
+  /* Status */
+  --status-success: var(--fdl-green-1000);
+  --status-warning: var(--fdl-yellow);
+  --status-danger:  var(--fdl-red-1000);
+  --status-info:    var(--fdl-blue-1000);
+}
