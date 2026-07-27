@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="ds/tokens/fonts.css">
+<link rel="stylesheet" href="ds/tokens/colors.css">
+<link rel="stylesheet" href="ds/tokens/typography.css">
+<link rel="stylesheet" href="ds/tokens/spacing.css">
+<link rel="stylesheet" href="ds/tokens/base.css">
+<link rel="stylesheet" href="ds/styles.css">
+<script src="ds/ds_bundle.js"></script>
+<style>
+  html,body{margin:0;height:100%}
+  .ni{transition:background var(--dur-fast) var(--ease-standard);cursor:pointer}
+  .ni:hover{background:var(--surface-subtle)}
+  .sc::-webkit-scrollbar{width:10px}
+  .sc::-webkit-scrollbar-thumb{background:var(--fdl-neutral-250);border-radius:8px;border:3px solid var(--surface-page)}
+</style>
+</helmet>
+
+<div style="display:flex;height:100vh;overflow:hidden;background:var(--surface-page);font-family:var(--font-body);color:var(--text-primary)">
+
+  <!-- SIDEBAR -->
+  <aside class="sc" style="flex:0 0 296px;width:296px;height:100%;overflow-y:auto;border-right:1px solid var(--border-subtle);padding:14px 12px 40px;box-sizing:border-box">
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 8px 4px;margin-bottom:14px">
+      <div style="width:26px;height:26px;flex:0 0 26px;border-radius:7px;background:linear-gradient(135deg,#22E059,#2BB24C);display:flex;align-items:center;justify-content:center">
+        <span style="display:inline-flex;width:20px;height:20px;color:#fff">{{ si.feedly }}</span>
+      </div>
+      <div style="font-weight:600;font-size:15px;letter-spacing:-0.01em;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Feedly / Threat Intelligence</div>
+      <span style="display:inline-flex;width:20px;height:20px;color:var(--text-secondary)">{{ si.chevDown }}</span>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:1px;margin-bottom:14px">
+      <div class="ni" style="display:flex;align-items:center;gap:11px;height:34px;padding:0 8px;border-radius:8px;font-size:14px;font-weight:500"><span style="display:inline-flex;width:20px;height:20px;color:var(--fdl-neutral-700)">{{ si.plus }}</span>Create Intel Agent</div>
+      <div class="ni" style="display:flex;align-items:center;gap:11px;height:34px;padding:0 8px;border-radius:8px;font-size:14px;font-weight:500"><span style="display:inline-flex;width:20px;height:20px;color:var(--fdl-neutral-700)">{{ si.robot }}</span>Create AI Feed</div>
+      <div class="ni" style="display:flex;align-items:center;gap:11px;height:34px;padding:0 8px;border-radius:8px;font-size:14px;font-weight:500"><span style="display:inline-flex;width:20px;height:20px;color:var(--fdl-neutral-700)">{{ si.globe }}</span>Follow Sources</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:1px;margin-bottom:16px">
+      <div class="ni" onClick="{{ goToReportBuilder }}" style="display:flex;align-items:center;gap:11px;height:34px;padding:0 8px;border-radius:8px;font-size:14px;font-weight:500"><span style="display:inline-flex;width:20px;height:20px;color:var(--fdl-neutral-700)">{{ rbIconNav }}</span><span style="flex:1">Report Builder</span><span style="font-size:12px;color:var(--text-tertiary)">Beta</span></div>
+      <div class="ni" style="display:flex;align-items:center;gap:11px;height:34px;padding:0 8px;border-radius:8px;font-size:14px;font-weight:500"><span style="display:inline-flex;width:20px;height:20px;color:var(--fdl-neutral-700)">{{ si.radar }}</span>Today</div>
+      <div class="ni" style="display:flex;align-items:center;gap:11px;height:34px;padding:0 8px;border-radius:8px;font-size:14px;font-weight:500"><span style="display:inline-flex;width:20px;height:20px;color:var(--fdl-neutral-700)">{{ si.shieldL }}</span>Threat Landscape</div>
+      <div class="ni" style="display:flex;align-items:center;gap:11px;height:34px;padding:0 8px;border-radius:8px;font-size:14px;font-weight:500"><span style="display:inline-flex;width:20px;height:20px;color:var(--fdl-neutral-700)">{{ si.plane }}</span>Automated Newsletters</div>
+      <div class="ni" style="display:flex;align-items:center;gap:11px;height:34px;padding:0 8px;border-radius:8px;font-size:14px;font-weight:500"><span style="display:inline-flex;width:20px;height:20px;color:var(--fdl-neutral-700)">{{ si.shieldU }}</span>Intel Profile</div>
+      <div class="ni" style="display:flex;align-items:center;gap:11px;height:34px;padding:0 8px;border-radius:8px;font-size:14px;font-weight:500"><span style="display:inline-flex;width:20px;height:20px;color:var(--fdl-neutral-700)">{{ si.gear }}</span>Integrations &amp; API</div>
+    </div>
+
+    <div style="padding:6px 8px 4px;font-size:11px;font-weight:600;letter-spacing:0.04em;color:var(--text-tertiary)">Intel Agents</div>
+    <div class="ni" style="display:flex;align-items:center;gap:8px;height:32px;padding:0 8px;border-radius:8px;font-size:14px;font-weight:500"><span style="display:inline-flex;width:18px;height:18px;color:var(--text-secondary)">{{ si.chevDown }}</span>Custom Agent</div>
+    <div style="padding-left:14px;display:flex;flex-direction:column;gap:1px;margin-bottom:4px">
+      <div class="ni" style="display:flex;align-items:center;gap:10px;height:30px;padding:0 8px;border-radius:8px;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="display:inline-flex;width:16px;height:16px;color:var(--fdl-neutral-600)">{{ si.lightning }}</span>Ransomware campaigns targeting…</div>
+      <div class="ni" style="display:flex;align-items:center;gap:10px;height:30px;padding:0 8px;border-radius:8px;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="display:inline-flex;width:16px;height:16px;color:var(--fdl-neutral-600)">{{ si.lightning }}</span>Lazarus Group TTPs</div>
+    </div>
+    <div class="ni" style="display:flex;align-items:center;gap:8px;height:32px;padding:0 8px;border-radius:8px;font-size:14px;font-weight:500"><span style="display:inline-flex;width:18px;height:18px;color:var(--text-secondary)">{{ si.chevDown }}</span>TTPs</div>
+    <div style="padding-left:14px;display:flex;flex-direction:column;gap:1px;margin-bottom:4px">
+      <div class="ni" style="display:flex;align-items:center;gap:10px;height:30px;padding:0 8px;border-radius:8px;font-size:13px"><span style="display:inline-flex;width:16px;height:16px;color:var(--fdl-neutral-600)">{{ si.crosshairs }}</span>basic 7 days</div>
+      <div class="ni" style="display:flex;align-items:center;gap:10px;height:30px;padding:0 8px;border-radius:8px;font-size:13px"><span style="display:inline-flex;width:16px;height:16px;color:var(--fdl-neutral-600)">{{ si.crosshairs }}</span>Lazarus Group - Last 30 days</div>
+      <div class="ni" style="display:flex;align-items:center;gap:10px;height:30px;padding:0 8px;border-radius:8px;font-size:13px"><span style="display:inline-flex;width:16px;height:16px;color:var(--fdl-neutral-600)">{{ si.crosshairs }}</span>Russian TA</div>
+    </div>
+    <div class="ni" style="display:flex;align-items:center;gap:8px;height:32px;padding:0 8px;border-radius:8px;font-size:14px;font-weight:500"><span style="display:inline-flex;width:18px;height:18px;color:var(--text-secondary)">{{ si.chevDown }}</span>Vulnerabilities</div>
+    <div style="padding-left:14px;display:flex;flex-direction:column;gap:1px">
+      <div class="ni" style="display:flex;align-items:center;gap:10px;height:30px;padding:0 8px;border-radius:8px;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="display:inline-flex;width:16px;height:16px;color:var(--fdl-neutral-600)">{{ si.bug }}</span>vulns with exploit trending…</div>
+      <div class="ni" style="display:flex;align-items:center;gap:10px;height:30px;padding:0 8px;border-radius:8px;font-size:13px;font-weight:600;background:var(--surface-subtle)"><span style="display:inline-flex;width:16px;height:16px;color:var(--fdl-neutral-600)">{{ si.bug }}</span>Trending High+ CVEs</div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT + ASK AI -->
+  <div style="flex:1;display:flex;height:100%;min-width:0;overflow:hidden">
+
+    <!-- CVE main content -->
+    <div style="flex:1;display:flex;flex-direction:column;height:100%;min-width:0;overflow:hidden">
+      <!-- Header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 24px;border-bottom:1px solid var(--border-subtle);flex:0 0 auto">
+        <div style="font-size:17px;font-weight:600;color:var(--text-primary);letter-spacing:-0.01em">Trending High+ CVEs</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;color:var(--text-tertiary);cursor:pointer" class="ni">{{ si.plane }}</span>
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;color:var(--text-tertiary);cursor:pointer" class="ni">{{ si.spy }}</span>
+          <div style="position:relative">
+            <div onClick="{{ toggleCreateReport }}" class="ni" style="display:inline-flex;align-items:center;height:30px;border-radius:6px;background:var(--surface-card);border:1px solid var(--border-subtle);color:var(--text-primary);font-size:13px;font-weight:500;cursor:pointer;overflow:hidden">
+              <span style="display:inline-flex;align-items:center;gap:7px;padding:0 12px"><span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;color:var(--text-secondary)">{{ rbIconBtn }}</span>Create report</span>
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:30px;color:var(--text-tertiary)">{{ crChevron }}</span>
+            </div>
+            <sc-if value="{{ crOpen }}" hint-placeholder-val="{{ false }}">
+              <div onClick="{{ closeCreateReport }}" style="position:fixed;inset:0;z-index:290"></div>
+              <div style="position:absolute;top:calc(100% + 8px);right:0;z-index:300;width:322px;background:#fff;border:1px solid var(--border-subtle);border-radius:14px;box-shadow:0 14px 40px rgba(6,20,39,0.18);padding:6px">
+                <sc-if value="{{ crStepTemplate }}" hint-placeholder-val="{{ true }}">
+                  <div style="padding:9px 12px 7px;font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-tertiary)">Select template</div>
+                  <sc-for list="{{ crTemplateItems }}" as="t" hint-placeholder-count="6">
+                    <div class="ni" onClick="{{ t.selectFn }}" style="display:flex;align-items:center;gap:12px;min-height:44px;padding:8px 12px;border-radius:9px;cursor:pointer;font-size:14px;font-weight:500;color:var(--text-primary)">
+                      <span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;flex:0 0 20px">{{ t.iconImg }}</span>
+                      <span style="flex:1">{{ t.title }}</span>
+                      <span style="display:inline-flex;width:17px;height:17px;color:var(--text-tertiary);flex:0 0 17px">{{ crChevRight }}</span>
+                    </div>
+                  </sc-for>
+                </sc-if>
+                <sc-if value="{{ crStepAudience }}" hint-placeholder-val="{{ false }}">
+                  <div class="ni" onClick="{{ backToTemplates }}" style="display:flex;align-items:center;gap:9px;height:42px;padding:0 12px;border-radius:9px 9px 0 0;cursor:pointer;font-size:13px;font-weight:600;color:var(--text-secondary);border-bottom:1px solid var(--border-subtle);margin-bottom:4px">
+                    <span style="display:inline-flex;width:16px;height:16px;flex:0 0 16px;color:var(--text-tertiary)">{{ crChevLeft }}</span>
+                    <span style="flex:1">{{ crTemplateLabel }}</span>
+                  </div>
+                  <div style="padding:9px 12px 7px;font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-tertiary)">Select audience</div>
+                  <sc-for list="{{ crAudienceItems }}" as="a" hint-placeholder-count="4">
+                    <div class="ni" onClick="{{ a.selectFn }}" style="display:flex;align-items:center;min-height:44px;padding:8px 12px;border-radius:9px;cursor:pointer;font-size:14px;font-weight:500;color:var(--text-primary)">
+                      <span style="flex:1">{{ a.label }}</span>
+                    </div>
+                  </sc-for>
+                </sc-if>
+              </div>
+            </sc-if>
+          </div>
+          <span onClick="{{ toggleAskAi }}" style="display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 12px;border-radius:6px;border:1px solid var(--border-subtle);font-size:13px;font-weight:500;color:var(--text-primary);cursor:pointer" class="ni"><span style="display:inline-flex;width:14px;height:14px">{{ si.sparkles }}</span>Analyze</span>
+          <span style="display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:6px;border:1px solid var(--border-strong);font-size:13px;font-weight:500;color:var(--text-primary);cursor:pointer" class="ni">Save Changes</span>
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;color:var(--text-tertiary);cursor:pointer" class="ni">{{ si.ellipsis }}</span>
+        </div>
+      </div>
+      <!-- Scrollable body -->
+      <div class="sc" style="flex:1;overflow-y:auto">
+        <div style="padding:18px 52px 60px">
+          <!-- Filters -->
+          <div style="margin-bottom:14px">
+            <span style="display:inline-flex;align-items:center;height:28px;padding:0 14px;border-radius:6px;border:1px solid var(--border-strong);font-size:13px;color:var(--text-primary);cursor:pointer" class="ni">Show Filters</span>
+          </div>
+          <!-- Tabs -->
+          <div style="display:flex;border-bottom:1px solid var(--border-subtle);margin-bottom:22px">
+            <div style="height:36px;padding:0 4px;margin-right:20px;display:flex;align-items:center;font-size:14px;font-weight:600;color:var(--text-primary);border-bottom:2px solid var(--fdl-green-700);cursor:pointer">Vulnerabilities</div>
+            <div style="height:36px;padding:0 4px;display:flex;align-items:center;font-size:14px;color:var(--text-secondary);cursor:pointer" class="ni">Trends &amp; Visualizations</div>
+          </div>
+          <!-- Stats -->
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:26px">
+            <div style="padding:14px 18px;border:1px solid var(--border-subtle);border-radius:12px">
+              <div style="font-size:12px;color:var(--text-secondary);margin-bottom:5px">Total vulnerabilities</div>
+              <div style="font-size:26px;font-weight:700;color:var(--text-primary);letter-spacing:-0.02em;font-family:var(--font-display)">32</div>
+            </div>
+            <div style="padding:14px 18px;border:1px solid var(--border-subtle);border-radius:12px">
+              <div style="font-size:12px;color:var(--text-secondary);margin-bottom:5px">Weaponized vulnerabilities</div>
+              <div style="font-size:26px;font-weight:700;color:var(--text-primary);letter-spacing:-0.02em;font-family:var(--font-display)">3</div>
+            </div>
+            <div style="padding:14px 18px;border:1px solid var(--border-subtle);border-radius:12px">
+              <div style="font-size:12px;color:var(--text-secondary);margin-bottom:5px">Exploited vulnerabilities</div>
+              <div style="font-size:26px;font-weight:700;color:var(--text-primary);letter-spacing:-0.02em;font-family:var(--font-display)">4</div>
+            </div>
+          </div>
+          <!-- Table -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div style="font-size:15px;font-weight:600;color:var(--text-primary)">Vulnerabilities</div>
+            <span style="display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px;border-radius:6px;border:1px solid var(--border-subtle);font-size:12px;color:var(--text-secondary);cursor:pointer" class="ni">&#8644; Reorder columns</span>
+          </div>
+          <div style="display:grid;grid-template-columns:82px 1fr 100px 100px 1fr;gap:14px;padding:0 10px 8px;border-bottom:1px solid var(--border-subtle)">
+            <div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.04em">Status</div>
+            <div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.04em">CVE ID</div>
+            <div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.04em">Published</div>
+            <div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.04em">Patched</div>
+            <div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.04em">What? So what?</div>
+          </div>
+          <sc-for list="{{ cves }}" as="cve" hint-placeholder-count="4">
+            <div style="display:grid;grid-template-columns:82px 1fr 100px 100px 1fr;gap:14px;padding:13px 10px;border-bottom:1px solid var(--border-subtle);align-items:start">
+              <div><span style="display:inline-flex;align-items:center;height:19px;padding:0 7px;border-radius:4px;background:#FFF3CD;color:#856404;font-size:11px;font-weight:600">Updated</span></div>
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--fdl-blue-1000);margin-bottom:3px;cursor:pointer">{{ cve.id }}</div>
+                <div style="font-size:12px;color:var(--text-secondary);line-height:1.5">{{ cve.desc }}</div>
+              </div>
+              <div style="font-size:12px;color:var(--text-secondary);padding-top:2px">{{ cve.published }}</div>
+              <div style="font-size:12px;color:var(--text-secondary);padding-top:2px">{{ cve.patched }}</div>
+              <div style="display:flex;flex-direction:column;gap:5px">
+                <sc-for list="{{ cve.bullets }}" as="b" hint-placeholder-count="2">
+                  <div style="display:flex;gap:6px;font-size:12px;color:var(--text-secondary);line-height:1.5;align-items:flex-start">
+                    <span style="flex:0 0 4px;margin-top:6px;width:4px;height:4px;border-radius:50%;background:var(--text-tertiary);display:inline-block"></span>
+                    <span>{{ b }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <!-- ASK AI PANEL (toggled by Analyze) -->
+    <sc-if value="{{ askAiOpen }}" hint-placeholder-val="{{ false }}">
+      <div class="sc" style="flex:0 0 400px;width:400px;border-left:1px solid var(--border-subtle);overflow-y:auto;background:#fff;height:100%">
+        <div style="display:flex;align-items:center;padding:16px 16px 14px;border-bottom:1px solid var(--border-subtle)">
+          <span style="font-size:15px;font-weight:700;color:var(--text-primary);flex:1">Ask AI</span>
+          <div style="display:flex;gap:10px;align-items:center">
+            <span style="display:inline-flex;align-items:center;justify-content:center;color:var(--text-tertiary);cursor:pointer" class="ni">{{ histIcon }}</span>
+            <span style="display:inline-flex;align-items:center;justify-content:center;color:var(--text-tertiary);cursor:pointer" class="ni">{{ helpIcon }}</span>
+            <span onClick="{{ toggleAskAi }}" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;color:var(--text-tertiary);cursor:pointer" class="ni">{{ si.cross }}</span>
+          </div>
+        </div>
+        <div style="padding:14px 16px;border-bottom:1px solid var(--border-subtle)">
+          <div style="border:1px solid var(--border-subtle);border-radius:10px;overflow:hidden">
+            <div style="padding:10px 12px;font-size:14px;color:var(--text-tertiary);line-height:1.5;min-height:48px">Ask about a threat actor, a CVE, or any cyber topic</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-top:1px solid var(--border-subtle)">
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;color:var(--text-tertiary);cursor:pointer" class="ni">{{ si.plus }}</span>
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;background:var(--fdl-neutral-100);border:1px solid var(--border-subtle);color:var(--text-secondary);cursor:pointer">{{ si.arrow }}</span>
+            </div>
+          </div>
+        </div>
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border-subtle)">
+          <div style="display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid var(--border-subtle);border-radius:10px;font-size:13px;color:var(--text-primary);cursor:pointer">
+            <span style="display:inline-flex;width:14px;height:14px;color:var(--fdl-neutral-500)">{{ si.bug }}</span>
+            Trending High+ CVEs
+            <span style="display:inline-flex;width:12px;height:12px;color:var(--text-tertiary);margin-left:2px">{{ si.cross }}</span>
+          </div>
+        </div>
+        <div style="padding:16px">
+          <div style="font-size:13px;font-weight:500;color:var(--text-secondary);margin-bottom:10px">Favorites</div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:4px">
+            <div class="ni" style="padding:10px 12px;border:1px solid var(--border-subtle);border-radius:8px;cursor:pointer;display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+              <div><div style="font-size:13px;color:var(--text-primary);line-height:1.4">test prompt</div><div style="font-size:12px;color:var(--text-tertiary);margin-top:2px">test angelo</div></div>
+              <span style="display:inline-flex;width:18px;height:18px;color:var(--text-tertiary);flex:0 0 18px">{{ si.ellipsis }}</span>
+            </div>
+            <div class="ni" style="padding:10px 12px;border:1px solid var(--border-subtle);border-radius:8px;cursor:pointer;display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+              <span style="font-size:13px;color:var(--text-primary);line-height:1.4">What are the latest developments for these vulnerabilities in the past 24 hours?</span>
+              <span style="display:inline-flex;width:18px;height:18px;color:var(--text-tertiary);flex:0 0 18px">{{ si.ellipsis }}</span>
+            </div>
+            <div class="ni" style="padding:10px 12px;border:1px solid var(--border-subtle);border-radius:8px;cursor:pointer;display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+              <span style="font-size:13px;color:var(--text-primary);line-height:1.4">How should I prioritize these CVEs?</span>
+              <span style="display:inline-flex;width:18px;height:18px;color:var(--text-tertiary);flex:0 0 18px">{{ si.ellipsis }}</span>
+            </div>
+          </div>
+          <div style="font-size:13px;color:var(--fdl-blue-1000);cursor:pointer;padding:6px 0 16px">See more</div>
+          <div style="font-size:13px;font-weight:500;color:var(--text-secondary);margin-bottom:10px">Suggestions</div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+            <div class="ni" style="padding:10px 12px;border:1px solid var(--border-subtle);border-radius:8px;cursor:pointer;display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+              <span style="font-size:13px;color:var(--text-primary);line-height:1.4">What are the latest developments for these vulnerabilities in the past 24 hours?</span>
+              <span style="display:inline-flex;width:18px;height:18px;color:var(--text-tertiary);flex:0 0 18px">{{ si.ellipsis }}</span>
+            </div>
+            <div class="ni" style="padding:10px 12px;border:1px solid var(--border-subtle);border-radius:8px;cursor:pointer;display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+              <span style="font-size:13px;color:var(--text-primary);line-height:1.4">How should I prioritize these CVEs?</span>
+              <span style="display:inline-flex;width:18px;height:18px;color:var(--text-tertiary);flex:0 0 18px">{{ si.ellipsis }}</span>
+            </div>
+            <div class="ni" style="padding:10px 12px;border:1px solid var(--border-subtle);border-radius:8px;cursor:pointer;display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+              <span style="font-size:13px;color:var(--text-primary);line-height:1.4">What is the most effective detection and mitigation strategy for prioritizing patches?</span>
+              <span style="display:inline-flex;width:18px;height:18px;color:var(--text-tertiary);flex:0 0 18px">{{ si.ellipsis }}</span>
+            </div>
+            <div class="ni" style="padding:10px 12px;border:1px solid var(--border-subtle);border-radius:8px;cursor:pointer;display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+              <span style="font-size:13px;color:var(--text-primary);line-height:1.4">Create a patch notification email for [CVE code].</span>
+              <span style="display:inline-flex;width:18px;height:18px;color:var(--text-tertiary);flex:0 0 18px">{{ si.ellipsis }}</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;height:36px;border-radius:8px;border:1px solid var(--border-strong);font-size:13px;color:var(--text-secondary);cursor:pointer" class="ni">Explore more prompts</div>
+        </div>
+      </div>
+    </sc-if>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { askAiOpen: false, crOpen: false, crStep: 'audience', crAudience: null };
+  componentDidMount() {
+    if (window.DesignSystem_2ce700) return;
+    const t = setInterval(() => { if (window.DesignSystem_2ce700) { clearInterval(t); this.forceUpdate(); } }, 50);
+    setTimeout(() => clearInterval(t), 15000);
+  }
+
+  renderVals() {
+    const ns = window.DesignSystem_2ce700 || {};
+    const React = window.React;
+    const ico = (name) => {
+      const C = ns[name];
+      return C ? React.createElement(C, { size: 'sm', style: { color: 'currentColor', flex: '0 0 auto' } }) : null;
+    };
+
+    const si = {
+      plus: ico('Plus'), robot: ico('Robot'), globe: ico('Globe'),
+      sparkles: ico('Sparkles'), arrow: ico('ArrowUpRight'), star: ico('Star'),
+      bullseye: ico('BullseyeArrow'), radar: ico('RadarAlt'),
+      shieldL: ico('ShieldLightning'), plane: ico('Paperplane'),
+      shieldU: ico('ShieldUser'), gear: ico('Gear'),
+      chevDown: ico('ChevronDown'), lightning: ico('Lightning'),
+      crosshairs: ico('Crosshairs'), bug: ico('Bug'),
+      feedly: ico('Feedly'), ellipsis: ico('Ellipsis'),
+      cross: ico('Cross'), spy: ico('Spy'),
+    };
+
+    const askAiOpen = this.state.askAiOpen;
+    const toggleAskAi = () => this.setState(s => ({ askAiOpen: !s.askAiOpen }));
+
+    const histIcon = React.createElement('svg', { viewBox: '0 0 18 18', width: 16, height: 16, fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round' },
+      React.createElement('path', { d: 'M3 9a6 6 0 1 0 1.5-3.9M3 4.5V9h4.5' }));
+    const helpIcon = React.createElement('svg', { viewBox: '0 0 18 18', width: 16, height: 16, fill: 'none', stroke: 'currentColor', strokeWidth: 1.5 },
+      React.createElement('circle', { cx: 9, cy: 9, r: 7 }),
+      React.createElement('path', { d: 'M9 13v.5', strokeWidth: 2, strokeLinecap: 'round' }),
+      React.createElement('path', { d: 'M9 10.5c0-1.2 1.5-1.8 1.5-3A1.5 1.5 0 0 0 7.5 7.5', strokeLinecap: 'round' }));
+
+    const cves = [
+      { id: 'CVE-2026-55200', desc: "libssh2 through 1.11.1 contains an out-of-bounds write in ssh2_transport_read() (transport.c) caused by an unchecked packet_length value, enabling pre-authentication remote code execution…", published: 'Jun 17, 2026', patched: 'Jun 17, 2026', bullets: ['Malicious SSH server can corrupt heap memory in any client that links libssh2 — curl, Git, PHP ssh2, backup agents, CI/CD runners and IoT firmware.', 'CVSS 9.2, no credentials or user interaction needed. Public PoC since late June 2026; no confirmed in-the-wild exploitation. Rebuild statically linked copies, not just libssh2.so.'] },
+      { id: 'CVE-2026-55199', desc: "libssh2 through 1.11.1 contains an out-of-bounds read and infinite loop in the SSH_MSG_EXT_INFO handler (packet.c), causing pre-authentication denial of service…", published: 'Jun 17, 2026', patched: 'Jun 17, 2026', bullets: ['A malicious server supplies crafted extension counts during key exchange, trapping the connecting client in a compute loop for 60+ seconds.', 'CVSS 8.2. Disclosed alongside CVE-2026-55200 and fixed by commit 1762685; no in-the-wild exploitation confirmed. Stalls backup jobs, deploy pipelines and monitoring agents.'] },
+      { id: 'CVE-2026-48558', desc: "SimpleHelp remote support software contains an authentication bypass in its OpenID Connect flow: forged IdP assertions with arbitrary identity claims yield a fully authenticated Technician session…", published: 'Jun 12, 2026', patched: 'Jun 12, 2026', bullets: ['Unauthenticated attackers create and authenticate as a new Technician on deployments using generic or Azure AD OIDC — full remote-support control of managed endpoints.', 'CVSS 10.0, added to CISA KEV with a July 2, 2026 federal deadline. Exploitation delivers TaskWeaver and Djinn Stealer, which harvests cloud, source-control and registry credentials.'] },
+      { id: 'CVE-2026-46817', desc: "Improper privilege management and missing authentication in the File Transmission component of Oracle Payments (Oracle E-Business Suite 12.2.3–12.2.15) allows full product takeover…", published: 'May 28, 2026', patched: 'May 28, 2026', bullets: ['Unauthenticated attackers reach the ibytransmit endpoint over HTTP and redirect an internal Java call to read arbitrary server files, leading to takeover of Oracle Payments.', 'CVSS 9.8 and exploited in the wild since June 27, 2026 — before any public PoC. Patched in Oracle\u2019s May 2026 Critical Security Patch Update.'] },
+      { id: 'CVE-2026-45504', desc: "Server-side request forgery in Microsoft Exchange Server: missing scheme validation on the WebApplicationUrl returned from attacker-controlled WOPI endpoints permits arbitrary file read…", published: 'Jun 9, 2026', patched: 'Jun 12, 2026', bullets: ['A low-privileged authenticated user creates an EWS ReferenceAttachment with a crafted ProviderEndpointUrl; previewing it makes Exchange fetch attacker-supplied file:// paths.', 'CVSS 8.8, not in CISA KEV, ~6% EPSS. Fixed in KB5094139/KB5094140/KB5094142/KB5094144 for Exchange 2019 CU14/CU15 and Subscription Edition.'] },
+    ];
+
+    const goToReportBuilder = () => { window.location.href = 'index.html'; };
+
+    // Report Builder pen-sparkle icon (currentColor)
+    const rbPaths = [
+      'M13.6325 4.4268C14.4834 3.73251 15.7386 3.78191 16.5319 4.57524L17.0914 5.13481C17.9375 5.98094 17.9375 7.35313 17.0914 8.19926L8.88246 16.4073C8.54183 16.7479 8.09775 16.9656 7.61976 17.0254L4.85316 17.3711C4.70021 17.3901 4.54711 17.3376 4.43812 17.2286C4.32914 17.1196 4.27657 16.9665 4.29555 16.8135L4.64125 14.0469C4.70106 13.5689 4.91882 13.1248 5.25941 12.7842L13.4674 4.57524L13.6325 4.4268ZM15.8248 5.28227C15.3693 4.82672 14.631 4.82682 14.1754 5.28227L5.96644 13.4913C5.78307 13.6746 5.66566 13.9136 5.63344 14.1709L5.36683 16.2989L7.49574 16.0332C7.7531 16.001 7.99207 15.8836 8.17543 15.7002L16.3844 7.49125C16.8398 7.03563 16.8399 6.2974 16.3844 5.84184L15.8248 5.28227Z',
+      'M12.1465 6.31311C12.3417 6.11785 12.6582 6.11785 12.8535 6.31311L15.3535 8.81311C15.5487 9.00838 15.5487 9.32488 15.3535 9.52014C15.1582 9.71541 14.8417 9.71541 14.6465 9.52014L12.1465 7.02014C11.9512 6.82488 11.9512 6.50837 12.1465 6.31311Z',
+      'M5.0016 1.16663C5.27771 1.16766 5.50064 1.39247 5.49965 1.66858C5.49587 2.64029 5.73166 3.31495 6.15394 3.75354C6.57517 4.19085 7.26316 4.47651 8.34437 4.49964C8.61856 4.5057 8.83708 4.73219 8.83363 5.00647C8.83007 5.28069 8.60591 5.50053 8.33168 5.49964C7.34398 5.4959 6.68537 5.75788 6.25746 6.19397C5.82347 6.63643 5.55101 7.33519 5.49965 8.35804C5.4861 8.62802 5.26012 8.83907 4.98988 8.83362C4.71955 8.82806 4.50207 8.60791 4.49965 8.33753C4.49092 7.37021 4.26986 6.68074 3.85609 6.23304C3.44973 5.79359 2.77625 5.49964 1.66664 5.49964C1.39189 5.49964 1.16861 5.27828 1.16664 5.00354C1.16469 4.72879 1.38507 4.50354 1.6598 4.49964C2.65766 4.48543 3.34482 4.23893 3.7848 3.81409C4.22071 3.39305 4.49587 2.7172 4.49965 1.66468C4.50072 1.38865 4.7256 1.16573 5.0016 1.16663ZM4.99672 3.86096C4.85544 4.11015 4.68468 4.33519 4.48012 4.53284C4.29543 4.71123 4.08918 4.86114 3.86586 4.98694C4.13926 5.13913 4.38076 5.32772 4.58949 5.55335C4.76594 5.74417 4.91215 5.95622 5.03285 6.18421C5.17273 5.92938 5.34286 5.69843 5.54359 5.49378C5.73203 5.30171 5.94259 5.13924 6.17347 5.00452C5.89568 4.85429 5.64781 4.66975 5.43324 4.4469C5.26215 4.26921 5.11775 4.07293 4.99672 3.86096Z',
+    ];
+    const mkRbIcon = () => React.createElement('svg', { viewBox: '0 0 20 20', width: '100%', height: '100%', fill: 'currentColor' }, rbPaths.map((d, i) => React.createElement('path', { key: i, d, fill: 'currentColor' })));
+    const rbIconNav = mkRbIcon();
+    const rbIconBtn = mkRbIcon();
+
+    // ---- Create report dropdown (template -> compatible audiences) ----
+    const crOpen = this.state.crOpen || false;
+    const crStep = this.state.crStep || 'template';
+    const crStepTemplate = crStep === 'template';
+    const crStepAudience = crStep === 'audience';
+    const crTemplateLabel = this.state.crTemplate;
+    const toggleCreateReport = () => this.setState(s => ({ crOpen: !s.crOpen, crStep: 'template', crTemplate: null }));
+    const closeCreateReport = () => this.setState({ crOpen: false });
+    const backToTemplates = () => this.setState({ crStep: 'template' });
+
+    const chev = (d) => React.createElement('svg', { viewBox: '0 0 20 20', width: 16, height: 16, fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round' }, React.createElement('path', { d }));
+    const crChevron = chev('M5 8l5 5 5-5');
+    const crChevRight = chev('M8 5l5 5-5 5');
+    const crChevLeft = chev('M12 5l-5 5 5 5');
+
+    const crAudienceMap = {
+      'CISO': ['Vulnerability Advisory', 'Periodic Threat Briefing', 'Third-Party Breach Report', 'Executive Memo', 'Supply Chain Attack Report', 'Flash Report'],
+      'Detection Engineering': ['Vulnerability Advisory', 'Red Team Adversary Emulation Report', 'Flash Report'],
+      'Executive / Board': ['Executive Memo'],
+      'IT Ops': ['Supply Chain Attack Report', 'Vulnerability Advisory'],
+      'M&A': ['Mergers & Acquisitions Due Diligence'],
+      'Red Team': ['Red Team Adversary Emulation Report', 'Flash Report'],
+      'SOC / IR Team': ['Supply Chain Attack Report', 'Periodic Threat Briefing', 'Flash Report', 'Vulnerability Advisory', 'Threat Hunting Report', 'Third-Party Breach Report'],
+      'Third Party Risk Management (TPRM)': ['Third-Party Breach Report'],
+      'Threat Hunting Team': ['Periodic Threat Briefing', 'Threat Hunting Report'],
+      'Vulnerability Management Team': ['Periodic Threat Briefing', 'Supply Chain Attack Report', 'Vulnerability Advisory'],
+    };
+    const crAudienceList = ['CISO', 'Detection Engineering', 'Executive / Board', 'IT Ops', 'M&A', 'Red Team', 'SOC / IR Team', 'Third Party Risk Management (TPRM)', 'Threat Hunting Team', 'Vulnerability Management Team'];
+    // template glyphs matching the Report Builder template cards
+    const crTemplateList = [
+      { title: 'Vulnerability Advisory', iconSrc: 'icons/bug.svg' },
+      { title: 'Periodic Threat Briefing', iconSrc: 'icons/calendar.svg' },
+      { title: 'Flash Report', iconSrc: 'icons/lightning.svg' },
+      { title: 'Third-Party Breach Report', iconSrc: 'icons/shield-user.svg' },
+      { title: 'Supply Chain Attack Report', iconSrc: 'icons/shield-lightning.svg' },
+      { title: 'Threat Hunting Report', iconSrc: 'icons/swords.svg' },
+      { title: 'Red Team Adversary Emulation Report', iconSrc: 'icons/mask.svg' },
+      { title: 'Executive Memo', iconSrc: 'icons/people.svg' },
+      { title: 'Mergers & Acquisitions Due Diligence', iconSrc: 'icons/broken-shield.svg' },
+    ];
+    const crTemplateItems = crTemplateList.map(t => ({
+      title: t.title, iconImg: React.createElement('img', { src: t.iconSrc, alt: '', style: { width: 20, height: 20, display: 'block' } }),
+      selectFn: () => this.setState({ crTemplate: t.title, crStep: 'audience' }),
+    }));
+    const crAudienceItems = crAudienceList
+      .filter(a => (crAudienceMap[a] || []).includes(crTemplateLabel))
+      .map(label => ({
+        label,
+        selectFn: () => { window.location.href = 'index.html?template=' + encodeURIComponent(crTemplateLabel || '') + '&audience=' + encodeURIComponent(label); },
+      }));
+
+    return {
+      si, askAiOpen, toggleAskAi, histIcon, helpIcon, cves, goToReportBuilder,
+      crOpen, crStepAudience, crStepTemplate,
+      toggleCreateReport, closeCreateReport,
+      crChevron, crChevRight, crChevLeft, crAudienceItems, crTemplateItems, crTemplateLabel,
+      backToTemplates,
+      rbIconNav, rbIconBtn,
+    };
+  }
+}
+</script>
+</body>
+</html>
