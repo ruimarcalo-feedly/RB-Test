@@ -1927,7 +1927,7 @@
                 </div>
                 <div style="display:flex; align-items:center; gap:11px; color:var(--text-secondary); font-size:14px; font-weight:600">
                   <span style="display:inline-flex; width:18px; height:18px; border:2.5px solid var(--fdl-neutral-200); border-top-color:var(--surface-brand); border-radius:50%; animation:rbSpin 0.8s linear infinite"></span>
-                  Configuring template…
+                  Please answer a few questions…
                 </div>
               </div>
 
@@ -1946,7 +1946,7 @@
                   <span style="display:inline-flex; width:20px; height:20px; color:var(--text-secondary)">{{ genTemplateCaret }}</span>
                 </div>
                 <!-- document -->
-                <div class="rb-scroll" style="flex:1; overflow-y:auto; padding:40px 48px 60px">
+                <div class="rb-scroll" style="flex:1; overflow-y:auto; overscroll-behavior:contain; padding:40px 48px 24px">
                   <sc-if value="{{ genCanvasPreviewInactive }}" hint-placeholder-val="{{ true }}">
                     <div style="display:flex; flex-direction:column; gap:7px; animation:crFadeIn 320ms ease">
                       <div style="width:38%; height:15px; border-radius:4px; background:var(--fdl-neutral-150)"></div>
@@ -2277,7 +2277,7 @@ class Component extends DCLogic {
       genIntroPending: true,
       manualStepIndex: 0, activeParam: null, manualZoomOverride: null,
       additionalDetails: '', attachedSources: sources, memoTrigger: '', memoSubject: '',
-      reportingStart: '', reportingEnd: '', cveId: '', cveIdSel: [], selectedAudience: null, selectedOrgProfile: null,
+      reportingStart: '', reportingEnd: '', cveId: '', cveIdSel: [], techStack: '', techStackSel: [], selectedAudience: null, selectedOrgProfile: null,
     };
     if (aud) {
       base.selectedAudience = aud;
@@ -3458,7 +3458,7 @@ class Component extends DCLogic {
         genSetupLog: [{ role: 'assistant', text: 'To create your report, you first need to select a template, or describe what you\u2019re looking for in detail.' }],
         genElicitIndex: 0, genElicitOtherOpen: false, genElicitOtherText: '', genElicitClosing: false,
         additionalDetails: '', attachedSources: [], memoTrigger: '', memoSubject: '',
-        reportingStart: '', reportingEnd: '', cveId: '', cveIdSel: [], selectedAudience: null, selectedOrgProfile: null,
+        reportingStart: '', reportingEnd: '', cveId: '', cveIdSel: [], techStack: '', techStackSel: [], selectedAudience: null, selectedOrgProfile: null,
       }, extra || {}));
     };
     const openCreateReport = () => openReportSetup({ createSourceMode: 'default' });
@@ -3907,7 +3907,7 @@ class Component extends DCLogic {
     const elicitPeriodOptions = ['Last 7 days', 'Last 30 days', 'Last quarter', 'Last 6 months'];
     const elicitDetailsOptions = ['Keep it concise and high-level', 'Emphasize impact on customer data'];
     const elicitCveSuggestions = ['CVE-2026-63030', 'CVE-2026-60137', 'CVE-2026-55200', 'CVE-2026-48558'];
-    const elicitTechStackSuggestions = ['VMware ESXi / vCenter', 'Active Directory (on-prem)', 'Windows Server (file/print, domain controllers)', 'NetApp / Dell storage arrays'];
+    const elicitTechStackSuggestions = ['Custom Tech Stack', 'Tech Stack IOCs', 'Tech Stack Vendors'];
     const _elicitPeriodFromPreset = (label) => {
       const end = new Date();
       const days = { 'Last 7 days': 7, 'Last 30 days': 30, 'Last quarter': 90, 'Last 6 months': 182 }[label] || 30;
@@ -3942,7 +3942,7 @@ class Component extends DCLogic {
       genTabTemplatesStyle = _disabledTab(genTabTemplatesStyle);
       genTabPagesStyle = _disabledTab(genTabPagesStyle);
     }
-    const genCanvasBlockStyle = { position: 'absolute', inset: 0, background: 'var(--fdl-neutral-100)', zIndex: 50, overflow: 'hidden' };
+    const genCanvasBlockStyle = { position: 'absolute', inset: 0, background: 'var(--fdl-neutral-100)', zIndex: 50, overflow: 'hidden', overscrollBehavior: 'none' };
     const genHoveredSetupTitle = this.state.genHoveredSetupTitle || null;
     const genCanvasPreviewTitle = genIsSelectTemplatePhase ? genHoveredSetupTitle : ((genElicitActive || genFinalPrompt) ? (createModalTemplateName || null) : null);
     const genCanvasPreviewActive = !!genCanvasPreviewTitle;
@@ -4109,12 +4109,16 @@ class Component extends DCLogic {
     const genElicitOtherIsDateRange = genElicitCurrent.otherMode === 'dateRange';
     const genElicitOtherPlaceholder = genElicitCurrent.otherPlaceholder || 'Type your answer...';
     const genElicitIsBusiness = genElicitCurrent.key === 'business';
-    const genElicitIsMulti = genElicitCurrent.key === 'cveId';
-    const _cveSel = this.state.cveIdSel || [];
+    const genElicitIsMulti = genElicitCurrent.key === 'cveId' || genElicitCurrent.key === 'techStack';
+    const _multiSelKey = genElicitCurrent.key + 'Sel';
+    const _cveSel = this.state[_multiSelKey] || [];
     const _toggleCve = (label) => () => this.setState(st => {
-      const cur = st.cveIdSel || [];
+      const cur = st[_multiSelKey] || [];
       const next = cur.indexOf(label) >= 0 ? cur.filter(x => x !== label) : [...cur, label];
-      return { cveIdSel: next, cveId: next.join(', ') };
+      const patch = {};
+      patch[_multiSelKey] = next;
+      patch[genElicitCurrent.key] = next.join(', ');
+      return patch;
     });
     const _isPicked = (label) => genElicitIsMulti ? (_cveSel.indexOf(label) >= 0) : (genElicitIsParam && label === _curParamVal);
     const genElicitOptions = (genElicitCurrent.options || []).map((label, i) => ({
