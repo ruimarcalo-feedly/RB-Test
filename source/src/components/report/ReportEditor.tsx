@@ -1401,9 +1401,13 @@ function ReportCanvas({
   const generated = phase === "done";
   const generating = phase === "generating";
   /* The bands are the template's, carried into every report it writes. Here
-     they are not editable — the report shows what the template set. */
-  const header = template.header ?? EMPTY_BAND;
-  const footer = template.footer ?? EMPTY_BAND;
+     they are not editable — the report shows what the template set.
+
+     They arrive with the finished report rather than with the skeleton: a cover
+     banner and a wordmark over a page of grey bars reads as a broken document,
+     and the branding is part of the result, not part of the waiting. */
+  const header = generated ? (template.header ?? EMPTY_BAND) : EMPTY_BAND;
+  const footer = generated ? (template.footer ?? EMPTY_BAND) : EMPTY_BAND;
 
   return (
     /* Figma: the document sits in a page inset 32px from the canvas, and the

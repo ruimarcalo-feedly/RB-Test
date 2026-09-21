@@ -1014,11 +1014,14 @@ select {
 .carousel {
   display: flex;
   gap: 8px;
-  /* Scrollable by trackpad/scrollbar as well as by the arrow buttons. */
+  /* Scrollable by trackpad as well as by the arrow buttons, but the bar itself
+     is hidden: the arrows are the affordance, and a rail that runs out through
+     both page gutters has no edge for a scrollbar to sit against. */
   overflow-x: auto;
   overflow-y: hidden;
   scroll-behavior: smooth;
-  scrollbar-width: thin;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   /* The rail runs out through the page gutters, so cards carry on past both
      edges instead of being cropped flush with the content column. The matching
      padding keeps the first and last card aligned with everything else. */
@@ -1044,10 +1047,7 @@ select {
   }
 }
 .carousel::-webkit-scrollbar {
-  height: 8px;
-}
-.carousel::-webkit-scrollbar-thumb {
-  border-width: 2px;
+  display: none;
 }
 
 /* ---------- Table ---------- */
