@@ -1,0 +1,3946 @@
+@import "@blocknote/mantine/style.css";
+@import "./fonts.css";
+@import "./tokens.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--content-bold);
+  background: var(--bg-lightest);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #d9d9d9;
+  border-radius: 8px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #bfbfbf;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---------- Type ramp ---------- */
+.t-h1 {
+  font-size: 26px;
+  line-height: 32px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  color: var(--content-bold);
+}
+.t-h3 {
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+}
+.t-body1-bold {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+}
+.t-body2 {
+  font-size: 14px;
+  line-height: 20px;
+}
+.t-body2-bold {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 700;
+}
+.t-body3 {
+  font-size: 13px;
+  line-height: 16px;
+}
+.t-label2 {
+  font-size: 10px;
+  line-height: 16px;
+}
+.muted {
+  color: var(--content-medium);
+}
+.light {
+  color: var(--content-light);
+}
+
+/* ---------- Utility ---------- */
+.row {
+  display: flex;
+  align-items: center;
+}
+.col {
+  display: flex;
+  flex-direction: column;
+}
+.spacer {
+  flex: 1;
+}
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- App shell ---------- */
+.app {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg-lightest);
+}
+
+.main-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* Lets a full-bleed child (the template carousel) measure this area. */
+  container-type: inline-size;
+}
+
+.page {
+  --page-x: 68px;
+  max-width: 1120px;
+  padding: 40px var(--page-x) 80px;
+  margin: 0 auto;
+}
+/* The Report Builder page opens straight onto the carousel, so its title needs
+   more room above it than a page that leads with a table. */
+.page.rb-page {
+  padding-top: 72px;
+}
+
+/* ---------- Left nav ---------- */
+.leftnav {
+  width: 320px;
+  flex: 0 0 320px;
+  border-right: 1px solid var(--border-lightest);
+  background: var(--bg-lightest);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding-bottom: 24px;
+}
+.leftnav-org {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px 10px;
+}
+.leftnav-logo {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 22px;
+  color: var(--bg-accent);
+}
+.leftnav-orgname {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--content-bold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.leftnav-section {
+  padding: 8px 12px 0;
+}
+.leftnav-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 8px 4px;
+  font-size: 13px;
+  color: var(--content-medium);
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 0;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--content-bold);
+  text-align: left;
+}
+.nav-item:hover {
+  background: var(--bg-hover);
+}
+.nav-item.active {
+  background: var(--bg-medium);
+  font-weight: 600;
+}
+.nav-item .nav-icon {
+  flex: 0 0 20px;
+  color: var(--content-medium);
+  display: flex;
+}
+.nav-item.child {
+  padding-left: 34px;
+}
+.nav-count {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--content-light);
+}
+.nav-beta {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--content-medium);
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--radius-large);
+  border: 1px solid var(--border-light);
+  background: var(--bg-lightest);
+  color: var(--content-bold);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.btn:hover {
+  background: var(--bg-light);
+}
+.btn:active {
+  background: var(--bg-hover);
+}
+.btn:disabled {
+  color: var(--content-light);
+  background: var(--bg-light);
+  border-color: var(--border-lightest);
+  cursor: default;
+}
+.btn.primary {
+  background: var(--bg-accent);
+  border-color: var(--bg-accent);
+  color: #fff;
+}
+.btn.primary:hover {
+  background: var(--bg-accent-hover);
+  border-color: var(--bg-accent-hover);
+}
+.btn.primary:disabled {
+  background: var(--accent-disabled);
+  border-color: var(--accent-disabled);
+  color: var(--content-inverse-disabled);
+}
+.btn.danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+.btn.danger:hover {
+  background: var(--danger-hover);
+  border-color: var(--danger-hover);
+}
+.btn.ghost {
+  border-color: transparent;
+  background: transparent;
+}
+.btn.ghost:hover {
+  background: var(--bg-hover);
+}
+.btn.link {
+  border: 0;
+  background: transparent;
+  color: var(--bg-accent);
+  font-weight: 600;
+  padding: 0 4px;
+  height: auto;
+}
+.btn.link:hover {
+  background: transparent;
+  text-decoration: underline;
+}
+.btn.danger-link {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--danger);
+  font-weight: 600;
+}
+.btn.danger-link:hover {
+  background: #fdeceb;
+}
+.btn.sm {
+  height: 24px;
+  padding: 0 8px;
+  font-size: 13px;
+  border-radius: 6px;
+}
+.btn.icon {
+  width: 32px;
+  padding: 0;
+}
+.btn.icon.sm {
+  width: 24px;
+}
+.btn.outline-danger {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: #fff;
+}
+.btn.outline-danger:hover {
+  background: #fdeceb;
+}
+
+/* ---------- Badge ---------- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 20px;
+  padding: 2px 4px;
+  border-radius: var(--radius-default);
+  background: var(--bg-medium);
+  color: var(--content-badge);
+  font-size: 13px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+.badge.quiet {
+  background: transparent;
+  color: var(--content-medium);
+}
+
+/* ---------- Select / inputs ---------- */
+.select {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: var(--radius-default);
+  border: 1px solid var(--border-light);
+  background: var(--bg-lightest);
+  color: var(--content-medium);
+  font-size: 14px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+.select:hover {
+  background: var(--bg-light);
+}
+.select.block {
+  width: 100%;
+  height: 32px;
+  justify-content: space-between;
+  font-size: 14px;
+  border-radius: var(--radius-default);
+  padding: 0 8px;
+}
+.select .chev {
+  color: var(--content-medium);
+  display: flex;
+}
+.select .placeholder {
+  color: var(--content-light);
+}
+
+.input {
+  width: 100%;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: var(--radius-default);
+  border: 1px solid var(--border-light);
+  background: var(--bg-lightest);
+  font-size: 14px;
+  outline: none;
+}
+.input:focus {
+  border-color: var(--bg-accent);
+  box-shadow: 0 0 0 1px var(--bg-accent);
+}
+.input::placeholder {
+  color: var(--content-light);
+}
+.input:disabled {
+  background: var(--bg-light);
+  color: var(--content-light);
+}
+.textarea {
+  width: 100%;
+  min-height: 68px;
+  padding: 8px;
+  border-radius: var(--radius-default);
+  border: 1px solid var(--border-light);
+  background: var(--bg-lightest);
+  font-size: 14px;
+  line-height: 20px;
+  resize: none;
+  outline: none;
+  font-family: inherit;
+}
+.textarea:focus {
+  border-color: var(--bg-accent);
+  box-shadow: 0 0 0 1px var(--bg-accent);
+}
+.textarea::placeholder {
+  color: var(--content-light);
+}
+/* A textarea inside a field that draws its own border — no border, and no
+   focus ring, since the well around it is what the eye reads as the field. */
+.textarea.bare,
+.textarea.bare:focus {
+  border: 0;
+  box-shadow: none;
+}
+/* A field that is filled in but locked — a built-in template's context. Figma
+   fills it rather than greying the text inside a white box. */
+/* The tradecraft well is the exception: Figma leaves it white and bordered
+   even on a locked template, since its chips still read as content. */
+.textarea:disabled,
+.select:disabled {
+  background: var(--field-disabled-bg);
+  border-color: transparent;
+  color: var(--field-disabled-text);
+  border-radius: var(--radius-default);
+  cursor: default;
+}
+.textarea:disabled {
+  font-size: 13px;
+  line-height: 16px;
+  padding: 8px;
+}
+.select:disabled .placeholder,
+.select:disabled .chev {
+  color: var(--field-disabled-text);
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 10px;
+  /* Same corner as the buttons in the page header. */
+  border-radius: var(--radius-large);
+  border: 1px solid var(--border-light);
+  background: var(--bg-lightest);
+  width: 220px;
+}
+.search input {
+  border: 0;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  font-size: 13px;
+}
+.search input::placeholder {
+  color: var(--content-light);
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 20px;
+  padding: 0;
+  cursor: pointer;
+}
+.checkbox input {
+  appearance: none;
+  /* The browser's own checkbox margin would push the box off the row's edge. */
+  margin: 0;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--border-medium);
+  border-radius: 2px;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 16px;
+  cursor: pointer;
+}
+.checkbox input:checked {
+  background: var(--bg-accent);
+  border-color: var(--bg-accent);
+}
+.checkbox input:checked::after {
+  content: "";
+  width: 9px;
+  height: 5px;
+  border-left: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: rotate(-45deg) translate(1px, -1px);
+}
+.checkbox.disabled {
+  color: var(--content-light);
+  cursor: default;
+}
+/* Single-select elicitation options (the language and company extra steps). */
+.checkbox.radio input {
+  border-radius: 50%;
+}
+.checkbox.radio input:checked {
+  background: #fff;
+  border: 5px solid var(--bg-accent);
+}
+.checkbox.radio input:checked::after {
+  content: none;
+}
+
+/* ---------- Menus ---------- */
+.menu {
+  position: absolute;
+  /* Menus are portalled to the body, so this counts against the window rather
+     than against whatever opened them: above every scrim, below the toasts. */
+  z-index: 150;
+  min-width: 200px;
+  padding: 6px;
+  background: #fff;
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow-menu);
+}
+.menu-label {
+  padding: 6px 10px 4px;
+  font-size: 13px;
+  color: var(--content-light);
+}
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 14px;
+  text-align: left;
+  color: var(--content-bold);
+}
+.menu-item:hover {
+  background: var(--bg-light);
+}
+.menu-item.danger {
+  color: var(--danger);
+}
+.menu-item.accent {
+  color: var(--bg-accent);
+  font-weight: 600;
+}
+.menu-item .mi-icon {
+  color: var(--content-medium);
+  display: flex;
+  flex: 0 0 20px;
+}
+.menu-item.danger .mi-icon,
+.menu-item.accent .mi-icon {
+  color: currentColor;
+}
+.menu-sep {
+  height: 1px;
+  background: var(--border-lightest);
+  margin: 4px 0;
+}
+
+/* ---------- Create Report dropdown (Figma "dropdown" 2578:97968) ---------- *
+ * Two levels in one panel: audiences, then that audience's templates. Picking
+ * an audience rotates the panel along instead of opening a second popover.   */
+.crm {
+  position: absolute;
+  z-index: 60;
+  width: 280px;
+  min-width: 200px;
+  background: var(--bg-lightest);
+  border-radius: var(--radius-large);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.38),
+    0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+.crm-view {
+  position: relative;
+  overflow: hidden;
+  transition: height 300ms cubic-bezier(0.32, 0.72, 0.2, 1);
+}
+.crm-pane {
+  width: 100%;
+}
+.crm-pane.out {
+  position: absolute;
+  inset: 0 0 auto 0;
+}
+.crm-pane.in.fwd {
+  animation: crm-in-right 300ms cubic-bezier(0.32, 0.72, 0.2, 1) both;
+}
+.crm-pane.in.back {
+  animation: crm-in-left 300ms cubic-bezier(0.32, 0.72, 0.2, 1) both;
+}
+.crm-pane.out.fwd {
+  animation: crm-out-left 300ms cubic-bezier(0.32, 0.72, 0.2, 1) both;
+}
+.crm-pane.out.back {
+  animation: crm-out-right 300ms cubic-bezier(0.32, 0.72, 0.2, 1) both;
+}
+@keyframes crm-in-right {
+  from {
+    transform: translateX(34%);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes crm-in-left {
+  from {
+    transform: translateX(-34%);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes crm-out-left {
+  from {
+    transform: none;
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-34%);
+    opacity: 0;
+  }
+}
+@keyframes crm-out-right {
+  from {
+    transform: none;
+    opacity: 1;
+  }
+  to {
+    transform: translateX(34%);
+    opacity: 0;
+  }
+}
+.crm-list {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 4px;
+}
+.crm-list.bordered {
+  border-bottom: 1px solid var(--border-light);
+}
+.crm-title {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 12px 8px 4px;
+  font-size: 13px;
+  line-height: 16px;
+  color: var(--content-medium);
+}
+.crm-back {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 8px;
+  font-size: 13px;
+  line-height: 16px;
+  color: var(--content-medium);
+}
+.crm-backbtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 2px 4px;
+  border: 0;
+  background: transparent;
+  border-radius: var(--radius-default);
+  color: var(--content-medium);
+  cursor: pointer;
+}
+.crm-backbtn:hover {
+  background: var(--bg-light);
+  color: var(--content-bold);
+}
+.crm-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px;
+  border: 0;
+  background: transparent;
+  border-radius: var(--radius-default);
+  text-align: left;
+  cursor: pointer;
+}
+.crm-item:hover {
+  background: var(--bg-light);
+}
+.crm-left,
+.crm-right {
+  display: flex;
+  flex: 0 0 auto;
+  padding: 2px 0;
+}
+/* Template glyphs read as part of the label, the way the cards do. */
+.crm-left {
+  color: var(--content-bold);
+}
+.crm-left.quiet,
+.crm-right {
+  color: var(--content-medium);
+}
+.crm-mid {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--content-bold);
+}
+.crm-mid.plain {
+  color: #000;
+}
+.crm-note {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  min-height: 24px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--content-light);
+  white-space: nowrap;
+}
+.crm-empty {
+  padding: 4px 8px 12px;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--content-light);
+}
+@media (prefers-reduced-motion: reduce) {
+  .crm-view {
+    transition: none;
+  }
+  .crm-pane.in.fwd,
+  .crm-pane.in.back,
+  .crm-pane.out.fwd,
+  .crm-pane.out.back {
+    animation: none;
+  }
+  .crm-pane.out {
+    display: none;
+  }
+}
+
+/* ---------- Modal ---------- */
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-scrim);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fade 0.14s ease;
+}
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+.modal {
+  position: relative;
+  background: #fff;
+  border-radius: var(--radius-large);
+  /* Figma "Light/Medium". */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 2px 15px rgba(0, 0, 0, 0.15);
+  animation: pop 0.16s ease;
+  display: flex;
+  flex-direction: column;
+  max-height: 88vh;
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.99);
+  }
+}
+.modal-head {
+  display: flex;
+  align-items: flex-start;
+  /* The title runs the full width; the close sits over it, in the corner. */
+  padding: 24px 56px 24px 24px;
+}
+.modal-title {
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 650;
+  letter-spacing: -0.4px;
+}
+.modal-close {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  height: 40px;
+  min-width: 40px;
+}
+.modal-body {
+  padding: 0 24px;
+  overflow-y: auto;
+}
+.modal-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 24px;
+}
+/* Figma "FormField": a 13px bold title with whether it is required beside it,
+   then a 13px light line of help, 4px apart. */
+.field-label {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+.field-label .req {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 400;
+  color: var(--content-light);
+}
+.field-help {
+  font-size: 13px;
+  line-height: 16px;
+  color: var(--content-light);
+  margin-top: 8px;
+}
+/* The character count is body copy rather than a caption. */
+.field-help.md {
+  font-size: 14px;
+  line-height: 20px;
+}
+.field {
+  margin-bottom: 16px;
+}
+
+/* ---------- Toast ---------- */
+.toast-layer {
+  position: fixed;
+  top: 24px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  z-index: 200;
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #1d1d1f;
+  color: #fff;
+  border-radius: var(--radius-large);
+  padding: 10px 14px;
+  font-size: 14px;
+  box-shadow: var(--shadow-modal);
+  pointer-events: auto;
+  animation: pop 0.16s ease;
+}
+.toast .tclose {
+  border: 0;
+  background: transparent;
+  color: #b9b9be;
+  display: flex;
+  padding: 2px;
+}
+.toast .tclose:hover {
+  color: #fff;
+}
+
+/* ---------- Page header ---------- */
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--content-bold);
+}
+
+/* ---------- Template card ---------- */
+.tcard {
+  width: 264px;
+  height: 196px;
+  flex: 0 0 264px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-large);
+  background: var(--bg-lightest);
+  box-shadow: var(--shadow-card);
+  text-align: left;
+  position: relative;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.tcard:hover {
+  border-color: var(--border-medium);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.tcard-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 28px;
+}
+.tcard-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-accent-light);
+  /* Figma: the glyph is black on the light green pill. */
+  color: var(--content-bold);
+}
+.tcard-title {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--content-bold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tcard-desc {
+  height: 80px;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--content-medium);
+}
+.tcard-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 4px;
+}
+.tcard-more {
+  border: 0;
+  background: transparent;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--content-medium);
+  opacity: 0;
+}
+.tcard:hover .tcard-more,
+.tcard-more.open {
+  opacity: 1;
+}
+.tcard-more:hover {
+  background: var(--bg-hover);
+}
+
+.carousel {
+  display: flex;
+  gap: 8px;
+  /* Scrollable by trackpad/scrollbar as well as by the arrow buttons. */
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  /* The rail runs out through the page gutters, so cards carry on past both
+     edges instead of being cropped flush with the content column. The matching
+     padding keeps the first and last card aligned with everything else. */
+  margin-left: calc(var(--page-x, 0px) * -1);
+  margin-right: calc(var(--page-x, 0px) * -1);
+  padding: 0 var(--page-x, 0px) 8px;
+  scroll-padding-inline: var(--page-x, 0px);
+}
+
+/* Full bleed: the rail is as wide as the scrolling area, so cards run to the
+   window edge rather than stopping at the centred page. The padding is the
+   distance back to the content column, which keeps the first card aligned. */
+@supports (width: 1cqw) {
+  .carousel {
+    --bleed: calc(50cqw - 50%);
+    width: 100cqw;
+    max-width: none;
+    margin-left: calc(var(--bleed) * -1);
+    margin-right: calc(var(--bleed) * -1);
+    padding-left: var(--bleed);
+    padding-right: var(--bleed);
+    scroll-padding-inline: var(--bleed);
+  }
+}
+.carousel::-webkit-scrollbar {
+  height: 8px;
+}
+.carousel::-webkit-scrollbar-thumb {
+  border-width: 2px;
+}
+
+/* ---------- Table ---------- */
+.rtable {
+  width: 100%;
+  border-collapse: collapse;
+}
+.rtable th {
+  text-align: left;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--content-medium);
+  padding: 8px 8px;
+  border-bottom: 1px solid var(--border-lightest);
+  white-space: nowrap;
+}
+.rtable th button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+}
+.rtable td {
+  padding: 12px 8px;
+  border-bottom: 1px solid var(--border-lightest);
+  vertical-align: top;
+  font-size: 14px;
+}
+.rtable tbody tr:hover {
+  background: var(--bg-light);
+}
+.rtable .headline {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-weight: 500;
+  color: var(--content-bold);
+  text-align: left;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: 14px;
+  line-height: 20px;
+}
+.rtable .headline:hover {
+  text-decoration: underline;
+}
+.rtable .sub {
+  color: var(--content-medium);
+  font-size: 13px;
+  line-height: 16px;
+}
+
+/* ---------- Full-screen editor ---------- */
+.editor {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-lightest);
+  display: flex;
+  flex-direction: column;
+  z-index: 80;
+}
+/* Figma "EditorHeader": 56 tall, 24px gutters, the title centred over the row
+   rather than sitting in the flow. */
+.editor-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 56px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border-lightest);
+  flex: 0 0 56px;
+}
+.editor-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+  max-width: 50%;
+}
+.editor-title .kind {
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--content-light);
+}
+.editor-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+/* Report editor's ReportLeftPanel is 400 wide in Figma; the template editor's
+   TemplateLeftPanel is 380. */
+.editor-side.wide {
+  width: 400px;
+  flex: 0 0 400px;
+}
+.editor-side.wide .side-scroll {
+  padding: 16px 16px 8px;
+}
+.editor-side {
+  width: 380px;
+  flex: 0 0 380px;
+  padding-top: 12px;
+  border-right: 1px solid var(--border-lightest);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  /* Hover cards from the panel sit over the canvas, as in the design. */
+  position: relative;
+  z-index: 2;
+}
+/* Figma "Tabs - resize": a 32px row inset 16px, each tab carrying its own
+   1px rule so the inactive ones read as one continuous line under the row. */
+.tabs {
+  display: flex;
+  gap: 24px;
+  height: 32px;
+  padding: 0 16px;
+  flex: 0 0 auto;
+}
+.tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--border-lightest);
+  background: transparent;
+  color: var(--content-medium);
+  font-size: 14px;
+  line-height: 20px;
+}
+.tabs.left {
+  padding-left: 16px;
+}
+.tabs.left .tab {
+  flex: 0 0 auto;
+  padding: 12px 14px;
+}
+.tab:disabled {
+  color: var(--content-light);
+  cursor: default;
+}
+.tab.active {
+  color: var(--content-bold);
+  border-bottom-color: var(--content-bold);
+}
+.side-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+  min-height: 0;
+}
+/* Figma stacks the panel's fields as sections with their own 24px gutter,
+   rather than one padded scroll area. */
+.side-scroll > .field {
+  margin: 0;
+  padding: 16px 24px;
+}
+.side-scroll > .field:first-child,
+.side-section {
+  padding-top: 24px;
+}
+.side-section {
+  padding: 24px 24px 16px;
+}
+/* The canvas area: the page scrolls inside it, the template sheet sits over it. */
+.editor-canvas-wrap {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-canvas);
+}
+.editor-canvas {
+  height: 100%;
+  overflow-y: auto;
+  background: var(--bg-canvas);
+  /* Figma: the report page is inset 32px from the canvas on every side. */
+  padding: 32px;
+}
+/* The template editor's canvas. The banner is full bleed at the top of it and
+   scrolls with the content; the page sits below on the grey, the way the
+   report editor's does, so both editors read as the same surface. */
+.editor-canvas.tpl-canvas {
+  /* Without this the canvas sized itself to the page and sat against the
+     panel, leaving the space on its right empty. */
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  background: var(--bg-canvas);
+  padding: 0 32px 32px;
+}
+/* The page: 1092 wide, centred, so the grey runs down either side of it. The
+   room above and below the text is the document's, not the page's, so a header
+   or footer band can sit flush against the page's own edge. */
+.canvas-page {
+  position: relative;
+  width: 100%;
+  max-width: 1092px;
+  /* Enough grey above for the header's toolbar, which hangs outside the page. */
+  margin: 48px auto 0;
+  background: var(--bg-lightest);
+  border-radius: var(--radius-giant);
+}
+/* The document column inside it: 900 wide, centred. Its padding is the page's
+   margin, and the bands sit inside it — so the padding only grows when a band
+   needs more room than the margin already gives it. */
+.canvas-doc {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: max(80px, calc(var(--header-h, 64px) + 16px)) 0
+    max(120px, calc(var(--footer-h, 64px) + 16px));
+}
+
+/* ---------- The template canvas is a BlockNote document ----------
+   BlockNote brings the Notion-style controls: the drag handle and `+` button
+   in the gutter, the slash menu, and the formatting toolbar on a selection.
+   What it also brings is its own type scale, so the rules below put the
+   document back on the design's. They mirror BlockNote's own
+   `.bn-block-outer > .bn-block > .bn-block-content` shape, because anything
+   shorter loses to it on specificity. */
+.canvas-doc .bn-container,
+.canvas-doc .bn-editor {
+  font-family: var(--font-sans);
+  background: transparent;
+}
+/* The handles live in the page's own 80px gutter rather than a second one. */
+.canvas-doc .bn-editor {
+  padding-inline: 0;
+}
+.canvas-doc .bn-block-content {
+  padding: 0;
+}
+/* Space above a block is MARGIN on the block, never padding: BlockNote anchors
+   the drag handle to the top of the block's own box, so top padding there puts
+   the handle above the text it belongs to, and moving the space out to the
+   wrapper puts it below. Margin sits outside the box, so the box hugs the text
+   and the handle lands on it. */
+/* Report title — BlockNote leaves level 1 unlabelled. */
+.canvas-doc .bn-block-outer > .bn-block > .bn-block-content[data-content-type="heading"]:not([data-level]) {
+  font-size: 26px;
+  line-height: 32px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+  margin-top: 12px;
+  padding: 0 0 4px;
+}
+/* Section headings — Figma's Block/Heading band. */
+.canvas-doc .bn-block-outer > .bn-block > .bn-block-content[data-content-type="heading"][data-level="2"],
+.canvas-doc .bn-block-outer > .bn-block > .bn-block-content[data-content-type="heading"][data-level="3"] {
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+  margin-top: 12px;
+  padding: 0 0 4px;
+}
+.canvas-doc .bn-block-content[data-content-type="prompt"] {
+  margin-top: 8px;
+  padding: 0 0 16px;
+  font-size: 14px;
+}
+/* The prompt block carries its own box, so it needs no block margin. */
+.canvas-doc .bn-block-content[data-content-type="prompt"] .prompt-box {
+  width: 100%;
+  margin: 0;
+}
+.canvas-doc .bn-block-outer > .bn-block > .bn-block-content[data-content-type="paragraph"] {
+  margin-top: 4px;
+  padding: 0 0 4px;
+  font-size: 14px;
+  line-height: 20px;
+}
+/* A parameter chip is an atom inside the text, so it must not stretch. */
+.canvas-doc .param-chip {
+  display: inline-flex;
+  vertical-align: baseline;
+  user-select: none;
+}
+
+/* ---------- A locked template says so section by section ----------
+   Only Feedly's built-ins. The banner at the top of the page explains it once;
+   this answers the question at the moment it is asked, which is when someone
+   puts the cursor on a section meaning to change it. */
+/* Its own stacking context, so the hover surface can sit behind the text
+   without falling behind the page itself. */
+.canvas-doc.locked .bn-block-content {
+  position: relative;
+  z-index: 0;
+  cursor: default;
+}
+/* Sized explicitly rather than by four-sided inset: the block is a flex
+   container, where an inset-sized absolute child resolves to zero height. */
+.canvas-doc.locked .bn-block-content:hover::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: -8px;
+  width: calc(100% + 16px);
+  height: calc(100% + 8px);
+  z-index: -1;
+  border-radius: 6px;
+  /* The same grey the prompt boxes use, so a hovered section reads as one
+     surface rather than a second kind of outline. */
+  background: var(--bg-light);
+  pointer-events: none;
+}
+.canvas-doc.locked .bn-block-content:hover::after {
+  content: "Feedly templates cannot be edited";
+  position: absolute;
+  top: -13px;
+  right: -8px;
+  z-index: 4;
+  padding: 2px 6px;
+  border-radius: var(--radius-default);
+  background: var(--content-bold);
+  color: var(--content-inverse);
+  font: 400 12px/16px var(--font-sans);
+  letter-spacing: 0;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Template canvas blocks */
+.block-row {
+  position: relative;
+  margin-bottom: 20px;
+}
+.block-tools {
+  position: absolute;
+  left: -52px;
+  top: 2px;
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+.block-row:hover .block-tools,
+.block-tools.open {
+  opacity: 1;
+}
+.block-tool {
+  width: 22px;
+  height: 22px;
+  border: 0;
+  background: transparent;
+  border-radius: 5px;
+  color: var(--content-light);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.block-tool:hover {
+  background: var(--bg-hover);
+  color: var(--content-bold);
+}
+/* Figma "Block": the heading sits in a pt-12/pb-4 band, the prompt under it in
+   a pt-8/pb-16 one. */
+.block-h {
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+  color: var(--content-bold);
+  padding: 12px 0 4px;
+  margin: 0;
+  outline: none;
+}
+.block-h:focus {
+  box-shadow: inset 0 0 0 1px var(--bg-accent);
+  border-radius: 4px;
+}
+.doc-title {
+  font-size: 26px;
+  line-height: 32px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  outline: none;
+}
+.doc-title:focus {
+  box-shadow: inset 0 0 0 1px var(--bg-accent);
+  border-radius: 4px;
+}
+.prompt-box {
+  background: var(--bg-light);
+  border-radius: var(--radius-default);
+  padding: 8px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--content-bold);
+  white-space: pre-wrap;
+  outline: none;
+  margin: 8px 0 16px;
+}
+.prompt-box:focus {
+  box-shadow: inset 0 0 0 1px var(--bg-accent);
+}
+/* Figma "ParameterBadge": info-light behind content-bold text, with the
+   info-bold border. */
+.param-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--param-bg);
+  border: 1px solid var(--info-bold);
+  color: var(--content-bold);
+  border-radius: var(--radius-default);
+  padding: 0 4px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+/* A parameter that has been answered: the answer sits in the prompt in the
+   chip's place, and can wrap with the text around it. */
+.param-chip.filled {
+  /* Each value keeps to itself; the line breaks between values instead. */
+  white-space: nowrap;
+  max-width: 100%;
+  animation: param-filled 520ms ease both;
+}
+@keyframes param-filled {
+  from {
+    background: var(--param-border);
+  }
+  to {
+    background: var(--param-bg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .param-chip.filled {
+    animation: none;
+  }
+}
+
+/* The parameter the open question is about. The border grows inward so the
+   prompt text around it does not shift. */
+.param-chip.on {
+  border-width: 2px;
+  border-color: var(--param-text);
+  padding: 0 3px;
+}
+.param-chip button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  display: inline-flex;
+  padding: 0;
+  opacity: 0.7;
+}
+.param-chip button:hover {
+  opacity: 1;
+}
+
+/* Figma "TopBanner": sits inside the scrolling body, spanning its width. */
+.info-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* Runs edge to edge, through the canvas's own gutter. */
+  width: calc(100% + 64px);
+  margin: 0 -32px;
+  flex: 0 0 auto;
+  min-height: 56px;
+  padding: 12px 24px;
+  background: var(--param-bg);
+  border-bottom: 1px solid var(--border-light);
+  font-size: 13px;
+  line-height: 16px;
+}
+.info-bar .strong {
+  font-weight: 600;
+  color: var(--content-bold);
+}
+
+/* Parameters list */
+.param-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--bg-light);
+  text-align: left;
+  margin-bottom: 8px;
+}
+.param-row:hover {
+  background: var(--bg-hover);
+}
+.param-row .pname {
+  font-size: 14px;
+  line-height: 18px;
+}
+.param-row .popt {
+  font-size: 12px;
+  color: var(--content-light);
+}
+
+/* Tag input (tradecrafts) */
+/* Figma "MultiSearchSelect": a bordered well with the chips wrapping inside it
+   and the search caret trailing them on the last line. */
+.taginput {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px 12px;
+  min-height: 32px;
+  max-height: 108px;
+  overflow-y: auto;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-default);
+  background: #fff;
+  align-items: center;
+}
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  background: var(--bg-lightest);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-default);
+  padding: 0 4px;
+  font-size: 13px;
+  line-height: 16px;
+  color: #000;
+}
+.tag button {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  display: inline-flex;
+  color: var(--content-medium);
+}
+.taginput input {
+  border: 0;
+  outline: none;
+  flex: 1;
+  min-width: 60px;
+  height: 24px;
+  font-size: 14px;
+  line-height: 20px;
+  background: transparent;
+}
+.taginput input::placeholder {
+  color: var(--content-light);
+}
+
+/* Ask AI panel */
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  font-size: 14px;
+  line-height: 20px;
+}
+.chat-ai {
+  color: var(--content-bold);
+}
+/* The answers, posted together once the run is done: each question in bold
+   with what was given underneath. */
+.chat-user.answers {
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px;
+}
+.chat-user.answers .qa {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.chat-user.answers .qa b {
+  font-weight: 700;
+}
+.chat-user {
+  align-self: flex-end;
+  background: var(--bg-light);
+  border-radius: 8px;
+  padding: 6px 10px;
+  /* Figma: the user "Prompt" frame is 264 wide, right-aligned in the 368 column. */
+  max-width: 264px;
+}
+/* ---------- Status card: "Searching the Feedly Threat Graph" ---------- */
+.status-card {
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-large);
+  background: var(--bg-lightest);
+  overflow: hidden;
+}
+.status-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px;
+  border: 0;
+  background: transparent;
+  font-size: 14px;
+  text-align: left;
+  color: var(--content-bold);
+}
+.status-head:disabled {
+  cursor: default;
+}
+.status-head .grow {
+  flex: 1;
+  min-width: 0;
+}
+.status-steps {
+  padding: 0 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.status-step {
+  font-size: 14px;
+  line-height: 18px;
+  color: var(--content-bold);
+  position: relative;
+  padding-left: 8px;
+}
+.status-step::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: -12px;
+  bottom: 8px;
+  width: 1px;
+  background: var(--border-lightest);
+}
+.status-step > .row > svg {
+  color: var(--content-bold);
+}
+/* The step that is waiting on the reader reads as the live one. */
+.status-step.running > .row > span:last-child {
+  font-weight: 600;
+}
+.interval-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 8px 0 0 24px;
+  padding: 2px 7px;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--content-bold);
+  font-variant-numeric: tabular-nums;
+}
+.found-sources {
+  margin: 8px 0 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.found-source {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 16px;
+  min-width: 0;
+}
+.fs-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  flex: 0 0 16px;
+}
+.fs-title {
+  color: var(--content-bold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 120px;
+}
+.fs-src,
+.fs-age {
+  color: var(--content-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fs-src {
+  margin-left: auto;
+}
+
+/* ---------- Suggested option badge ---------- */
+.suggested {
+  font-size: 11px;
+  line-height: 16px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-accent-light);
+  color: #1c7a35;
+  white-space: nowrap;
+  cursor: default;
+}
+
+/* ---------- Attachments list ---------- */
+.attach-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.attach-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-large);
+  font-size: 13px;
+  line-height: 16px;
+}
+
+/* ---------- Source checkbox ---------- */
+.src-check {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  margin-top: 1px;
+  border: 1px solid var(--border-medium);
+  border-radius: 3px;
+  background: #fff;
+  cursor: pointer;
+}
+.src-check:checked {
+  background: var(--bg-accent);
+  border-color: var(--bg-accent);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'><path d='m5 12.8 4.6 4.4L19 6.5'/></svg>");
+  background-size: 12px;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+.src-favicon {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #2b2b2f;
+  display: inline-block;
+  flex: 0 0 16px;
+}
+/* ---------- The attachment strip on the first question ----------
+   Figma `ContextCarousel`: a 12px band across the top of the elicitation card,
+   under its own divider, holding one 130px card per piece of carried context.
+   It scrolls sideways rather than wrapping, so the question underneath keeps
+   its place however many articles came along, and a fade on the right edge is
+   what says there are more. */
+.ctx-carousel {
+  position: relative;
+  /* The strip sits flush on the header, so it cancels the card's own 8px gap
+     and its divider lands directly above the header's 12px inset. */
+  margin-bottom: -8px;
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  padding: 12px;
+  border-bottom: 1px solid var(--border-light);
+  overflow-x: auto;
+  overflow-y: clip;
+  scrollbar-width: none;
+}
+.ctx-carousel::-webkit-scrollbar {
+  display: none;
+}
+.ctx-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 130px;
+  width: 130px;
+  min-height: 52px;
+  padding: 8px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-default);
+  overflow: clip;
+}
+.ctx-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+.ctx-title {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--content-bold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ctx-sub {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 16px;
+  min-width: 0;
+}
+.ctx-src {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--content-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ctx-dot {
+  font-size: 12px;
+  color: var(--content-light);
+}
+.ctx-age {
+  font-size: 13px;
+  color: var(--content-medium);
+  white-space: nowrap;
+}
+/* The fade rides with the scroll, so it sits on the right edge of the strip. */
+.ctx-fade {
+  position: sticky;
+  right: -12px;
+  flex: 0 0 0;
+  align-self: stretch;
+  width: 44px;
+  margin-right: -12px;
+  margin-left: -44px;
+  pointer-events: none;
+  background: linear-gradient(to left, var(--bg-lightest), rgba(255, 255, 255, 0));
+}
+/* ---------- Bottom slot: the composer, or the elicitation card on top of it ----------
+   Figma puts ElicitationCard and NewMessageBox in the same MessageBoxPanelContainer
+   at the foot of the panel (16px padding), showing one at a time. The card is
+   anchored to the bottom and grows upward, so it fades in from bottom to top. */
+.composer-slot {
+  flex: 0 0 auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+/* Figma "ReportLeftPanel/ElicitationCard" (2545:90031). The card has no
+   padding of its own: the header and footer carry 12px, and the option list
+   only 4px, so the rows can run nearly the full width and still line their
+   checkboxes up with the header text. */
+.elicit {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-giant);
+  box-shadow: var(--shadow-lightest);
+  background: var(--bg-lightest);
+  transform-origin: bottom center;
+  animation: elicit-in 460ms cubic-bezier(0.16, 0.84, 0.24, 1) both;
+}
+
+/* The card draws itself up from the composer's place; the rise carries the
+   moment, so the fade finishes early and the travel is what you notice. */
+@keyframes elicit-in {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  55% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .elicit {
+    animation: none;
+  }
+}
+.elicit-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 12px 0;
+}
+/* The badge sits on a 24px line with whether an answer is required beside it. */
+.elicit-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 24px;
+}
+.elicit-req {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--content-light);
+  white-space: nowrap;
+}
+.elicit-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.elicit-q {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+  color: var(--content-bold);
+}
+.elicit-help {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--content-light);
+}
+.elicit-opts {
+  display: flex;
+  flex-direction: column;
+  padding: 0 4px;
+}
+/* A written answer sits on the header's 12px inset, not the option list's 4px. */
+.elicit-text {
+  width: auto;
+  margin: 0 12px;
+}
+.elicit-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 0 12px 12px;
+}
+/* The footer carries only Back and Continue — Figma's question counter on the
+   left is dropped, so the buttons keep the whole row and stay right-aligned. */
+.elicit-nav {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+/* Figma's Button in this footer is bold; the rest of the prototype's buttons
+   are still medium, so this is scoped to the card. */
+.elicit-nav .btn {
+  font-weight: 600;
+}
+.elicit-nav .btn:not(.primary) {
+  border-color: var(--border-medium);
+  color: var(--content-medium);
+}
+/* On the first question there is nothing behind, but the button holds its
+   place — it stays outlined rather than filling in, so the footer reads the
+   same as the design and the state is still plainly inactive. */
+.elicit-nav .btn:not(.primary):disabled {
+  background: var(--bg-lightest);
+  border-color: var(--border-light);
+  color: var(--content-light);
+}
+.composer {
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-large);
+  background: var(--bg-lightest);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+/* While the AI is working the whole box reads as inactive. */
+.composer.busy {
+  background: var(--bg-light);
+}
+.composer textarea {
+  border: 0;
+  outline: none;
+  resize: none;
+  background: transparent;
+  font-size: 14px;
+  line-height: 20px;
+  min-height: 44px;
+  font-family: inherit;
+}
+.composer textarea::placeholder {
+  color: var(--content-light);
+}
+.composer-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.composer-plus {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--content-medium);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.composer-plus:hover {
+  background: var(--bg-hover);
+}
+.send {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 0;
+  background: var(--bg-medium);
+  color: var(--content-bold);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s ease;
+}
+.send:hover {
+  background: var(--bg-hover);
+}
+.composer-stop {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  color: var(--content-medium);
+}
+
+/* Report document */
+/* ---------- The written report ----------
+   A BlockNote document, like the template canvas, so a finished report can be
+   edited in place. The rules below carry the report's own type scale — larger
+   than the template's, because this is the thing people read. */
+.report-doc {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: max(80px, calc(var(--header-h, 64px) + 16px)) 0
+    max(96px, calc(var(--footer-h, 64px) + 16px));
+}
+.report-doc .bn-container,
+.report-doc .bn-editor {
+  font-family: var(--font-sans);
+  background: transparent;
+}
+/* The gutter controls live in the page's own 96px margin. */
+.report-doc .bn-editor {
+  padding-inline: 0;
+}
+.report-doc .bn-block-content {
+  padding: 0;
+}
+/* Report title. */
+.report-doc .bn-block-outer > .bn-block > .bn-block-content[data-content-type="heading"]:not([data-level]) {
+  font-size: 34px;
+  line-height: 42px;
+  font-weight: 700;
+  letter-spacing: -0.8px;
+  padding: 0 0 12px;
+}
+/* The rule above a section is the one thing that belongs on the wrapper: it
+   has to sit above the gap, not next to the heading. The gap itself is margin
+   on the block, as above. */
+.report-doc .bn-block-outer:has(> .bn-block > .bn-block-content[data-content-type="heading"][data-level="2"]) {
+  margin-top: 28px;
+  border-top: 1px solid var(--border-lightest);
+}
+/* Section heading — each one opens with a rule, as in the design. */
+.report-doc .bn-block-outer > .bn-block > .bn-block-content[data-content-type="heading"][data-level="2"] {
+  font-size: 26px;
+  line-height: 34px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  margin-top: 20px;
+  padding: 0 0 8px;
+}
+/* Sub-heading inside a section. */
+.report-doc .bn-block-outer > .bn-block > .bn-block-content[data-content-type="heading"][data-level="3"] {
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  margin-top: 16px;
+  padding: 0 0 4px;
+}
+.report-doc .bn-block-outer > .bn-block > .bn-block-content[data-content-type="paragraph"] {
+  font-size: 14px;
+  line-height: 21px;
+  margin-top: 6px;
+  padding: 0 0 6px;
+}
+.report-doc .bn-block-content[data-content-type="bulletListItem"],
+.report-doc .bn-block-content[data-content-type="numberedListItem"] {
+  font-size: 14px;
+  line-height: 21px;
+  margin-top: 3px;
+  padding: 0 0 3px;
+}
+/* TLP, date and distribution: the grey paragraphs under the title. */
+.report-doc .bn-block-outer:nth-child(-n + 4) > .bn-block > .bn-block-content[data-text-color="gray"] {
+  font-size: 13px;
+  line-height: 20px;
+  margin-top: 0;
+  padding: 0;
+}
+
+/* Tables carry most of an advisory's detail, so they get the room. */
+.report-doc .bn-block-content[data-content-type="table"] {
+  margin-top: 12px;
+  padding: 0 0 16px;
+}
+/* BlockNote renders plain `th`/`td` inside its table wrapper. */
+.report-doc .tableWrapper th,
+.report-doc .tableWrapper td {
+  font-size: 13px;
+  line-height: 18px;
+  padding: 8px 10px;
+  vertical-align: top;
+  border-color: var(--border-lightest);
+}
+.report-doc .tableWrapper th {
+  background: var(--bg-light);
+  color: var(--content-medium);
+  font-weight: 400;
+  text-align: left;
+}
+
+.report-meta {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--content-bold);
+}
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.report-table th {
+  background: var(--bg-medium);
+  text-align: left;
+  padding: 8px 10px;
+  font-weight: 400;
+  color: var(--content-medium);
+}
+.report-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-lightest);
+  vertical-align: top;
+}
+.skeleton {
+  /* A light band travels along each bar, so the page reads as still filling in
+     rather than as an empty document. */
+  background-color: var(--skeleton-base);
+  background-image: linear-gradient(
+    90deg,
+    var(--skeleton-base) 0%,
+    var(--skeleton-sheen) 50%,
+    var(--skeleton-base) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-flow 1.6s linear infinite;
+  border-radius: 4px;
+  height: 10px;
+  margin-bottom: 8px;
+}
+@keyframes skeleton-flow {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background-image: none;
+  }
+}
+.skeleton.head {
+  height: 20px;
+  width: 45%;
+  margin: 28px 0 16px;
+}
+/* ---------- The page the report lives in ----------
+   Figma: "Report content" — a white page inset 32px in the canvas, holding a
+   skeleton report from the moment the editor opens. */
+.report-page {
+  position: relative;
+  background: var(--bg-lightest);
+  border-radius: var(--radius-giant);
+  min-height: 100%;
+  /* 1092 wide and centred, so the canvas grey runs down either side of it. */
+  width: 100%;
+  max-width: 1092px;
+  margin: 0 auto;
+  /* The room above and below the text belongs to the document rather than the
+     page, so a header or footer band sits flush against the page's edge. */
+  padding: 0;
+}
+
+/* The skeleton stands in for the document, so it sits on the same column:
+   900 wide, centred, under the page's own 80px top padding. */
+.skeleton-doc {
+  display: flex;
+  flex-direction: column;
+  gap: 45px;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: max(80px, calc(var(--header-h, 64px) + 16px)) 0
+    max(96px, calc(var(--footer-h, 64px) + 16px));
+}
+.skeleton-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.skeleton-group .skeleton.head {
+  height: 28px;
+  margin: 0 0 11px;
+}
+
+/* ---------- Template sheet ----------
+   Figma `TemplatePreview`: 720 wide, centred over the page. It runs from near
+   the top of the canvas down past the bottom edge, like a page sheet, and the
+   Hide button drops it away leaving only its header pinned to the bottom. */
+.template-preview {
+  position: absolute;
+  /* Rests on the bottom edge and is only as tall as the template needs, up to
+     the full height of the canvas (48px below its top edge). Past that the body
+     scrolls and the header stays put. */
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-height: calc(100% - 48px);
+  z-index: 1;
+  width: 720px;
+  max-width: calc(100% - 64px);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-lightest);
+  border-radius: var(--radius-giant) var(--radius-giant) 0 0;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: transform 320ms cubic-bezier(0.22, 0.68, 0.2, 1);
+  animation: sheet-fade 260ms ease both;
+}
+@keyframes sheet-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.template-preview.open {
+  transform: translateY(0);
+}
+/* Pushed down until only its header shows, sitting on the bottom edge. */
+.template-preview.hidden {
+  transform: translateY(calc(100% - var(--tp-head, 57px)));
+}
+@media (prefers-reduced-motion: reduce) {
+  .template-preview {
+    transition: none;
+    animation: none;
+  }
+}
+.tp-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 16px;
+  border-bottom: 1px solid var(--border-light);
+  border-radius: var(--radius-giant) var(--radius-giant) 0 0;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 700;
+}
+.tp-head .btn {
+  font-weight: 500;
+}
+.tp-name {
+  color: var(--content-medium);
+}
+.tp-body {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 32px 144px;
+}
+/* The give that shows the sheet would scroll if the template were longer. */
+.tp-inner {
+  transition: transform 260ms cubic-bezier(0.22, 0.68, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tp-inner {
+    transition: none;
+  }
+}
+.tp-body h1 {
+  font-size: 26px;
+  line-height: 32px;
+  letter-spacing: -0.4px;
+  font-weight: 700;
+  margin: 32px 0 12px;
+}
+.tp-block h2 {
+  font-size: 16px;
+  line-height: 20px;
+  letter-spacing: -0.4px;
+  font-weight: 700;
+  margin: 12px 0 4px;
+}
+.tp-prompt {
+  margin: 8px 0 16px;
+  padding: 8px;
+  background: var(--bg-light);
+  border-radius: var(--radius-default);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--content-bold);
+  white-space: pre-wrap;
+}
+
+/* Sources panel */
+.src-item {
+  display: flex;
+  gap: 8px;
+  padding: 8px 0;
+  align-items: flex-start;
+}
+.src-item .src-body {
+  min-width: 0;
+}
+.src-title {
+  font-size: 13px;
+  line-height: 17px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.src-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--content-medium);
+  margin-top: 3px;
+  flex-wrap: wrap;
+}
+.cvss {
+  color: #c07f00;
+}
+.cvss.high {
+  color: #d93025;
+}
+.exploit {
+  color: #d93025;
+}
+
+/* Article feed */
+.feed-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--radius-large);
+  margin-bottom: 4px;
+}
+.feed-item.selected {
+  background: var(--bg-light);
+}
+.feed-thumb {
+  width: 96px;
+  height: 60px;
+  border: 1px solid var(--border-lightest);
+  border-radius: 6px;
+  flex: 0 0 96px;
+  background: #fff;
+}
+.feed-title {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 22px;
+}
+.feed-snippet {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--content-medium);
+  margin-top: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.feed-also {
+  font-size: 13px;
+  color: var(--content-medium);
+  margin-top: 6px;
+}
+
+/* Library modal */
+.modal.library {
+  width: 900px;
+  max-width: 94vw;
+  height: 762px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+}
+.library-side {
+  width: 316px;
+  flex: 0 0 316px;
+  border-right: 1px solid var(--border-lightest);
+  display: flex;
+  flex-direction: column;
+  padding: 16px 12px 12px;
+}
+.library-side h3 {
+  font-size: 13px;
+  color: var(--content-light);
+  font-weight: 400;
+  margin: 0 0 8px;
+  padding: 0 10px;
+}
+.library-aud {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 14px;
+  text-align: left;
+}
+.library-aud:hover {
+  background: var(--bg-light);
+}
+.library-aud.active {
+  background: var(--bg-light);
+  font-weight: 500;
+}
+.library-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.library-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 8px;
+}
+.library-grid {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 24px 24px;
+  display: grid;
+  /* TemplateCardSet is a fixed 264×196 component in the Figma library. */
+  grid-template-columns: repeat(2, 264px);
+  gap: 12px;
+  align-content: start;
+  justify-content: start;
+}
+.empty {
+  padding: 40px 4px;
+  color: var(--content-medium);
+  font-size: 14px;
+}
+
+/* Org profile */
+.org-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--content-medium);
+  margin: 10px 0 22px;
+}
+.reflink {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--content-bold);
+}
+.reflink a {
+  color: inherit;
+}
+.item-name {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.item-name .nm {
+  font-size: 14px;
+  font-weight: 500;
+}
+.item-name .vals {
+  font-size: 13px;
+  color: var(--content-medium);
+  margin-top: 2px;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.linkish {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Dropdown list panel (audience / tradecraft pickers) */
+.picker {
+  position: absolute;
+  z-index: 70;
+  width: 331px;
+  background: #fff;
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow-menu);
+  overflow: hidden;
+  max-height: 420px;
+  display: flex;
+  flex-direction: column;
+}
+.picker-label {
+  padding: 10px 14px 6px;
+  font-size: 13px;
+  color: var(--content-light);
+}
+.picker-list {
+  overflow-y: auto;
+}
+.picker-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border: 0;
+  background: transparent;
+  font-size: 14px;
+  text-align: left;
+}
+.picker-item:hover {
+  background: var(--bg-light);
+}
+.picker-item .pi-edit {
+  margin-left: auto;
+  color: var(--content-medium);
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 4px;
+  opacity: 0.65;
+}
+.picker-item .pi-edit:hover {
+  opacity: 1;
+  background: var(--bg-hover);
+}
+.picker-foot {
+  border-top: 1px solid var(--border-lightest);
+  padding: 6px;
+}
+
+/* ---------- Intel Agent page ---------- */
+.agent-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-lightest);
+  position: sticky;
+  top: 0;
+  background: var(--bg-lightest);
+  z-index: 5;
+}
+.agent-title {
+  font-size: 15px;
+  font-weight: 700;
+}
+.agent-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--content-medium);
+}
+.live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--bg-accent);
+}
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: var(--radius-default);
+  font-size: 13px;
+  line-height: 18px;
+}
+.status-pill.new {
+  background: var(--bg-accent-light);
+  color: #1c7a35;
+}
+.status-pill.updated {
+  background: #fdf3d3;
+  color: #8a6100;
+}
+.mini-list {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--content-medium);
+}
+.mini-list li {
+  margin-bottom: 2px;
+}
+
+/* ---------- Insight card panel ---------- */
+.insight-scrim {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-scrim);
+  z-index: 90;
+  display: flex;
+  justify-content: flex-end;
+  animation: fade 0.14s ease;
+}
+.insight-panel {
+  width: 1090px;
+  max-width: 78vw;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px 0 0 0;
+  box-shadow: var(--shadow-modal);
+  animation: slide-in 0.22s cubic-bezier(0.22, 0.68, 0.2, 1);
+}
+@keyframes slide-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+}
+.insight-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-lightest);
+  flex: 0 0 auto;
+}
+.insight-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 72px 64px;
+}
+.insight-header {
+  display: flex;
+  gap: 32px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.insight-tags {
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: var(--danger);
+}
+.insight-tags span + span::before {
+  content: "• ";
+  color: var(--content-light);
+}
+.insight-cve {
+  font-size: 26px;
+  line-height: 32px;
+  letter-spacing: -0.4px;
+  margin: 6px 0 2px;
+}
+.cvss-gauge {
+  flex: 0 0 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.cvss-scale {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: -22px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--content-light);
+}
+.cvss-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--content-bold);
+}
+.cvss-sev {
+  color: var(--danger);
+  font-size: 13px;
+}
+.insight-section {
+  margin-top: 20px;
+}
+.insight-section p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 21px;
+}
+.mitigation {
+  margin: 6px 0 0;
+  padding-left: 20px;
+  font-size: 14px;
+  line-height: 21px;
+}
+.mitigation li {
+  margin-bottom: 4px;
+}
+.timeline-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 32px 0 8px;
+}
+.timeline-rule {
+  flex: 1;
+  height: 1px;
+  background: var(--border-lightest);
+}
+.timeline-pill {
+  border: 1px solid var(--bg-accent);
+  color: var(--bg-accent);
+  border-radius: var(--radius-default);
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+}
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 8px;
+  border-left: 1px solid var(--border-lightest);
+}
+.timeline li {
+  position: relative;
+  padding: 0 0 22px 22px;
+}
+.tl-dot {
+  position: absolute;
+  left: -13px;
+  top: 5px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--border-medium);
+}
+
+/* ---------- Sources / Details regeneration footer ----------
+   Figma "Report Builder - Sources" / "- Details": a change that needs the
+   report rebuilt reveals Cancel / Regenerate at the foot of the panel. */
+.side-foot {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-lightest);
+  background: var(--bg-lightest);
+}
+
+/* ---------- Elicitation interactions ----------
+   Figma "Create Report Flow - Elicitation interactions": the parameter tag
+   carries the parameter's description, hovering an option shows the Org Profile
+   entries behind it, and the Other row becomes an input. */
+/* Figma "Badge" in the card header: info-medium behind content-bold text. */
+.elicit-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 20px;
+  padding: 2px 4px;
+  border-radius: var(--radius-default);
+  background: var(--info-medium);
+  color: var(--content-bold);
+  font-size: 13px;
+  line-height: 16px;
+  white-space: nowrap;
+  cursor: default;
+}
+/* The opening question is not about a parameter, so its badge is the green
+   "Question" one from Figma rather than a parameter chip: same 4px corner, but
+   on `background/accent-bold` with the body text sitting on it at 14/20. */
+.elicit-tag.question {
+  min-height: 24px;
+  padding: 2px 8px;
+  background: var(--bg-accent-bold);
+  color: var(--content-bold);
+  font-size: 14px;
+  line-height: 20px;
+}
+/* Figma "MenuItem" inside ElicitationInputs: a 40px row, 8px padding, and a
+   20px slot for the mark with 8px to the label. The mark stays at the top of
+   the row so a label that wraps runs on underneath it. */
+.opt-row {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 40px;
+  border-radius: var(--radius-default);
+  padding: 8px;
+  margin: 0;
+}
+.opt-row:hover {
+  background: var(--bg-light);
+}
+.opt-row .checkbox {
+  flex: 1 1 auto;
+  align-items: flex-start;
+  padding: 0;
+  /* 2px of the 20px slot sits to the right of the 16px mark. */
+  gap: 10px;
+}
+.opt-row .checkbox input,
+.opt-other .opt-other-box {
+  /* Centred in the 20px × 24px slot Figma gives the mark. */
+  margin: 4px 0 0 2px;
+}
+.opt-row .checkbox > span {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+  line-height: 20px;
+}
+/* Sits on the label's line, the way Figma's _RightItem does. */
+.opt-row .suggested {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  margin-top: 4px;
+}
+.opt-card {
+  position: absolute;
+  left: calc(100% + 8px);
+  top: -8px;
+  width: 210px;
+  z-index: 5;
+  padding: 10px;
+  border-radius: var(--radius-large);
+  background: var(--bg-lightest);
+  box-shadow: var(--shadow-menu);
+}
+.opt-other {
+  display: flex;
+  align-items: flex-start;
+  /* Same mark, slot and row metrics as the option rows above it. */
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--content-light);
+  border-radius: var(--radius-default);
+}
+.opt-other:hover {
+  background: var(--bg-light);
+}
+.opt-other > span:last-child {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+}
+.opt-other-box {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  border: 1px solid var(--border-medium);
+  border-radius: 2px;
+}
+/* Single-select questions: the Other row takes the same round mark. */
+.opt-other.radio .opt-other-box {
+  border-radius: 50%;
+}
+/* Sits on the 24px label line, so the row keeps its 40px height. */
+.other-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: 14px;
+  line-height: 20px;
+  min-height: 24px;
+  padding: 2px 0;
+}
+.opt-row.other {
+  background: var(--bg-light);
+  gap: 10px;
+}
+/* The checkbox carries no label here, so the input takes the label's place. */
+.opt-row.other .checkbox {
+  flex: 0 0 auto;
+  gap: 0;
+}
+
+/* ---------- Conversation entries ----------
+   Everything in the Ask AI panel lands one at a time, in the order the flow
+   decides it: each message rises into place, and the elicitation card only
+   opens once the message before it has arrived. */
+.chat-in {
+  animation: chat-in 240ms cubic-bezier(0.22, 0.68, 0.2, 1) both;
+}
+@keyframes chat-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-in {
+    animation: none;
+  }
+}
+
+/* ================================================================== *
+ * Branding — Figma "[2.2] Branding & Customization"
+ * ================================================================== */
+
+/* ---------- Upload wells (New Brand, background image) ---------- */
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px 16px;
+  border: 1px dashed var(--border-medium);
+  border-radius: var(--radius-large);
+  background: var(--bg-lightest);
+  transition: border-color 0.12s, background 0.12s;
+}
+.dropzone.over {
+  border-color: var(--bg-accent);
+  background: var(--bg-accent-light);
+}
+.upload-done {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 8px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-large);
+  font-size: 13px;
+}
+.upload-done .truncate {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---------- A colour row: label, swatch, hex ---------- */
+.color-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.color-label {
+  flex: 0 0 96px;
+  font-size: 13px;
+  line-height: 16px;
+  color: var(--content-bold);
+}
+.color-well {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  height: 32px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-default);
+  overflow: hidden;
+  background: var(--bg-lightest);
+}
+.color-well:focus-within {
+  border-color: var(--bg-accent);
+}
+.color-well.disabled {
+  background: var(--bg-light);
+}
+/* The swatch is the colour input itself, stretched under a coloured block, so
+   clicking the block opens the picker and the two controls stay one control. */
+.color-swatch {
+  position: relative;
+  flex: 0 0 30px;
+  align-self: stretch;
+  overflow: hidden;
+}
+.color-swatch input {
+  position: absolute;
+  inset: -4px;
+  width: calc(100% + 8px);
+  height: calc(100% + 8px);
+  opacity: 0;
+  cursor: pointer;
+  border: 0;
+  padding: 0;
+}
+.color-hex {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--content-bold);
+  background: transparent;
+}
+/* ---------- The side peek ---------- */
+.peek-scrim {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-scrim);
+  z-index: 100;
+  display: flex;
+  justify-content: flex-end;
+  animation: fade 0.14s ease;
+}
+.peek {
+  width: min(1040px, 78vw);
+  position: relative;
+  background: var(--bg-lightest);
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-modal);
+  animation: peek-in 0.22s cubic-bezier(0.16, 0.84, 0.24, 1);
+}
+@keyframes peek-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+}
+/* Figma puts the close at the panel's top-left corner, outside the content
+   column, so it never competes with the brand's name. */
+.peek-close {
+  position: absolute;
+  top: 12px;
+  left: 8px;
+  z-index: 1;
+}
+.peek-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 36px 48px 40px;
+}
+.peek-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 28px;
+}
+.peek-foot {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-lightest);
+  background: var(--bg-lightest);
+}
+
+/* ---------- The brand editor: a table per group of settings ---------- */
+.brand-section {
+  padding: 24px 0 8px;
+}
+.bt {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+.bt th {
+  height: 40px;
+  padding: 0;
+  text-align: left;
+  font-weight: 400;
+  border-bottom: 1px solid var(--border-lightest);
+}
+.th-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px 2px 0;
+  border: 0;
+  border-radius: var(--radius-default);
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--content-medium);
+  cursor: pointer;
+}
+.th-sort:hover,
+.th-sort.on {
+  color: var(--content-bold);
+}
+.th-sort svg {
+  color: var(--content-light);
+}
+.bt td {
+  height: 52px;
+  padding: 6px 12px 6px 0;
+  border-bottom: 1px solid var(--border-lightest);
+  vertical-align: middle;
+}
+.bt td:first-child {
+  padding-left: 8px;
+}
+.bt tbody tr:hover td {
+  background: var(--bg-light);
+}
+.bt td:last-child {
+  padding-right: 0;
+}
+.cell-name {
+  min-width: 0;
+}
+.cn-label {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--content-bold);
+}
+.cn-help {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--content-medium);
+}
+.bt .color-well {
+  width: 133px;
+}
+.bt .select {
+  width: 160px;
+}
+
+/* ---------- Common Imagery ---------- */
+.bt-add td {
+  height: 44px;
+  padding: 0;
+}
+.add-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0 8px;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  color: var(--content-medium);
+  cursor: pointer;
+}
+.add-row:hover:not(:disabled) {
+  color: var(--content-bold);
+}
+.add-row:disabled {
+  color: var(--content-light);
+  cursor: default;
+}
+.asset-name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.asset-thumb {
+  flex: 0 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 3px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-default);
+  background: var(--bg-lightest);
+  overflow: hidden;
+}
+.asset-thumb img {
+  max-width: 100%;
+  max-height: 100%;
+}
+.cell-input {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-default);
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  color: var(--content-bold);
+}
+.cell-input:hover {
+  border-color: var(--border-light);
+  background: var(--bg-lightest);
+}
+.cell-input:focus {
+  outline: none;
+  border-color: var(--bg-accent);
+  background: var(--bg-lightest);
+}
+
+/* ---------- The preview card, outside the panel ---------- */
+.ref-pop {
+  position: fixed;
+  z-index: 140;
+  width: 323px;
+  padding: 24px;
+  border-radius: var(--radius-large);
+  background: var(--bg-lightest);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.38), 0 2px 8px rgba(0, 0, 0, 0.08);
+  animation: fade 0.12s ease;
+  pointer-events: none;
+}
+/* The pointer lines up with the row the cursor is on. */
+.ref-pointer {
+  position: absolute;
+  left: 100%;
+  margin-top: -5px;
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 5px solid var(--bg-lightest);
+}
+.rp-type {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.rp-h1 {
+  font-size: 40px;
+  line-height: 48px;
+  font-weight: 700;
+  padding: 4px 0;
+}
+.rp-h2 {
+  font-size: 26px;
+  line-height: 32px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  padding: 4px 0;
+}
+.rp-h3 {
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  padding: 4px 0;
+}
+.rp-h4 {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 700;
+  padding: 4px 0;
+}
+.rp-p {
+  font-size: 14px;
+  line-height: 21px;
+  padding: 4px 0;
+}
+.rp-rule {
+  height: 1px;
+  margin: 8px 0;
+}
+.rp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  border: 1px solid;
+}
+.rp-table td {
+  padding: 6px 10px;
+}
+.rp-asset-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 140px;
+  padding: 12px;
+  border: 1px solid var(--border-lightest);
+  border-radius: var(--radius-default);
+  background: var(--bg-light);
+}
+.rp-asset-box img {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* ---------- The data-visualisation preview ---------- */
+.viz-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.donut {
+  flex: 0 0 116px;
+  width: 116px;
+  height: 116px;
+  border-radius: 50%;
+  /* The hole is punched with a mask so the ring takes the conic gradient. */
+  mask: radial-gradient(circle, transparent 54%, #000 55%);
+  -webkit-mask: radial-gradient(circle, transparent 54%, #000 55%);
+}
+.viz-legend {
+  flex: 1;
+  min-width: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 11px;
+  line-height: 18px;
+  color: var(--content-medium);
+}
+.viz-legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.viz-legend .dot {
+  flex: 0 0 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.viz-legend b {
+  margin-left: auto;
+  font-weight: 400;
+  color: var(--content-light);
+}
+
+/* ---------- The Design tab ---------- */
+.side-rule {
+  height: 1px;
+  background: var(--border-lightest);
+  margin: 4px 0 20px;
+}
+.color-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.empty-note {
+  padding: 12px 14px;
+  border: 1px dashed var(--border-light);
+  border-radius: var(--radius-large);
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--content-medium);
+}
+/* Figma: 60px tiles, five to a row, 8px apart. */
+.block-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 60px);
+  gap: 8px;
+}
+.block-tile {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-large);
+  background: var(--bg-lightest);
+  color: var(--content-medium);
+  cursor: grab;
+}
+.block-tile:hover:not(:disabled) {
+  border-color: var(--border-medium);
+  background: var(--bg-light);
+}
+.block-tile:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+/* The heading tiles are set as "H1" over a rule, as the design draws them. */
+.bt-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--content-bold);
+  border-bottom: 2px solid var(--content-medium);
+  padding-bottom: 2px;
+  line-height: 18px;
+}
+/* The last tile is the brand's own, so it carries the accent. */
+.block-tile:last-child {
+  border-color: var(--bg-accent);
+  color: var(--bg-accent);
+}
+
+/* ---------- Header and footer bands ----------
+   The bands live inside the page's own top and bottom padding rather than
+   above and below the document: a header is part of a page's margin, not
+   something bolted on top of it, so showing one must not make the page taller.
+   They are absolutely positioned against the page and the document's padding
+   is sized to clear them — which is why a header carrying a cover image, the
+   one case that needs more room, is also the one case that moves the text. */
+.band-wrap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 1;
+}
+.band-wrap.header {
+  top: 0;
+}
+.band-wrap.footer {
+  bottom: 0;
+}
+/* The band sits flush with the top and bottom of the page, so it takes the
+   page's own corner radius on that side. */
+.band {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: var(--header-h, 64px);
+  border: 1px solid transparent;
+  border-radius: var(--radius-giant) var(--radius-giant) 0 0;
+  /* So a background image is clipped to the page's own rounded corner. */
+  overflow: hidden;
+  transition: border-color 0.12s;
+}
+.band-wrap.footer .band {
+  height: var(--footer-h, 64px);
+  border-radius: 0 0 var(--radius-giant) var(--radius-giant);
+}
+/* Quiet until hovered on the other tabs; outlined from the start on Design.
+   The band being worked on stays accent whether or not the cursor is on it. */
+.band-wrap.hint:hover .band,
+.band-wrap.edit .band {
+  border-color: var(--border-medium);
+}
+.band-wrap.hint {
+  cursor: pointer;
+}
+.band-wrap.edit:hover .band,
+.band-wrap.active .band {
+  border-color: var(--bg-accent);
+}
+/* Three equal slots; the outer two hug the page's own text column. */
+.band-slot {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+.band-slot.left {
+  justify-content: flex-start;
+  padding-left: 96px;
+}
+.band-slot.middle {
+  justify-content: center;
+}
+.band-slot.right {
+  justify-content: flex-end;
+  padding-right: 96px;
+}
+/* An empty slot is a dashed 160x40 target with the + centred in it. */
+.band-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 160px;
+  height: 40px;
+  border: 1px dashed var(--border-medium);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--content-medium);
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
+}
+.band-wrap.edit:hover .band-add,
+.band-wrap.active .band-add {
+  border-color: var(--bg-accent);
+  color: var(--bg-accent);
+}
+.band-add:hover {
+  background: var(--bg-accent-light);
+  border-color: var(--bg-accent);
+  color: var(--bg-accent);
+}
+/* The label hanging off the band, naming which one it is. It is grey until the
+   band is the thing being worked on. */
+.band-tag {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 100%;
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 2px 8px;
+  border-radius: 0 0 6px 6px;
+  background: var(--content-medium);
+  color: #fff;
+  font-size: 13px;
+  line-height: 18px;
+  white-space: nowrap;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.12s, background 0.12s;
+  pointer-events: none;
+}
+.band-wrap.hint:hover .band-tag,
+.band-wrap.edit .band-tag,
+.band-wrap.active .band-tag {
+  opacity: 1;
+}
+.band-wrap.edit:hover .band-tag,
+.band-wrap.active .band-tag {
+  background: var(--bg-accent);
+}
+.band-wrap.footer .band-tag {
+  top: auto;
+  bottom: 100%;
+  border-radius: 6px 6px 0 0;
+}
+.bt-scope {
+  opacity: 0.8;
+}
+
+/* One element in a slot. */
+/* The padding and the outline box are on every element in every state, not
+   only the editable one — otherwise a logo would shift by five pixels the
+   moment the band was highlighted, and where something sits on the page must
+   not depend on what is being looked at. Only the border's colour changes. */
+.band-el {
+  position: relative;
+  display: flex;
+  align-items: center;
+  max-width: 100%;
+  min-width: 0;
+  padding: 4px 6px;
+  border: 1px dashed transparent;
+  border-radius: 6px;
+}
+.band-el.editing:hover,
+.band-el.editing:focus-within {
+  border-color: var(--border-medium);
+}
+.be-text {
+  font-size: 13px;
+  line-height: 18px;
+  outline: none;
+  color: var(--content-medium);
+}
+.be-text.h3 {
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 700;
+}
+.be-text.h4 {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 700;
+}
+.be-tlp {
+  padding: 3px 10px;
+  border-radius: var(--radius-default);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+}
+.be-tlp span {
+  outline: none;
+}
+.be-page {
+  font-size: 13px;
+  color: var(--content-medium);
+}
+.be-logo {
+  max-height: 32px;
+  max-width: 260px;
+  display: block;
+}
+.be-image {
+  max-height: 40px;
+  max-width: 200px;
+  display: block;
+  border-radius: 4px;
+}
+.be-placeholder {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--content-light);
+}
+.be-placeholder.as-button {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+}
+.be-remove {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 18px;
+  height: 18px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-light);
+  border-radius: 50%;
+  background: var(--bg-lightest);
+  color: var(--content-medium);
+  cursor: pointer;
+  padding: 0;
+}
+.band-el.editing:hover .be-remove {
+  display: flex;
+}
+
+/* The floating toolbar, outside the band. */
+/* Figma puts both menus in the same place relative to their band: just above
+   it, and flush with the page's own left edge rather than with the text
+   column. The footer's is above its band too — a control that sits under the
+   thing it controls reads as belonging to whatever comes next. */
+.band-toolbar {
+  position: absolute;
+  left: 4px;
+  bottom: calc(100% + 8px);
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border: 0.5px solid var(--border-lightest);
+  border-radius: var(--radius-large);
+  background: var(--bg-lightest);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.38), 0 2px 8px rgba(0, 0, 0, 0.08);
+  z-index: 3;
+}
+.btb-btn {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 24px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--content-medium);
+  cursor: pointer;
+}
+.btb-btn:hover {
+  background: var(--bg-light);
+}
+.btb-btn.label {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  padding: 0 8px;
+}
+.btb-div {
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background: var(--border-light);
+  border-radius: 2px;
+}
+.cols-glyph {
+  display: inline-flex;
+  gap: 1px;
+}
+.cols-glyph i {
+  width: 4px;
+  height: 8px;
+  border: 1px solid var(--content-medium);
+  border-radius: 1px;
+}
+.btb-swatch {
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--border-light);
+  border-radius: 2px;
+}
+.swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  padding: 8px;
+}
+.swatch {
+  height: 28px;
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.swatch.on {
+  outline: 2px solid var(--bg-accent);
+  outline-offset: 1px;
+}
+.bg-preview {
+  width: 100%;
+  border-radius: var(--radius-large);
+  display: block;
+}
+
+/* ---------- The brand, applied to a document ----------
+   The document's own rules stay as they are and only reach for the brand's
+   colour when one is set: `var(--b-h2, <the app's colour>)`. That way an
+   unbranded template renders exactly as it did before brands existed. */
+.canvas-page,
+.report-page {
+  font-family: var(--b-font, var(--font-sans));
+}
+.report-doc .bn-block-outer > .bn-block > .bn-block-content[data-content-type="heading"]:not([data-level]) {
+  color: var(--b-h1, var(--content-bold));
+  font-family: var(--b-font-h1, inherit);
+}
+.report-doc .bn-block-outer > .bn-block > .bn-block-content[data-content-type="heading"][data-level="2"] {
+  color: var(--b-h2, var(--content-bold));
+  font-family: var(--b-font-h2, inherit);
+}
+.report-doc .bn-block-outer > .bn-block > .bn-block-content[data-content-type="heading"][data-level="3"] {
+  color: var(--b-h3, var(--content-bold));
+  font-family: var(--b-font-h3, inherit);
+}
+.report-doc .bn-block-outer > .bn-block > .bn-block-content[data-content-type="paragraph"],
+.report-doc .bn-block-content[data-content-type="bulletListItem"],
+.report-doc .bn-block-content[data-content-type="numberedListItem"] {
+  color: var(--b-paragraph, var(--content-bold));
+}
+.report-doc .bn-block-outer:nth-child(-n + 4) > .bn-block > .bn-block-content[data-text-color="gray"] {
+  color: var(--b-caption, var(--content-medium)) !important;
+  font-family: var(--b-font-cap, inherit);
+}
+.report-doc .bn-block-outer:has(> .bn-block > .bn-block-content[data-content-type="heading"][data-level="2"]) {
+  border-top-color: var(--b-divider, var(--border-lightest));
+}
+.report-doc .tableWrapper th {
+  background: var(--b-table, var(--bg-light));
+}
+.report-doc .tableWrapper th,
+.report-doc .tableWrapper td {
+  border-color: var(--b-divider, var(--border-lightest));
+}
+.canvas-doc .bn-block-outer > .bn-block > .bn-block-content[data-content-type="heading"]:not([data-level]) {
+  color: var(--b-h1, var(--content-bold));
+  font-family: var(--b-font-h1, inherit);
+}
+.canvas-doc .bn-block-outer > .bn-block > .bn-block-content[data-content-type="heading"][data-level="2"] {
+  color: var(--b-h2, var(--content-bold));
+  font-family: var(--b-font-h2, inherit);
+}
+.canvas-doc .bn-block-outer > .bn-block > .bn-block-content[data-content-type="heading"][data-level="3"] {
+  color: var(--b-h3, var(--content-bold));
+  font-family: var(--b-font-h3, inherit);
+}
+
+/* The Details tab boxes what the template carried in: its parameters and its
+   brand, which are both changeable here and both come from the same place. */
+.detail-card {
+  margin-top: 18px;
+  padding: 14px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-large);
+}
+.detail-card .elicit-tag {
+  display: inline-flex;
+}
+
+/* A one-click preset in the background-image dialog, so the cover artwork the
+   prototype ships with can be applied without going and finding the file. */
+.bg-preset {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 8px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-large);
+  background: var(--bg-lightest);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  color: var(--content-bold);
+  text-align: left;
+}
+.bg-preset:hover {
+  border-color: var(--border-medium);
+  background: var(--bg-light);
+}
+.bg-preset img {
+  width: 88px;
+  height: 28px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex: 0 0 auto;
+}
+
+/* ---------- The rule and table that close the template document ----------
+   These are what the brand's two Structure colours land on. The rest of the
+   document is headings and prompts, which take their colour from the type
+   scale, so without these two the Dividers and Table fields would appear to
+   do nothing. */
+.canvas-doc .doc-rule {
+  height: 1px;
+  border: 0;
+  margin: 0;
+  background: var(--b-divider, var(--border-lightest));
+}
+.canvas-doc .bn-block-content[data-content-type="divider"] {
+  margin-top: 20px;
+  padding: 0 0 12px;
+}
+.canvas-doc .bn-block-content[data-content-type="table"] {
+  margin-top: 4px;
+  padding: 0 0 16px;
+}
+.canvas-doc .tableWrapper table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.canvas-doc .tableWrapper th,
+.canvas-doc .tableWrapper td {
+  border: 1px solid var(--b-divider, var(--border-lightest));
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 19px;
+  text-align: left;
+  color: var(--b-paragraph, var(--content-bold));
+}
+.canvas-doc .tableWrapper th {
+  background: var(--b-table, var(--bg-light));
+  font-weight: 600;
+}

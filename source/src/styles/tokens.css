@@ -1,0 +1,84 @@
+/* Design tokens extracted from Figma: Report Builder 2.0 — [2.0] Templates V2 Release
+   Source: https://www.figma.com/design/oFeGy51UBRzDS43LmnLaim/Report-Builder-2.0 */
+
+:root {
+  /* Content */
+  --content-bold: #333333;
+  --content-medium: #757575;
+  --content-light: #9e9e9e;
+  --content-inverse: #ffffff;
+  --content-badge: #404047;
+
+  /* Background */
+  --bg-lightest: #ffffff;
+  --bg-light: #f7f7f7;
+  --bg-medium: #e6e6e6;
+  --bg-accent: #2bb24c;
+  --bg-accent-hover: #239843;
+  --bg-accent-light: #eaf7ed;
+  /* Figma "background/accent-bold" — behind the green Question badge. */
+  --bg-accent-bold: #bfe8c9;
+  --bg-hover: #ecedee;
+  --bg-app: #ffffff;
+  /* Loading skeleton: the bar and the light band that travels along it. */
+  --skeleton-base: #eeeeee;
+  --skeleton-sheen: #fbfbfb;
+  --bg-canvas: #f7f7f7;
+  --bg-scrim: rgba(0, 0, 0, 0.35);
+
+  /* Border */
+  --border-lightest: #f2f2f2;
+  --border-light: #d9d9d9;
+  --border-medium: #bfbfbf;
+
+  /* Status */
+  --danger: #d93025;
+  --danger-hover: #b3261e;
+  --info-bg: #eef5fd;
+  --info-border: #cfe2f7;
+  --param-bg: #ebf2fa;
+  --param-border: #d7e4f5;
+  --param-text: #2f5bb7;
+  /* Figma "background/info-medium" — the elicitation card's parameter badge. */
+  --info-medium: #d7e4f5;
+  /* Figma "background/info-bold" — the parameter badge's border on the canvas. */
+  --info-bold: #c4d7f0;
+  /* Figma "background-states/lightest-disabled" and "content-states/bold-disabled"
+     — a field that is filled in but locked, as in a built-in template. */
+  --field-disabled-bg: #e6e6e6;
+  --field-disabled-text: #9e9e9e;
+  /* Figma "background-states/accent-disabled" and
+     "content-states/inverse-disabled" — a primary button with nothing to do. */
+  --accent-disabled: #d9d9d9;
+  --content-inverse-disabled: #646464;
+
+  /* Radius */
+  --radius-default: 4px;
+  --radius-large: 8px;
+  /* Figma: 'giant' radius, used by the page and the template preview card. */
+  --radius-giant: 12px;
+  --radius-pill: 100px;
+
+  /* Spacing scale (semanticSpacingPositive*) */
+  --sp-0: 0px;
+  --sp-100: 2px;
+  --sp-200: 4px;
+  --sp-300: 8px;
+  --sp-400: 12px;
+  --sp-500: 16px;
+  --sp-600: 24px;
+  --sp-700: 32px;
+  --sp-750: 40px;
+
+  /* Elevation */
+  --shadow-lightest: 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 2px 2px rgba(0, 0, 0, 0.04);
+  --shadow-menu: 0 4px 16px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  --shadow-modal: 0 12px 40px rgba(0, 0, 0, 0.18);
+
+  /* Type ramp — Web App/* styles */
+  --font-sans: "Inter", "Inter Variable", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-mono: "SFMono-Regular", ui-monospace, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+}
