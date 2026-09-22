@@ -514,7 +514,7 @@ function BackgroundDialog({
         >
           <img src={a.src} alt="" />
           <span>
-            Use {brand?.name}'"'"'s {a.name.toLowerCase()}
+            Use {brand?.name}&rsquo;s {a.name.toLowerCase()}
           </span>
         </button>
       ))}
