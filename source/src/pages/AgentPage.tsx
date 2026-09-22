@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { Icon } from "../components/ui/Icon";
-import { Button, Popover } from "../components/ui/primitives";
+import { Button } from "../components/ui/primitives";
+import { CreateReportMenu } from "../components/report/CreateReportMenu";
 import { useStore } from "../state/store";
 import { AGENT, INSIGHT_CARDS, type InsightCard } from "../data/mockData";
 
@@ -12,12 +13,10 @@ import { AGENT, INSIGHT_CARDS, type InsightCard } from "../data/mockData";
  * and "4 - Insight Card path" → Insight 1.
  */
 export function AgentPage() {
-  const { templates, openReportEditor } = useStore();
+  const { openReportEditor } = useStore();
   const btnRef = useRef<HTMLButtonElement>(null);
   const [menu, setMenu] = useState(false);
   const [open, setOpen] = useState<InsightCard | null>(null);
-
-  const pickable = templates.slice(0, 8);
 
   return (
     <>
@@ -47,35 +46,24 @@ export function AgentPage() {
         </div>
       </div>
 
+      {/* Audience first, then that audience's templates — the same two-step
+          menu the Report Builder uses, without its recents shortcut. */}
       {menu && (
-        <Popover anchorRef={btnRef} onClose={() => setMenu(false)} align="end" width={280}>
-          <div className="menu-label">Create a report from this agent</div>
-          {pickable.map((t) => (
-            <button
-              key={t.id}
-              className="menu-item"
-              onClick={() => {
-                setMenu(false);
-                openReportEditor(t.id, {
-                  path: "broad",
-                  contextKind: "agent",
-                  contextLabel: AGENT.view,
-                });
-              }}
-            >
-              <span className="mi-icon">
-                <Icon name={t.icon} size={18} />
-              </span>
-              <span className="truncate" style={{ flex: 1, minWidth: 0 }}>
-                {t.name}
-              </span>
-              <span className="badge">{t.audience}</span>
-            </button>
-          ))}
-        </Popover>
+        <CreateReportMenu
+          anchorRef={btnRef}
+          showRecent={false}
+          onClose={() => setMenu(false)}
+          onPick={(id) =>
+            openReportEditor(id, {
+              path: "broad",
+              contextKind: "agent",
+              contextLabel: AGENT.view,
+            })
+          }
+        />
       )}
 
-      <div className="page" style={{ paddingTop: 24 }}>
+      <div className="page wide" style={{ paddingTop: 24 }}>
         <div className="field-label">Filters</div>
         <div className="org-note" style={{ margin: "6px 0 12px" }}>
           <Icon name="info" size={15} />
@@ -163,7 +151,7 @@ export function AgentPage() {
 /* ------------------------------------------------------------------ */
 
 function InsightPanel({ card, onClose }: { card: InsightCard; onClose: () => void }) {
-  const { templates, openReportEditor } = useStore();
+  const { openReportEditor } = useStore();
   const btnRef = useRef<HTMLButtonElement>(null);
   const [menu, setMenu] = useState(false);
 
@@ -189,28 +177,15 @@ function InsightPanel({ card, onClose }: { card: InsightCard; onClose: () => voi
         </div>
 
         {menu && (
-          <Popover anchorRef={btnRef} onClose={() => setMenu(false)} align="end" width={280}>
-            <div className="menu-label">Create a report about {card.cve}</div>
-            {templates.slice(0, 8).map((t) => (
-              <button
-                key={t.id}
-                className="menu-item"
-                onClick={() => {
-                  setMenu(false);
-                  onClose();
-                  openReportEditor(t.id, { path: "insight", insightId: card.id });
-                }}
-              >
-                <span className="mi-icon">
-                  <Icon name={t.icon} size={18} />
-                </span>
-                <span className="truncate" style={{ flex: 1, minWidth: 0 }}>
-                  {t.name}
-                </span>
-                <span className="badge">{t.audience}</span>
-              </button>
-            ))}
-          </Popover>
+          <CreateReportMenu
+            anchorRef={btnRef}
+            showRecent={false}
+            onClose={() => setMenu(false)}
+            onPick={(id) => {
+              onClose();
+              openReportEditor(id, { path: "insight", insightId: card.id });
+            }}
+          />
         )}
 
         <div className="insight-body">

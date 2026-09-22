@@ -156,6 +156,16 @@ export const AUDIENCE_MENU_ORDER = [
   "M&A",
 ];
 
+/**
+ * The Create Report menu spells the audiences out in full; badges and template
+ * cards use the short forms, which is how the design reads in both places.
+ */
+export const AUDIENCE_MENU_LABEL: Record<string, string> = {
+  "Custom audience": "Custom Audience",
+  "Vuln Management": "Vulnerability Management",
+  TPRM: "Third-Party Risk Management",
+};
+
 export const TRADECRAFTS = [
   "ICD 203",
   "ICD 206",
@@ -950,6 +960,17 @@ export const THREAT_GRAPH_SOURCES: SourceItem[] = [
 export const GENERATED_TITLE =
   "CVE-2026-63030 & CVE-2026-60137 Vulnerability Advisory";
 
+/**
+ * The line under the report title. Fixed, as in the Figma frames — the date is
+ * the advisory's own date rather than today's, and the distribution is the one
+ * the worked example carries.
+ */
+export const REPORT_META = [
+  "TLP: CLEAR",
+  "Date: July 21, 2026",
+  "Distribution: Vulnerability Management, SOC, IR, Detection Engineering, IT Ops",
+];
+
 export const GENERATED_SUMMARY =
   'CVE-2026-63030 and CVE-2026-60137 are two WordPress Core vulnerabilities that chain together into an unauthenticated remote code execution (RCE) path, tracked publicly as "wp2shell." An unauthenticated attacker targeting a default WordPress installation on versions 6.9.0–6.9.4 or 7.0.0–7.0.1 can create an administrator account and execute arbitrary code without any plugin, theme, or credential requirement. [3][8] Cardinal Trust Financial operates a public-facing WordPress site that falls within the affected version range and is directly exposed. Patch to WordPress 6.9.5 or 7.0.2 immediately and audit for post-exploitation artifacts before restoring trust in the environment. [3][10]';
 
@@ -1257,6 +1278,367 @@ export const INSIGHT_CARDS: InsightCard[] = [
       },
     ],
   },
+  {
+    id: "ic5",
+    cve: "CVE-2026-31908",
+    euvd: "EUVD-2026-19204",
+    status: "Updated",
+    published: "6/24/2026",
+    updated: "9d ago",
+    weakness: "Deserialization of untrusted data (CWE-502)",
+    extraWeaknesses: 2,
+    cvss: 9.8,
+    severity: "Critical",
+    tags: ["TRENDING", "EXPLOIT"],
+    summary:
+      "Untrusted deserialization in the Apache Struts file upload interceptor allowing unauthenticated remote code execution",
+    impact:
+      "A crafted multipart request reaches the interceptor before authentication, so any internet-facing Struts application is exploitable by an anonymous attacker with a single HTTP POST.",
+    exploitation:
+      "Weaponized within 48 hours of disclosure. Mass scanning observed from several botnets, and at least one ransomware affiliate is using it for initial access.",
+    patch: "Fixed in Struts 6.7.2 and 7.1.0.",
+    mitigation: [
+      "Upgrade Apache Struts to 6.7.2 or 7.1.0",
+      "Block multipart requests to legacy upload endpoints at the WAF",
+      "Hunt for unexpected JSP files written under the application root",
+    ],
+    vector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+    what: [
+      "Unauthenticated RCE in a widely deployed Java framework",
+      "Single request, no user interaction",
+      "Ransomware affiliates already using it",
+    ],
+    latestActivity: [
+      "Added to CISA KEV",
+      "Mass scanning from three botnets",
+      "Apache revised the advisory",
+    ],
+    timeline: [
+      {
+        label: "Vulnerability Disclosure",
+        text: "Apache published the advisory and a fixed release",
+        date: "2026-06-24",
+      },
+      {
+        label: "Exploitation Observed",
+        text: "First in-the-wild exploitation reported by incident responders",
+        date: "2026-06-26",
+      },
+    ],
+  },
+  {
+    id: "ic6",
+    cve: "CVE-2026-11742",
+    euvd: "EUVD-2026-17553",
+    status: "New",
+    published: "6/09/2026",
+    updated: "27d ago",
+    weakness: "Authentication bypass by spoofing (CWE-290)",
+    extraWeaknesses: 1,
+    cvss: 9.1,
+    severity: "Critical",
+    tags: ["TRENDING"],
+    summary:
+      "SAML response signature confusion in Citrix NetScaler ADC lets an attacker authenticate as any user",
+    impact:
+      "An attacker who can reach the gateway can forge a SAML assertion and take over any account, including administrators, with no credentials and no second factor.",
+    exploitation:
+      "No confirmed in-the-wild exploitation yet, but a detailed write-up and a working proof of concept are public.",
+    patch: "Fixed in NetScaler ADC 14.1-38.53 and 13.1-59.19.",
+    mitigation: [
+      "Upgrade NetScaler ADC to a fixed build",
+      "Rotate the SAML signing certificate after patching",
+      "Review gateway authentication logs for assertions with unexpected issuers",
+    ],
+    vector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:N",
+    what: [
+      "Full authentication bypass on a network edge appliance",
+      "Defeats multi-factor authentication",
+      "Public proof of concept",
+    ],
+    latestActivity: [
+      "Public proof of concept released",
+      "Citrix expanded the affected build list",
+    ],
+    timeline: [
+      {
+        label: "Vulnerability Disclosure",
+        text: "Citrix published the advisory",
+        date: "2026-06-09",
+      },
+      {
+        label: "Proof of Concept",
+        text: "Researchers released a working exploit",
+        date: "2026-06-17",
+      },
+    ],
+  },
+  {
+    id: "ic7",
+    cve: "CVE-2026-50881",
+    euvd: "EUVD-2026-20988",
+    status: "Updated",
+    published: "7/11/2026",
+    updated: "2d ago",
+    weakness: "Improper certificate validation (CWE-295)",
+    extraWeaknesses: 0,
+    cvss: 8.6,
+    severity: "High",
+    tags: ["EXPLOIT"],
+    summary:
+      "VMware vCenter Server fails to validate the certificate on the update channel, allowing a machine-in-the-middle to deliver a malicious package",
+    impact:
+      "An attacker positioned on the management network can serve a signed-looking update and gain code execution as root on vCenter, which usually means the whole virtual estate.",
+    exploitation:
+      "Exploitation observed in targeted intrusions against managed service providers.",
+    patch: "Fixed in vCenter Server 8.0 U3e and 7.0 U3s.",
+    mitigation: [
+      "Apply the vCenter update",
+      "Keep the management network segmented from general user traffic",
+      "Verify the integrity of recently applied vCenter packages",
+    ],
+    vector: "CVSS:3.1/AV:A/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H",
+    what: [
+      "Machine-in-the-middle to root on vCenter",
+      "Blast radius is the whole virtual estate",
+      "Requires management-network access",
+    ],
+    latestActivity: [
+      "Targeted exploitation against MSPs",
+      "Broadcom updated the advisory",
+    ],
+    timeline: [
+      {
+        label: "Vulnerability Disclosure",
+        text: "Broadcom published the advisory and a fix",
+        date: "2026-07-11",
+      },
+      {
+        label: "Exploitation Observed",
+        text: "Targeted intrusions reported by two incident response firms",
+        date: "2026-07-18",
+      },
+    ],
+  },
+  {
+    id: "ic8",
+    cve: "CVE-2026-8834",
+    euvd: "EUVD-2026-16420",
+    status: "New",
+    published: "5/28/2026",
+    updated: "39d ago",
+    weakness: "Server-side request forgery (CWE-918)",
+    extraWeaknesses: 3,
+    cvss: 8.3,
+    severity: "High",
+    tags: ["TRENDING"],
+    summary:
+      "SSRF in the GitLab webhook preview endpoint reaching cloud instance metadata",
+    impact:
+      "An authenticated low-privilege user can make the GitLab server request arbitrary internal URLs, including the cloud metadata service, and read the runner credentials it returns.",
+    exploitation:
+      "No confirmed exploitation. The technique is well documented and trivial to reproduce once an account exists.",
+    patch: "Fixed in GitLab 18.2.1, 18.1.4 and 18.0.7.",
+    mitigation: [
+      "Upgrade GitLab to a patched release",
+      "Enforce IMDSv2 on the instances running GitLab",
+      "Restrict outbound requests from the application host to an allow list",
+    ],
+    vector: "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:L/A:N",
+    what: [
+      "SSRF to cloud credential theft",
+      "Any signed-in user can reach it",
+      "Affects self-managed instances",
+    ],
+    latestActivity: [
+      "GitLab backported the fix to 18.0",
+      "Technique write-up published",
+    ],
+    timeline: [
+      {
+        label: "Vulnerability Disclosure",
+        text: "GitLab published the patch release notes",
+        date: "2026-05-28",
+      },
+    ],
+  },
+  {
+    id: "ic9",
+    cve: "CVE-2026-47210",
+    euvd: "EUVD-2026-20655",
+    status: "Updated",
+    published: "7/07/2026",
+    updated: "4d ago",
+    weakness: "Use after free (CWE-416)",
+    extraWeaknesses: 1,
+    cvss: 8.8,
+    severity: "High",
+    tags: ["TRENDING", "EXPLOIT"],
+    summary:
+      "Use-after-free in the Chromium V8 engine allowing code execution from a crafted web page",
+    impact:
+      "A user visiting a malicious page can have arbitrary code run in the renderer, which combined with a sandbox escape gives a full browser compromise. Every Chromium-based browser is affected.",
+    exploitation:
+      "Exploited in the wild as part of a commercial spyware delivery chain.",
+    patch: "Fixed in Chrome 141.0.7290.64 and the corresponding Edge build.",
+    mitigation: [
+      "Force a browser restart so the update applies",
+      "Enable the enhanced security mode for high-risk users",
+      "Check endpoint telemetry for renderer crashes preceding the update",
+    ],
+    vector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H",
+    what: [
+      "Drive-by code execution in the browser",
+      "Used in a commercial spyware chain",
+      "Affects every Chromium-based browser",
+    ],
+    latestActivity: [
+      "Added to CISA KEV",
+      "Google confirmed in-the-wild exploitation",
+      "Edge shipped the fix",
+    ],
+    timeline: [
+      {
+        label: "Exploitation Observed",
+        text: "Reported to Google by a threat analysis group",
+        date: "2026-07-03",
+      },
+      {
+        label: "Patch Released",
+        text: "Google shipped the stable channel update",
+        date: "2026-07-07",
+      },
+    ],
+  },
+  {
+    id: "ic10",
+    cve: "CVE-2026-9017",
+    euvd: "EUVD-2026-18109",
+    status: "New",
+    published: "6/13/2026",
+    updated: "24d ago",
+    weakness: "Path traversal (CWE-22)",
+    extraWeaknesses: 2,
+    cvss: 7.9,
+    severity: "High",
+    tags: [],
+    summary:
+      "Path traversal in the Jenkins artifact archiver lets a job write files outside its workspace",
+    impact:
+      "Anyone able to define or edit a pipeline can overwrite files on the controller, including the ones that decide who is an administrator, so this is a straight path from build access to control of the CI system.",
+    exploitation:
+      "No exploitation reported. Requires the ability to run a job on the controller.",
+    patch: "Fixed in Jenkins 2.516.1 LTS.",
+    mitigation: [
+      "Upgrade Jenkins to 2.516.1 LTS",
+      "Stop running builds on the controller node",
+      "Review recent pipeline definitions for unusual archive paths",
+    ],
+    vector: "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:L",
+    what: [
+      "Build access becomes CI administrator",
+      "Needs a job on the controller",
+      "Supply-chain relevant",
+    ],
+    latestActivity: ["Jenkins published the security advisory"],
+    timeline: [
+      {
+        label: "Vulnerability Disclosure",
+        text: "Jenkins published the advisory with the LTS release",
+        date: "2026-06-13",
+      },
+    ],
+  },
+  {
+    id: "ic11",
+    cve: "CVE-2026-55603",
+    euvd: "EUVD-2026-21140",
+    status: "New",
+    published: "7/15/2026",
+    updated: "1d ago",
+    weakness: "Heap-based buffer overflow (CWE-122)",
+    extraWeaknesses: 1,
+    cvss: 9.4,
+    severity: "Critical",
+    tags: ["TRENDING", "EXPLOIT"],
+    summary:
+      "Heap overflow in the Ivanti Connect Secure web server reachable before authentication",
+    impact:
+      "An unauthenticated request to the gateway gives code execution on the appliance, which sits at the network edge and holds VPN session material for the whole workforce.",
+    exploitation:
+      "Exploited as a zero-day against government and healthcare organisations before the advisory.",
+    patch: "Fixed in Ivanti Connect Secure 22.7R2.8.",
+    mitigation: [
+      "Apply the Ivanti update, then run the integrity checker",
+      "Rebuild appliances that fail the integrity check rather than patching in place",
+      "Rotate VPN certificates and user credentials after remediation",
+    ],
+    vector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",
+    what: [
+      "Pre-auth RCE on the VPN gateway",
+      "Exploited as a zero-day",
+      "Patching alone may not evict the attacker",
+    ],
+    latestActivity: [
+      "Added to CISA KEV",
+      "Emergency directive issued",
+      "Ivanti released the integrity checker",
+    ],
+    timeline: [
+      {
+        label: "Exploitation Observed",
+        text: "Zero-day exploitation against government targets",
+        date: "2026-07-06",
+      },
+      {
+        label: "Vulnerability Disclosure",
+        text: "Ivanti published the advisory and a fixed build",
+        date: "2026-07-15",
+      },
+    ],
+  },
+  {
+    id: "ic12",
+    cve: "CVE-2026-20447",
+    euvd: "EUVD-2026-15882",
+    status: "Updated",
+    published: "5/21/2026",
+    updated: "46d ago",
+    weakness: "Improper privilege management (CWE-269)",
+    extraWeaknesses: 0,
+    cvss: 6.8,
+    severity: "Medium",
+    tags: [],
+    summary:
+      "A Kubernetes admission controller bypass lets a namespace-scoped service account schedule privileged pods",
+    impact:
+      "A workload that has been compromised inside one namespace can break out onto the node and from there reach the rest of the cluster, turning a contained incident into a cluster-wide one.",
+    exploitation:
+      "No exploitation reported. Requires an existing foothold in the cluster.",
+    patch: "Fixed in Kubernetes 1.33.2, 1.32.6 and 1.31.10.",
+    mitigation: [
+      "Upgrade the control plane to a patched minor release",
+      "Enforce Pod Security Admission at the restricted level",
+      "Alert on pods created with hostPID or privileged set",
+    ],
+    vector: "CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:C/C:H/I:H/A:L",
+    what: [
+      "Container escape after an initial foothold",
+      "Turns one namespace into the whole cluster",
+      "Post-compromise, not initial access",
+    ],
+    latestActivity: [
+      "Patches backported to 1.31",
+      "Advisory updated with detection guidance",
+    ],
+    timeline: [
+      {
+        label: "Vulnerability Disclosure",
+        text: "The Kubernetes security response committee published the advisory",
+        date: "2026-05-21",
+      },
+    ],
+  },
 ];
 
 /* ------------------------------------------------------------------ *
@@ -1264,8 +1646,9 @@ export const INSIGHT_CARDS: InsightCard[] = [
  *
  * The Figma frames only ever show one finished document — the WordPress
  * vulnerability advisory above. Saved reports in the table were written from
- * other templates, so each template shape gets a short body of its own; `{t}`
- * is replaced with what the report is reporting on.
+ * other templates, so each template shape gets a short body of its own. Every
+ * word is fixed copy: nothing in a report is composed from what the user typed
+ * on the way in, so the prototype always shows the designed document.
  * ------------------------------------------------------------------ */
 
 export interface ReportSection {
@@ -1277,7 +1660,7 @@ const MEMO: ReportSection[] = [
   {
     heading: "Bottom Line",
     paragraphs: [
-      "{t} is a material exposure for us, but a contained one. The affected systems sit behind our perimeter controls, patching is under way, and no customer data has been implicated so far. [2][5]",
+      "The wp2shell vulnerability chain (CVE-2026-63030 & CVE-2026-60137) is a material exposure for us, but a contained one. The affected systems sit behind our perimeter controls, patching is under way, and no customer data has been implicated so far. [2][5]",
       "The decision in front of the board is whether to accelerate the remediation window from 30 days to 10, which would pull roughly two sprints of engineering capacity away from the platform roadmap.",
     ],
   },
@@ -1299,7 +1682,7 @@ const FLASH: ReportSection[] = [
   {
     heading: "What Happened",
     paragraphs: [
-      "{t} was reported publicly in the last 24 hours and is being actively exploited. The affected component is in use in our estate, and at least one instance is reachable from the internet. [1][3]",
+      "The wp2shell vulnerability chain (CVE-2026-63030 & CVE-2026-60137) was reported publicly in the last 24 hours and is being actively exploited. The affected component is in use in our estate, and at least one instance is reachable from the internet. [1][3]",
     ],
   },
   {
@@ -1320,7 +1703,7 @@ const HUNT: ReportSection[] = [
   {
     heading: "Hypothesis",
     paragraphs: [
-      "If an adversary established a foothold related to {t}, we would expect beaconing on a fixed interval with jitter, short-lived named pipes on the initial host, and credential access attempts against adjacent systems within the first 48 hours. [3]",
+      "If an adversary established a foothold related to the wp2shell vulnerability chain, we would expect beaconing on a fixed interval with jitter, short-lived named pipes on the initial host, and credential access attempts against adjacent systems within the first 48 hours. [3]",
     ],
   },
   {
@@ -1341,7 +1724,7 @@ const SUPPLY: ReportSection[] = [
   {
     heading: "Summary",
     paragraphs: [
-      "{t} affects a component in our software supply chain rather than software we wrote. The compromise reached us through a transitive dependency, which means the blast radius follows the build graph rather than the network topology. [1][4]",
+      "The wp2shell vulnerability chain (CVE-2026-63030 & CVE-2026-60137) affects a component in our software supply chain rather than software we wrote. The compromise reached us through a transitive dependency, which means the blast radius follows the build graph rather than the network topology. [1][4]",
     ],
   },
   {
@@ -1393,8 +1776,9 @@ export const TECH_STACK_VALUES: Record<string, string[]> = {
 };
 
 /**
- * Who a finished report is distributed to, by audience — the `Distribution:`
- * line under the report title.
+ * Who a finished report is distributed to, by audience. The report itself now
+ * carries the fixed REPORT_META line instead; this stays as the reference for
+ * what each audience maps to.
  */
 export const DISTRIBUTION: Record<string, string> = {
   CISO: "CISO, Security Leadership, Risk Management",

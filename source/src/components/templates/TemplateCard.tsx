@@ -51,7 +51,10 @@ export function TemplateCard({
       </div>
       <div className="tcard-desc">{template.description}</div>
       <div className="tcard-foot">
-        <span className="badge">{template.audience || "No audience"}</span>
+        <span className="badge">
+          <Icon name="audience" size={16} />
+          {template.audience || "No audience"}
+        </span>
         {isCustom && <span className="light t-body3">Custom</span>}
       </div>
 

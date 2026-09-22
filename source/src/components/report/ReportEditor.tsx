@@ -20,8 +20,7 @@ import { VULN_ADVISORY_DOC, proseDoc, type DocNode } from "../../data/reportDoc"
 import {
   ARTICLES,
   COMPANIES,
-  DISTRIBUTION,
-  FEED_NAME,
+  REPORT_META,
   FETCHED_SOURCES,
   GENERATED_TITLE,
   INSIGHT_CARDS,
@@ -161,25 +160,11 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
   });
 
   /**
-   * The generated report's headline. The Figma frames show a CVE advisory,
-   * which is what the vulnerability paths produce; when the user told us what
-   * the report is about, that subject is the headline instead.
+   * The generated report's headline. Nothing in a written report is composed
+   * from what the user typed on the way in: every path produces the one
+   * finished document the Figma frames show, under its title.
    */
-  const reportTitle = useMemo(() => {
-    if (saved) return saved.headline;
-    if (context.path === "insight" && insight) return `${insight.cve} ${template.name}`;
-    const said = subject.trim().replace(/^(make|create) a report about\s*/i, "");
-    if (said) return said.charAt(0).toUpperCase() + said.slice(1);
-    return GENERATED_TITLE;
-  }, [saved, context.path, insight, subject, template.name]);
-
-  /** What the written report is about, for the body copy. */
-  const reportTopic =
-    subject.trim() ||
-    (context.path === "articles" ? FEED_NAME : "") ||
-    context.contextLabel ||
-    insight?.cve ||
-    "";
+  const reportTitle = saved ? saved.headline : GENERATED_TITLE;
 
   /** Signals sent off to build the parameter suggestions. */
   const signals: Signals = useMemo(
@@ -770,8 +755,6 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
               templateName={`${template.name} - ${template.audience}`}
               answers={answers}
               questions={questions}
-              subject={subject}
-              context={context}
               language={language}
               setLanguage={(v) => {
                 setLanguage(v);
@@ -815,8 +798,6 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
               phase={regenerating ? "generating" : phase}
               title={reportTitle}
               template={template}
-              subject={reportTopic}
-              date={saved?.createdOn}
               brand={brands.find((b) => b.id === brandId)}
             />
           </div>
@@ -1249,8 +1230,6 @@ function DetailsPanel({
   templateName,
   answers,
   questions,
-  subject,
-  context,
   language,
   setLanguage,
   company,
@@ -1263,8 +1242,6 @@ function DetailsPanel({
   templateName: string;
   answers: Record<string, string>;
   questions: Question[];
-  subject: string;
-  context: CreateContext;
   language: string;
   setLanguage: (v: string) => void;
   company: string;
@@ -1275,14 +1252,6 @@ function DetailsPanel({
   onOpenTemplate: () => void;
 }) {
   const answered = questions.filter((q) => answers[q.id]);
-  const entry =
-    context.path === "articles"
-      ? `${context.articleIds?.length ?? 0} selected articles`
-      : context.path === "insight"
-        ? "Insight card"
-        : context.path === "broad"
-          ? context.contextLabel ?? "Intel Agent"
-          : "Report Builder page";
 
   return (
     <div className="side-scroll">
@@ -1299,28 +1268,6 @@ function DetailsPanel({
         </div>
         <Button icon="arrow-up-right" title="Open template" onClick={onOpenTemplate} />
       </div>
-
-      <div style={{ marginTop: 18 }}>
-        <div className="row" style={{ gap: 6, color: "var(--content-medium)" }}>
-          <Icon name="link" size={15} />
-          <span className="t-body3">Started from</span>
-        </div>
-        <div className="t-body2" style={{ marginTop: 4 }}>
-          {entry}
-        </div>
-      </div>
-
-      {subject && (
-        <div style={{ marginTop: 18 }}>
-          <div className="row" style={{ gap: 6, color: "var(--content-medium)" }}>
-            <Icon name="sparkle" size={15} />
-            <span className="t-body3">Reporting on</span>
-          </div>
-          <div className="t-body2" style={{ marginTop: 4 }}>
-            {subject}
-          </div>
-        </div>
-      )}
 
       {/* Figma "Report Builder Editor 1": what the template handed this report —
           its parameters and its brand — is boxed together, because both are the
@@ -1387,15 +1334,11 @@ function ReportCanvas({
   phase,
   title,
   template,
-  subject,
-  date,
   brand,
 }: {
   phase: Phase;
   title: string;
   template: Template;
-  subject?: string;
-  date?: string;
   brand?: Brand;
 }) {
   const generated = phase === "done";
@@ -1415,15 +1358,9 @@ function ReportCanvas({
     <div className="report-page" style={{ ...brandVars(brand), ...bandVars(header, footer, brand) }}>
       <PageBandEditor kind="header" band={header} brand={brand} mode="plain" onChange={() => {}} />
       {generated ? (
-        <ReportBody title={title} template={template} subject={subject} date={date} />
+        <ReportBody title={title} template={template} />
       ) : (
-        <SkeletonReport
-          streaming={generating}
-          title={title}
-          template={template}
-          subject={subject}
-          date={date}
-        />
+        <SkeletonReport streaming={generating} title={title} template={template} />
       )}
 
       <PageBandEditor kind="footer" band={footer} brand={brand} mode="plain" onChange={() => {}} />
@@ -1564,14 +1501,10 @@ function SkeletonReport({
   streaming,
   title,
   template,
-  subject,
-  date,
 }: {
   streaming: boolean;
   title: string;
   template: Template;
-  subject?: string;
-  date?: string;
 }) {
   /* While the report is being written, the part that exists is real and the
      rest is still skeleton — Figma's "Generating new report" frame. */
@@ -1579,13 +1512,7 @@ function SkeletonReport({
   return (
     <>
       {streaming && (
-        <ReportBody
-          title={title}
-          template={template}
-          subject={subject}
-          date={date}
-          sections={1}
-        />
+        <ReportBody title={title} template={template} sections={1} />
       )}
       <div className="skeleton-doc">
         {SKELETON_GROUPS.slice(written).map((g, i) => (
@@ -1604,30 +1531,23 @@ function SkeletonReport({
 function ReportBody({
   title,
   template,
-  subject,
-  date,
   sections,
 }: {
   title: string;
   template: Template;
-  subject?: string;
-  date?: string;
   /** Render only the first n sections, while the rest is still being written. */
   sections?: number;
 }) {
-  const topic = subject?.trim() || title;
-  const meta = [
-    "TLP: CLEAR",
-    `Date: ${date ?? "July 21, 2026"}`,
-    `Distribution: ${DISTRIBUTION[template.audience] ?? template.audience ?? "CISO"}`,
-  ];
+  /* Fixed, exactly as the Figma frames carry it — the date does not follow the
+     clock and the distribution line does not follow the template. */
+  const meta = REPORT_META;
 
   /* The Vulnerability Advisory is the worked example the Figma frames carry —
      tables, steps and citations. Everything else renders its prose body
      through the same document. */
   const nodes = useMemo(() => {
     const body = REPORT_BODIES[template.name];
-    const all = body ? proseDoc(body, topic) : VULN_ADVISORY_DOC;
+    const all = body ? proseDoc(body) : VULN_ADVISORY_DOC;
     if (!sections) return all;
     /* Cut at the nth heading, so a half-written report stops on a section. */
     let seen = 0;
@@ -1640,7 +1560,7 @@ function ReportBody({
       out.push(n);
     }
     return out;
-  }, [template.name, topic, sections]);
+  }, [template.name, sections]);
 
   return (
     <div className="report-doc">

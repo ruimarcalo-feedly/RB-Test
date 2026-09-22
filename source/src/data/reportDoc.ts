@@ -325,14 +325,12 @@ export const VULN_ADVISORY_DOC: DocNode[] = [
 
 /**
  * Every other template falls back to its prose body, wrapped in the same node
- * shape so the canvas only has to know one thing.
+ * shape so the canvas only has to know one thing. The copy is fixed — nothing
+ * in a report is composed from what the user typed on the way in.
  */
-export function proseDoc(
-  sections: { heading: string; paragraphs: string[] }[],
-  topic: string
-): DocNode[] {
+export function proseDoc(sections: { heading: string; paragraphs: string[] }[]): DocNode[] {
   return sections.flatMap((s) => [
     { k: "h2", text: s.heading } as DocNode,
-    ...s.paragraphs.map((t) => ({ k: "p", text: t.replace(/\{t\}/g, topic) }) as DocNode),
+    ...s.paragraphs.map((t) => ({ k: "p", text: t }) as DocNode),
   ]);
 }

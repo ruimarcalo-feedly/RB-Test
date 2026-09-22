@@ -63,7 +63,7 @@ export function OrgProfilePage() {
   );
 
   return (
-    <div className="page">
+    <div className="page wide">
       <div className="page-head" style={{ marginBottom: 4 }}>
         <div>
           <h1 className="t-h1" style={{ margin: 0 }}>

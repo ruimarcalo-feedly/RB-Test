@@ -2,7 +2,12 @@ import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "../ui/Icon";
 import { Popover } from "../ui/primitives";
 import { useStore } from "../../state/store";
-import { AUDIENCE_MENU_ORDER, BUILT_IN_ORDER, type Template } from "../../data/mockData";
+import {
+  AUDIENCE_MENU_LABEL,
+  AUDIENCE_MENU_ORDER,
+  BUILT_IN_ORDER,
+  type Template,
+} from "../../data/mockData";
 
 /**
  * The Create Report dropdown — Figma "dropdown" (2578:97968).
@@ -41,11 +46,18 @@ export function CreateReportMenu({
   anchorRef,
   onClose,
   onPick,
+  showRecent = true,
 }: {
   anchorRef: React.RefObject<HTMLElement | null>;
   onClose: () => void;
   /** Called with the chosen template id. */
   onPick: (templateId: string) => void;
+  /**
+   * The Report Builder's own menu opens with a shortcut to the templates used
+   * most recently. Opened from an agent or an article the list starts at the
+   * audiences, which is what those designs show.
+   */
+  showRecent?: boolean;
 }) {
   const { templates, audiences } = useStore();
 
@@ -111,17 +123,19 @@ export function CreateReportMenu({
     if (l.kind === "audiences") {
       return (
         <>
-          <div className="crm-list bordered">
-            <button className="crm-item" onClick={() => go({ kind: "recent" }, "fwd")}>
-              <span className="crm-left quiet">
-                <Icon name="history" size={20} />
-              </span>
-              <span className="crm-mid">Last used templates</span>
-              <span className="crm-right">
-                <Icon name="chevron-right" size={20} />
-              </span>
-            </button>
-          </div>
+          {showRecent && (
+            <div className="crm-list bordered">
+              <button className="crm-item" onClick={() => go({ kind: "recent" }, "fwd")}>
+                <span className="crm-left quiet">
+                  <Icon name="history" size={20} />
+                </span>
+                <span className="crm-mid">Last used templates</span>
+                <span className="crm-right">
+                  <Icon name="chevron-right" size={20} />
+                </span>
+              </button>
+            </div>
+          )}
           <div className="crm-list">
             <div className="crm-title">Select Audience</div>
             {audienceList.map((a) => (
@@ -130,7 +144,7 @@ export function CreateReportMenu({
                 className="crm-item"
                 onClick={() => go({ kind: "templates", audience: a }, "fwd")}
               >
-                <span className="crm-mid plain">{a}</span>
+                <span className="crm-mid plain">{AUDIENCE_MENU_LABEL[a] ?? a}</span>
                 <span className="crm-right">
                   <Icon name="chevron-right" size={20} />
                 </span>
@@ -152,7 +166,11 @@ export function CreateReportMenu({
           >
             <Icon name="chevron-left" size={16} />
           </button>
-          <span>{l.kind === "recent" ? "Last used templates" : l.audience}</span>
+          <span>
+            {l.kind === "recent"
+              ? "Last used templates"
+              : AUDIENCE_MENU_LABEL[l.audience] ?? l.audience}
+          </span>
         </div>
         <div className="crm-title">Select Template</div>
         {rows.length === 0 ? (

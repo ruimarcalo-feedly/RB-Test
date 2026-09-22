@@ -27,7 +27,7 @@ export function ReportBuilderPage() {
   } = useStore();
 
   const [audienceFilter, setAudienceFilter] = useState<AudienceFilter>("CISO");
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("Feedly & Custom");
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("All types");
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -40,6 +40,10 @@ export function ReportBuilderPage() {
   const typeRef = useRef<HTMLButtonElement>(null);
   const [audMenu, setAudMenu] = useState(false);
   const [typeMenu, setTypeMenu] = useState(false);
+  /* The previous-reports list has its own filter, beside its search. */
+  const reportTypeRef = useRef<HTMLButtonElement>(null);
+  const [reportTypeMenu, setReportTypeMenu] = useState(false);
+  const [reportType, setReportType] = useState("All types");
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   const visibleTemplates = useMemo(() => {
@@ -54,14 +58,21 @@ export function ReportBuilderPage() {
     return list;
   }, [templates, audienceFilter, typeFilter]);
 
+  /* The filter offers the templates the list actually contains. */
+  const reportTemplates = useMemo(
+    () => [...new Set(reports.map((r) => r.templateName))].sort(),
+    [reports]
+  );
+
   const visibleReports = useMemo(() => {
     const q = search.trim().toLowerCase();
     const list = reports.filter(
       (r) =>
-        !q ||
-        r.headline.toLowerCase().includes(q) ||
-        r.templateName.toLowerCase().includes(q) ||
-        r.createdBy.toLowerCase().includes(q)
+        (reportType === "All types" || r.templateName === reportType) &&
+        (!q ||
+          r.headline.toLowerCase().includes(q) ||
+          r.templateName.toLowerCase().includes(q) ||
+          r.createdBy.toLowerCase().includes(q))
     );
     const key = sort.key as "headline" | "templateName" | "createdBy" | "createdOn";
     return [...list].sort((a, b) => {
@@ -72,7 +83,7 @@ export function ReportBuilderPage() {
       }
       return a[key].localeCompare(b[key]) * sort.dir;
     });
-  }, [reports, search, sort]);
+  }, [reports, search, sort, reportType]);
 
   const scrollBy = (dx: number) => scrollerRef.current?.scrollBy({ left: dx });
 
@@ -92,7 +103,7 @@ export function ReportBuilderPage() {
   );
 
   return (
-    <div className="page rb-page">
+    <div className="page rb-page wide">
       <div className="page-head">
         <h1 className="t-h1" style={{ margin: 0 }}>
           Report Builder
@@ -111,14 +122,14 @@ export function ReportBuilderPage() {
           <span className="section-title">Create report</span>
         </div>
       </div>
-      <div className="row" style={{ gap: 8, marginBottom: 16 }}>
-        <button ref={audRef} className="select" style={{ width: 152, justifyContent: "space-between" }} onClick={() => setAudMenu((o) => !o)}>
+      <div className="filter-row" style={{ marginBottom: 16 }}>
+        <button ref={audRef} className="select sm" style={{ width: 150, justifyContent: "space-between" }} onClick={() => setAudMenu((o) => !o)}>
           <span className="truncate">{audienceFilter}</span>
           <span className="chev">
             <Icon name="chevron-down" size={16} />
           </span>
         </button>
-        <button ref={typeRef} className="select" style={{ justifyContent: "space-between" }} onClick={() => setTypeMenu((o) => !o)}>
+        <button ref={typeRef} className="select sm" style={{ justifyContent: "space-between" }} onClick={() => setTypeMenu((o) => !o)}>
           <span>{typeFilter}</span>
           <span className="chev">
             <Icon name="chevron-down" size={16} />
@@ -203,25 +214,59 @@ export function ReportBuilderPage() {
       </div>
 
       {/* ---------------- Previous reports ---------------- */}
+      <div className="reports-block">
       <div className="section-head">
         <span className="section-title">View previous reports</span>
+      </div>
+      {/* Figma: the search and its filters sit under the heading rather than
+          out to its right, so the whole block reads top to bottom. */}
+      <div className="filter-row" style={{ gap: 8, marginBottom: 16 }}>
         <div className="search">
-          <Icon name="search" size={15} style={{ color: "var(--content-light)" }} />
+          <Icon name="search" size={20} style={{ color: "var(--content-light)" }} />
           <input
-            placeholder="Search for reports"
+            placeholder="Search report names"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        <button
+          ref={reportTypeRef}
+          className="select sm"
+          style={{ justifyContent: "space-between" }}
+          onClick={() => setReportTypeMenu((o) => !o)}
+        >
+          <span>{reportType}</span>
+          <span className="chev">
+            <Icon name="chevron-down" size={16} />
+          </span>
+        </button>
       </div>
+      {reportTypeMenu && (
+        <Popover anchorRef={reportTypeRef} onClose={() => setReportTypeMenu(false)} width={200}>
+          {["All types", ...reportTemplates].map((v) => (
+            <button
+              key={v}
+              className="menu-item"
+              style={v === reportType ? { background: "var(--bg-light)" } : undefined}
+              onClick={() => {
+                setReportType(v);
+                setReportTypeMenu(false);
+              }}
+            >
+              {v}
+            </button>
+          ))}
+        </Popover>
+      )}
 
       <table className="rtable">
         <thead>
           <tr>
-            <th style={{ width: "45%" }}>{sortBtn("Headline", "headline")}</th>
-            <th style={{ width: "20%" }}>Template</th>
-            <th style={{ width: "13%" }}>{sortBtn("Created by", "createdBy")}</th>
-            <th style={{ width: "13%" }}>{sortBtn("Created on", "createdOn")}</th>
+            <th style={{ width: "44%" }}>{sortBtn("Headline", "headline")}</th>
+            <th style={{ width: "17%" }}>Template</th>
+            <th style={{ width: "12%" }}>Audience</th>
+            <th style={{ width: "12%" }}>{sortBtn("Created by", "createdBy")}</th>
+            <th style={{ width: "11%" }}>{sortBtn("Created on", "createdOn")}</th>
             <th style={{ width: 60 }}>Action</th>
           </tr>
         </thead>
@@ -231,13 +276,14 @@ export function ReportBuilderPage() {
           ))}
           {visibleReports.length === 0 && (
             <tr>
-              <td colSpan={5} className="muted" style={{ padding: 24 }}>
+              <td colSpan={6} className="muted" style={{ padding: 24 }}>
                 No reports match “{search}”.
               </td>
             </tr>
           )}
         </tbody>
       </table>
+      </div>
 
       {libraryOpen && <TemplateLibrary onClose={() => setLibraryOpen(false)} />}
 
@@ -307,13 +353,17 @@ function ReportRow({ id }: { id: string }) {
       <td>
         {/* Opens the Report Builder editor for this report, in its done state. */}
         <button className="headline" onClick={() => openReport(r.id)}>
-          <Icon name="doc" size={18} style={{ color: "var(--content-medium)", marginTop: 1 }} />
+          {/* The same mark the Report Builder carries in the left nav. */}
+          <Icon name="wand" size={20} style={{ color: "var(--content-medium)" }} />
           <span>{r.headline}</span>
         </button>
       </td>
+      <td>{r.templateName}</td>
       <td>
-        <div>{r.templateName}</div>
-        <div className="sub">({r.templateAudience})</div>
+        <span className="badge">
+          <Icon name="audience" size={16} />
+          {r.templateAudience}
+        </span>
       </td>
       <td>{r.createdBy}</td>
       <td>{r.createdOn}</td>

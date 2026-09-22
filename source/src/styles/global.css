@@ -144,6 +144,29 @@ select {
 .page.rb-page {
   padding-top: 72px;
 }
+/* A page whose column is measured against the scrolling area rather than the
+   app's 1120px page: 80% of it, centred. Everything on such a page hangs off
+   that edge — the title, the filters, the cards and the table — so they line up
+   with each other and grow with the window. */
+@supports (width: 1cqw) {
+  .page.wide {
+    --page-x: 0px;
+    width: 80cqw;
+    max-width: none;
+    padding-left: 0;
+    padding-right: 0;
+  }
+  /* Narrow windows have no room to give away: back to the standard column. */
+  @container (max-width: 900px) {
+    .page.wide {
+      --page-x: 68px;
+      width: auto;
+      max-width: 1120px;
+      padding-left: var(--page-x);
+      padding-right: var(--page-x);
+    }
+  }
+}
 
 /* ---------- Left nav ---------- */
 .leftnav {
@@ -340,10 +363,14 @@ select {
   padding: 2px 4px;
   border-radius: var(--radius-default);
   background: var(--bg-medium);
-  color: var(--content-badge);
+  color: var(--content-bold);
   font-size: 13px;
   line-height: 16px;
   white-space: nowrap;
+}
+.badge svg {
+  flex: 0 0 auto;
+  color: var(--content-medium);
 }
 .badge.quiet {
   background: transparent;
@@ -351,6 +378,14 @@ select {
 }
 
 /* ---------- Select / inputs ---------- */
+/* The size the filter bars use — Figma "Select/Small". */
+.select.sm {
+  min-height: 24px;
+  gap: 4px;
+  padding: 0 8px;
+  font-size: 13px;
+  line-height: 16px;
+}
 .select {
   display: inline-flex;
   align-items: center;
@@ -458,13 +493,12 @@ select {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 28px;
-  padding: 0 10px;
-  /* Same corner as the buttons in the page header. */
-  border-radius: var(--radius-large);
+  height: 24px;
+  padding: 0 8px;
+  border-radius: var(--radius-default);
   border: 1px solid var(--border-light);
   background: var(--bg-lightest);
-  width: 220px;
+  width: 240px;
 }
 .search input {
   border: 0;
@@ -472,6 +506,10 @@ select {
   background: transparent;
   width: 100%;
   font-size: 13px;
+  line-height: 16px;
+}
+.search input::placeholder {
+  color: var(--content-light);
 }
 .search input::placeholder {
   color: var(--content-light);
@@ -924,12 +962,21 @@ select {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
+/* Figma SectionHeader, "Web App/Heading/03". */
 .section-title {
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 650;
+  letter-spacing: -0.4px;
   color: var(--content-bold);
+}
+/* The row under a section heading: a search box and its filters. */
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 /* ---------- Template card ---------- */
@@ -1050,6 +1097,23 @@ select {
   display: none;
 }
 
+/* ---------- Previous reports block ----------
+   The table fills the page column, which on this page is already the 80% the
+   design asks for. All this adds is somewhere for the table to scroll when the
+   window is too narrow to hold six columns — without it the page's own overflow
+   simply clips the last ones. */
+.reports-block {
+  width: 100%;
+}
+@container (max-width: 900px) {
+  .reports-block {
+    overflow-x: auto;
+  }
+  .reports-block .rtable {
+    min-width: 720px;
+  }
+}
+
 /* ---------- Table ---------- */
 .rtable {
   width: 100%;
@@ -1057,11 +1121,14 @@ select {
 }
 .rtable th {
   text-align: left;
+  height: 40px;
   font-size: 13px;
+  line-height: 16px;
   font-weight: 400;
   color: var(--content-medium);
-  padding: 8px 8px;
-  border-bottom: 1px solid var(--border-lightest);
+  padding: 0 12px 0 0;
+  /* Figma: the heading rule is the heavier of the two, the row rules lighter. */
+  border-bottom: 1px solid var(--border-light);
   white-space: nowrap;
 }
 .rtable th button {
@@ -1075,10 +1142,16 @@ select {
   padding: 0;
 }
 .rtable td {
-  padding: 12px 8px;
+  height: 60px;
+  padding: 8px 12px 8px 0;
   border-bottom: 1px solid var(--border-lightest);
   vertical-align: top;
   font-size: 14px;
+  line-height: 20px;
+}
+.rtable th:last-child,
+.rtable td:last-child {
+  padding-right: 0;
 }
 .rtable tbody tr:hover {
   background: var(--bg-light);
