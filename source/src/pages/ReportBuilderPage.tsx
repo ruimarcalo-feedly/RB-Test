@@ -7,11 +7,7 @@ import { useStore } from "../state/store";
 import { COMPANIES, LANGUAGES } from "../data/mockData";
 
 type AudienceFilter = string; // "Last used" | audience name
-type TypeFilter =
-  | "Feedly & Custom"
-  | "All types"
-  | "Feedly templates"
-  | "Custom templates";
+type TypeFilter = "All types" | "Feedly templates" | "Custom templates";
 
 export function ReportBuilderPage() {
   const {
@@ -176,7 +172,7 @@ export function ReportBuilderPage() {
       )}
       {typeMenu && (
         <Popover anchorRef={typeRef} onClose={() => setTypeMenu(false)} width={186}>
-          {(["Feedly & Custom", "All types", "Feedly templates", "Custom templates"] as const).map(
+          {(["All types", "Feedly templates", "Custom templates"] as const).map(
             (v) => (
               <button
                 key={v}
