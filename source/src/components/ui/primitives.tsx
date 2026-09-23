@@ -115,6 +115,7 @@ export function Popover({
   width,
   className = "menu",
   matchAnchorWidth,
+  placement = "bottom",
 }: {
   anchorRef: React.RefObject<HTMLElement | null>;
   onClose: () => void;
@@ -124,6 +125,8 @@ export function Popover({
   width?: number;
   className?: string;
   matchAnchorWidth?: boolean;
+  /** Which side of the anchor to prefer. Either way it flips when it runs out of room. */
+  placement?: "bottom" | "top";
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<CSSProperties>({ opacity: 0 });
@@ -136,11 +139,15 @@ export function Popover({
     const w = matchAnchorWidth ? r.width : width ?? el.offsetWidth;
     let left = align === "end" ? r.right - w : r.left;
     left = Math.max(8, Math.min(left, window.innerWidth - w - 8));
-    let top = r.bottom + offset;
     const h = el.offsetHeight;
-    if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - offset - h);
+    const below = r.bottom + offset;
+    const above = r.top - offset - h;
+    let top = placement === "top" ? above : below;
+    /* Flip to the other side rather than hang off the edge of the window. */
+    if (placement === "top" && top < 8) top = below;
+    if (placement === "bottom" && top + h > window.innerHeight - 8) top = Math.max(8, above);
     setPos({ left, top, width: matchAnchorWidth ? r.width : width, opacity: 1 });
-  }, [anchorRef, align, offset, width, matchAnchorWidth]);
+  }, [anchorRef, align, offset, width, matchAnchorWidth, placement]);
 
   useEffect(() => {
     layerStack.count += 1;
@@ -263,6 +270,7 @@ export function Field({
   label,
   required,
   help,
+  info,
   children,
   footNote,
   footNoteSize,
@@ -270,6 +278,8 @@ export function Field({
   label: string;
   required?: boolean;
   help?: string;
+  /** Puts the design's info glyph beside the label, carrying this as its tip. */
+  info?: string;
   children: ReactNode;
   footNote?: string;
   /** "md" is body copy, for counts and sentences that read as content. */
@@ -279,6 +289,11 @@ export function Field({
     <div className="field">
       <div className="field-label">
         {label}
+        {info && (
+          <span className="field-info" title={info}>
+            <Icon name="info" size={20} />
+          </span>
+        )}
         {required && <span className="req">Required</span>}
       </div>
       {help && <div className="field-help" style={{ margin: "0 0 8px" }}>{help}</div>}
@@ -415,16 +430,20 @@ export function TagInput({
   icon = "tradecraft",
   addLabel,
   onAddNew,
+  pickerLabel = "Select tradecrafts",
 }: {
   tags: string[];
   onRemove?: (t: string) => void;
   onAdd?: (t: string) => void;
   options?: string[];
+  /** Shown only while nothing is chosen, the way an empty field reads. */
   placeholder?: string;
   readOnly?: boolean;
   icon?: IconName;
   addLabel?: string;
   onAddNew?: () => void;
+  /** The heading over the list of things left to add. */
+  pickerLabel?: string;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -453,7 +472,7 @@ export function TagInput({
             )}
           </span>
         ))}
-        {!readOnly && <input placeholder={placeholder} readOnly />}
+        {!readOnly && <input placeholder={tags.length ? "" : placeholder} readOnly />}
       </div>
       {open && !readOnly && (
         <Popover
@@ -462,7 +481,7 @@ export function TagInput({
           className="picker"
           width={332}
         >
-          <div className="picker-label">Select tradecrafts</div>
+          <div className="picker-label">{pickerLabel}</div>
           <div className="picker-list">
             {remaining.length === 0 && (
               <div className="picker-label" style={{ padding: "8px 14px 14px" }}>

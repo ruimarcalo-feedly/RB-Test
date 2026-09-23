@@ -95,7 +95,9 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
   const [language, setLanguage] = useState(
     saved?.language ?? settings.languages[0] ?? "English (US)"
   );
-  const [company, setCompany] = useState(saved?.company || settings.defaultCompany || COMPANIES[0]);
+  const [company, setCompany] = useState(
+    saved?.company || settings.companies[0] || COMPANIES[0]
+  );
   const [title, setTitle] = useState(saved?.headline ?? "New report");
   /* The report inherits the template's brand and can be moved onto another one
      here without going back to the template — the styling is a property of
@@ -207,9 +209,10 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
         required: !p.optional,
       };
     });
-    /* Figma "Create Report Flow - EXTRA steps": we only ask which language when
-       the settings support more than one, and only ask which company when no
-       default company info is set. Otherwise the step is skipped. */
+    /* Figma "Create Report Flow - EXTRA steps" and "Report Builder settings":
+       each of the three settings says the same thing — "we will ask which to
+       use when generating a report" — so a step appears only when the setting
+       actually leaves a choice open. One value each, and the flow asks nothing. */
     if (settings.languages.length > 1) {
       qs.push({
         id: "q-language",
@@ -225,21 +228,45 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
         })),
       });
     }
-    if (!settings.defaultCompany) {
+    if (settings.companies.length !== 1) {
       qs.push({
         id: "q-company",
-        label: "Company info",
+        label: "Company Overview",
         icon: "building",
         title: "What company is this report for?",
-        help: "Suggestions are coming from your Org Profile",
+        help: settings.companies.length
+          ? "Options are coming from your Report Builder settings"
+          : "Suggestions are coming from your Org Profile",
         type: "radio",
-        options: COMPANIES.map((c) => ({ label: c, suggested: false })),
+        options: (settings.companies.length ? settings.companies : COMPANIES).map((c) => ({
+          label: c,
+          suggested: false,
+        })),
+      });
+    }
+    if (settings.brands.length > 1) {
+      qs.push({
+        id: "q-brand",
+        label: "Brand",
+        icon: "brand",
+        title: "Which brand should this report use?",
+        help: "Options are coming from your Report Builder settings",
+        type: "radio",
+        allowOther: false,
+        options: settings.brands.map((b) => ({ label: b, suggested: false })),
       });
     }
 
     return qs;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [template, signals.articleTitles.join("|"), subject, settings.languages, settings.defaultCompany]);
+  }, [
+    template,
+    signals.articleTitles.join("|"),
+    subject,
+    settings.languages,
+    settings.companies,
+    settings.brands,
+  ]);
 
   /* ---------------- the script runner ---------------- */
 
@@ -451,6 +478,12 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
     setAnswers((a) => ({ ...a, [q.id]: value }));
     if (q.id === "q-language" && value && value !== "Something else") setLanguage(value);
     if (q.id === "q-company" && value) setCompany(value);
+    /* The brand answer is the report's brand, so the page restyles as soon as
+       the question is answered rather than only once the report is written. */
+    if (q.id === "q-brand" && value) {
+      const picked = brands.find((b) => b.name === value);
+      if (picked) setBrandId(picked.id);
+    }
 
     /* Nothing is posted while the run is going — the answers go up together
        once it finishes, so the conversation isn't interleaved with the card. */
@@ -531,7 +564,7 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
 
   /* ---------------- Sources / Details regeneration ---------------- *
    * Figma "Report Builder - Sources" and "- Details": changing a source, the
-   * language or the company info reveals Cancel / Regenerate, and regenerating
+   * language or the Company Overview reveals Cancel / Regenerate, and regenerating
    * puts the document back into its skeleton state while it is rebuilt. */
 
   const applied = useRef({ sources, language, company });
@@ -1317,8 +1350,8 @@ function DetailsPanel({
         <Select block value={language} options={LANGUAGES} onChange={setLanguage} />
       </Field>
       <Field
-        label="Company info"
-        help="Your organization's details, sector and profile — used to assess your specific exposure. Changing company info will require regeneration."
+        label="Company Overview"
+        help="Your organization's details, sector and profile — used to assess your specific exposure. Changing the Company Overview will require regeneration."
       >
         <Select block value={company} options={COMPANIES} onChange={setCompany} />
       </Field>

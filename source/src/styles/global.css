@@ -893,6 +893,21 @@ select {
   gap: 8px;
   align-items: baseline;
 }
+/* Figma "Report Builder settings": the label carries an info glyph, aligned to
+   the text rather than the baseline so the circle sits on the words. */
+.field-label .field-info {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  color: var(--content-light);
+  cursor: help;
+}
+/* The rule between two settings inside a modal. */
+.modal-sep {
+  height: 1px;
+  background: var(--border-lightest);
+  margin: 16px 0;
+}
 .field-label .req {
   font-size: 12px;
   line-height: 16px;
@@ -1354,6 +1369,12 @@ select {
   margin: 0 auto;
   padding: max(80px, calc(var(--header-h, 64px) + 16px)) 0
     max(120px, calc(var(--footer-h, 64px) + 16px));
+}
+/* The page says it will take the block, without moving anything: an inset ring
+   rather than a border, so nothing reflows under the cursor mid-drag. */
+.canvas-doc.drop-over {
+  box-shadow: inset 0 0 0 2px var(--bg-accent);
+  border-radius: var(--radius-large);
 }
 
 /* ---------- The template canvas is a BlockNote document ----------
@@ -2669,7 +2690,9 @@ select {
 /* Dropdown list panel (audience / tradecraft pickers) */
 .picker {
   position: absolute;
-  z-index: 70;
+  /* Portalled like a menu, so it counts against the window: a picker opened
+     from a field inside a modal has to sit above that modal's scrim. */
+  z-index: 150;
   width: 331px;
   background: #fff;
   border-radius: var(--radius-large);
@@ -3557,6 +3580,12 @@ select {
   border-color: var(--border-medium);
   background: var(--bg-light);
 }
+.block-tile:active:not(:disabled) {
+  cursor: grabbing;
+}
+.block-tile:disabled {
+  cursor: default;
+}
 .block-tile:disabled {
   opacity: 0.5;
   cursor: default;
@@ -3643,6 +3672,13 @@ select {
 .band-slot.right {
   justify-content: flex-end;
   padding-right: 96px;
+}
+/* A slot lights up while a block it can take is over it. */
+.band-slot.drop-over {
+  outline: 2px dashed var(--bg-accent);
+  outline-offset: -3px;
+  border-radius: var(--radius-default);
+  background: color-mix(in srgb, var(--bg-accent) 8%, transparent);
 }
 /* An empty slot is a dashed 160x40 target with the + centred in it. */
 .band-add {
@@ -3745,13 +3781,38 @@ select {
 }
 .be-tlp {
   padding: 3px 10px;
+  border: 0;
   border-radius: var(--radius-default);
+  font-family: inherit;
   font-size: 13px;
   line-height: 18px;
   font-weight: 500;
 }
 .be-tlp span {
   outline: none;
+}
+/* In the Design tab the badge is a control: the rating is picked, not typed. */
+.be-tlp.pickable {
+  cursor: pointer;
+  box-shadow: 0 0 0 1px transparent;
+  transition: box-shadow 0.12s;
+}
+.be-tlp.pickable:hover,
+.be-tlp.pickable:focus-visible {
+  box-shadow: 0 0 0 1px var(--border-medium);
+  outline: none;
+}
+.tlp-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.tlp-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+  flex: 0 0 auto;
 }
 .be-page {
   font-size: 13px;

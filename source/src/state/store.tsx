@@ -47,7 +47,10 @@ export interface ToastMsg {
 
 interface Settings {
   languages: string[];
-  defaultCompany: string;
+  /** Company Overview items from the Org Profile a report may be written for. */
+  companies: string[];
+  /** Brands a report may be styled with. */
+  brands: string[];
 }
 
 interface Store {
@@ -122,12 +125,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   /* The feed opens with nothing selected — a report created from there covers
      the whole feed until the user picks specific articles. */
   const [selectedArticles, setSelectedArticles] = useState<string[]>([]);
-  /* A default company is set, so the create-report flow never asks which one
-     to use — the Figma rule is that the step only appears when there is no
-     default. Clear it in Report Builder settings to see that question again. */
+  /* One of each is set, so the create-report flow never has to ask — the Figma
+     rule for all three is the same: the step appears only when the setting
+     leaves a choice open. Add a second language, Company Overview or brand in
+     Report Builder settings to see those questions appear. */
   const [settings, setSettings] = useState<Settings>({
     languages: ["English (US)"],
-    defaultCompany: "Acme North America",
+    companies: ["Feedly"],
+    brands: ["Feedly"],
   });
   const [toasts, setToasts] = useState<ToastMsg[]>([]);
   const toastSeq = useRef(0);

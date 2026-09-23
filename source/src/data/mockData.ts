@@ -76,7 +76,7 @@ export type OrgItemType =
   | "Tradecraft"
   | "Audience"
   | "Brand"
-  | "Company info"
+  | "Company Overview"
   | "Text content"
   | "Vendor list";
 
@@ -673,6 +673,21 @@ export const ORG_ITEMS: OrgItem[] = [
     createdOn: "Sep 21, 2026",
   },
   {
+    /* The company the reports are written about. A Company Overview is what the
+       generator uses to judge exposure — the estate, the sector, the footprint —
+       so it sits with the brands as the org's own description of itself. */
+    id: "o-company-feedly",
+    name: "Feedly",
+    values: "SaaS, threat intelligence, ~200 staff, AWS and GCP, public-facing web estate",
+    type: "Company Overview",
+    icon: "building",
+    content:
+      "Feedly is a threat intelligence SaaS company of around 200 people, headquartered in Redwood City with staff across the US and Europe. The product runs on AWS with parts of the data pipeline on GCP, and the public estate is a marketing site, a web application and a public API. The crown jewels are customer intelligence data and the collection pipeline that produces it. Regulated exposure is SOC 2 Type II and GDPR; there is no PCI or HIPAA scope.",
+    referencedIn: [],
+    createdBy: "Rui Marçalo",
+    createdOn: "Oct 13, 2026",
+  },
+  {
     id: "o1",
     name: "Adversaries",
     values: "APT1, APT3, APT5, APT10, APT12, APT15, APT17…",
@@ -829,7 +844,7 @@ export const ORG_ITEMS: OrgItem[] = [
 export const ORG_ITEM_TYPES: { type: OrgItemType; icon: IconName }[] = [
   { type: "Audience", icon: "audience" },
   { type: "Brand", icon: "brand" },
-  { type: "Company info", icon: "building" },
+  { type: "Company Overview", icon: "building" },
   { type: "List", icon: "list" },
   { type: "Text content", icon: "text" },
   { type: "Tradecraft", icon: "tradecraft" },
@@ -1030,7 +1045,12 @@ export const LANGUAGES = [
   "Spanish",
 ];
 
-export const COMPANIES = ["Acme Inc.", "Acme North America", "Cardinal Trust Financial"];
+export const COMPANIES = [
+  "Feedly",
+  "Acme Inc.",
+  "Acme North America",
+  "Cardinal Trust Financial",
+];
 
 /* ------------------------------------------------------------------ *
  * Create-report entry contexts

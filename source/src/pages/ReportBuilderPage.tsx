@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { Icon } from "../components/ui/Icon";
-import { Button, Modal, Popover, TagInput, Select, Field } from "../components/ui/primitives";
+import { Button, Modal, Popover, TagInput, Field } from "../components/ui/primitives";
 import { TemplateCard } from "../components/templates/TemplateCard";
 import { TemplateLibrary } from "../components/templates/TemplateLibrary";
 import { useStore } from "../state/store";
@@ -18,6 +18,7 @@ export function ReportBuilderPage() {
     templates,
     reports,
     audiences,
+    brands,
     duplicateTemplate,
     openTemplateEditor,
     openReportEditor,
@@ -290,7 +291,7 @@ export function ReportBuilderPage() {
       {settingsOpen && (
         <Modal
           title="Report Builder settings"
-          width={420}
+          width={450}
           onClose={() => setSettingsOpen(false)}
           footer={
             <>
@@ -307,14 +308,20 @@ export function ReportBuilderPage() {
             </>
           }
         >
+          {/* Figma "Report Builder settings": three settings, one rule. Each is a
+              multi-select of what this org normally uses, and each says the same
+              thing — pick more than one and the create-report flow asks which. */}
           <Field
             label="Language"
-            help="If multiple languages are chosen, you will have the chance to choose which to use when generating the report."
+            info="The languages a report can be written in"
+            help="Select all languages your team regularly uses to write reports. We will ask which to use when generating a report."
           >
             <TagInput
               icon="text"
+              pickerLabel="Select languages"
               tags={settings.languages}
               options={LANGUAGES}
+              placeholder="No default set"
               onAdd={(t) => setSettings({ ...settings, languages: [...settings.languages, t] })}
               onRemove={(t) =>
                 setSettings({
@@ -324,16 +331,50 @@ export function ReportBuilderPage() {
               }
             />
           </Field>
+
+          <div className="modal-sep" />
+
           <Field
-            label="Default company info"
-            help="If multiple companies are chosen, you will have the chance to choose which to use when generating the report."
+            label="Company Overview"
+            info="The company a report assesses exposure for"
+            help="Select any Company Overview items you have stored in your Org Profile. We will ask which to use when generating a report."
           >
-            <Select
-              block
-              placeholder="No default set"
-              value={settings.defaultCompany || undefined}
+            <TagInput
+              icon="building"
+              pickerLabel="Select Company Overview"
+              tags={settings.companies}
               options={COMPANIES}
-              onChange={(v) => setSettings({ ...settings, defaultCompany: v })}
+              placeholder="No default set"
+              onAdd={(t) => setSettings({ ...settings, companies: [...settings.companies, t] })}
+              onRemove={(t) =>
+                setSettings({
+                  ...settings,
+                  companies: settings.companies.filter((c) => c !== t),
+                })
+              }
+            />
+          </Field>
+
+          <div className="modal-sep" />
+
+          <Field
+            label="Brand"
+            info="The brand styling a report is written in"
+            help="Select all Brands you regularly want to apply in your reports. We will ask which to use when generating a report."
+          >
+            <TagInput
+              icon="brand"
+              pickerLabel="Select Brand"
+              tags={settings.brands}
+              options={brands.map((b) => b.name)}
+              placeholder="No default set"
+              onAdd={(t) => setSettings({ ...settings, brands: [...settings.brands, t] })}
+              onRemove={(t) =>
+                setSettings({
+                  ...settings,
+                  brands: settings.brands.filter((b) => b !== t),
+                })
+              }
             />
           </Field>
         </Modal>

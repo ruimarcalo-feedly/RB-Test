@@ -10,8 +10,14 @@ import { PageBandEditor } from "./PageBandEditor";
 import { useStore } from "../../state/store";
 import { AUDIENCE_CONTENT, type Parameter } from "../../data/mockData";
 import { EMPTY_BAND, bandVars, brandVars, type PageBand } from "../../data/brand";
+import { BUILDING_BLOCKS, dragLabel, readBlockDrag } from "../../data/buildingBlocks";
 
 type Tab = "context" | "parameters" | "design";
+
+/** Which building blocks the document body will take, by lowercased label. */
+const DOC_DROPPABLE = new Set(
+  BUILDING_BLOCKS.filter((b) => b.doc).map((b) => b.label.toLowerCase())
+);
 
 export function TemplateEditor({ templateId, isNew }: { templateId: string; isNew: boolean }) {
   const {
@@ -63,14 +69,43 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
   const audAnchor = useRef<HTMLButtonElement>(null);
   const moreRef = useRef<HTMLButtonElement>(null);
   const [moreOpen, setMoreOpen] = useState(false);
+  /* Whether a dragged block is over the document, and the handle the canvas
+     gives us for putting one in. */
+  const [docDrop, setDocDrop] = useState(false);
+  const insertBlock = useRef<((label: string, clientY: number) => boolean) | null>(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && layerStack.count === 0) closeOverlay();
+      if (e.key !== "Escape" || layerStack.count > 0) return;
+      /* A selected band takes the first Escape, so the key walks back out of
+         the band before it closes the whole editor. */
+      if (activeBand) {
+        setActiveBand(null);
+        return;
+      }
+      closeOverlay();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [closeOverlay, genOpen, paramDialog, audienceDialog]);
+  }, [closeOverlay, genOpen, paramDialog, audienceDialog, activeBand]);
+
+  /* Clicking anywhere that is not the band or its toolbar drops the selection,
+     the way clicking off an object on a canvas does. Menus and dialogs opened
+     from the toolbar live outside the band in the DOM, so a click inside one
+     of those keeps the band selected. */
+  useEffect(() => {
+    if (!activeBand) return;
+    const onDown = (e: PointerEvent) => {
+      if (layerStack.count > 0) return;
+      const target = e.target as Element | null;
+      if (!target || !target.closest) return;
+      if (target.closest(".band-wrap") || target.closest(".band-toolbar")) return;
+      if (target.closest(".scrim, .modal")) return;
+      setActiveBand(null);
+    };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [activeBand]);
 
   if (!template) return null;
   const readOnly = template.kind === "feedly";
@@ -328,12 +363,39 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
               onActivate={() => activate("header")}
               onChange={(b) => patch({ header: b })}
             />
-            <div className={`canvas-doc ${readOnly ? "locked" : ""}`}>
+            {/* The document takes a dragged building block and puts it where
+                it was dropped. Furniture blocks are not accepted here — they
+                go in a band, and the cursor says so while dragging. */}
+            <div
+              className={`canvas-doc ${readOnly ? "locked" : ""} ${docDrop ? "drop-over" : ""}`}
+              onDragOver={(e) => {
+                const label = dragLabel(e.dataTransfer);
+                if (readOnly || label === null) return;
+                if (label && !DOC_DROPPABLE.has(label)) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "copy";
+                setDocDrop(true);
+              }}
+              onDragLeave={(e) => {
+                if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                setDocDrop(false);
+              }}
+              onDrop={(e) => {
+                setDocDrop(false);
+                if (readOnly) return;
+                const block = readBlockDrag(e.dataTransfer);
+                if (!block?.doc) return;
+                e.preventDefault();
+                setActiveBand(null);
+                if (insertBlock.current?.(block.label, e.clientY)) setDirty(true);
+              }}
+            >
               {generating ? (
                 <SkeletonDoc />
               ) : (
                 <BlockNoteCanvas
                   key={template.id}
+                  insertRef={insertBlock}
                   title={template.reportTitle ?? "Report title"}
                   blocks={template.blocks}
                   readOnly={readOnly}

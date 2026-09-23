@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "../ui/Icon";
 import { Button, Modal, Popover, MenuItem } from "../ui/primitives";
+import { BUILDING_BLOCKS, dragLabel, readBlockDrag } from "../../data/buildingBlocks";
 import {
   BAND_ELEMENTS,
   bandImage,
@@ -41,6 +42,19 @@ export type BandMode = "plain" | "hint" | "edit";
 
 const SLOTS: SlotKey[] = ["left", "middle", "right"];
 
+/** Which building blocks a band slot will take, by their lowercased labels. */
+const BAND_DROPPABLE = new Set(
+  BUILDING_BLOCKS.filter((b) => b.band).map((b) => b.label.toLowerCase())
+);
+
+/** The four TLP ratings, in the order the standard lists them. */
+const TLP_RATINGS: { label: string; text: string; tone: "clear" | "green" | "amber" | "red" }[] = [
+  { label: "TLP: CLEAR", text: "TLP: CLEAR", tone: "clear" },
+  { label: "TLP: GREEN", text: "TLP: GREEN", tone: "green" },
+  { label: "TLP: AMBER", text: "TLP: AMBER", tone: "amber" },
+  { label: "TLP: RED", text: "TLP: RED", tone: "red" },
+];
+
 export function PageBandEditor({
   kind,
   band,
@@ -61,6 +75,11 @@ export function PageBandEditor({
 }) {
   const editable = mode === "edit";
   const [menuFor, setMenuFor] = useState<SlotKey | null>(null);
+  /* The slot whose element was just placed, so that element can open its own
+     picker the moment it appears. */
+  const [justPlaced, setJustPlaced] = useState<SlotKey | null>(null);
+  /* The slot a dragged block is currently over, so the target says so. */
+  const [dropSlot, setDropSlot] = useState<SlotKey | null>(null);
   const [bgDialog, setBgDialog] = useState(false);
   const [scopeOpen, setScopeOpen] = useState(false);
   const [bgOpen, setBgOpen] = useState(false);
@@ -117,12 +136,41 @@ export function PageBandEditor({
         }}
       >
         {SLOTS.map((slot) => (
-          <div className={`band-slot ${slot}`} key={slot}>
+          /* A slot takes a dragged building block, as long as that block is one
+             a band can hold — a table or a code block belongs in the document,
+             so the drag is simply not accepted here and the cursor says so. */
+          <div
+            className={`band-slot ${slot} ${dropSlot === slot ? "drop-over" : ""}`}
+            key={slot}
+            onDragOver={(e) => {
+              const label = dragLabel(e.dataTransfer);
+              if (!editable || label === null) return;
+              /* Only the blocks a band can hold. The rest get the browser's own
+                 "cannot drop here" cursor, which is the honest answer. */
+              if (label && !BAND_DROPPABLE.has(label)) return;
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "copy";
+              setDropSlot(slot);
+            }}
+            onDragLeave={() => setDropSlot((s) => (s === slot ? null : s))}
+            onDrop={(e) => {
+              setDropSlot(null);
+              if (!editable) return;
+              const block = readBlockDrag(e.dataTransfer);
+              if (!block?.band) return;
+              e.preventDefault();
+              onActivate?.();
+              setSlot(slot, newElement(block.band));
+              setJustPlaced(slot);
+            }}
+          >
             {band[slot] ? (
               <BandElementView
                 el={band[slot]!}
                 brand={brand}
                 editable={editable}
+                autoOpen={justPlaced === slot}
+                onAutoOpened={() => setJustPlaced(null)}
                 onChange={(el) => setSlot(slot, el)}
                 onRemove={() => setSlot(slot, null)}
               />
@@ -156,6 +204,7 @@ export function PageBandEditor({
               icon={e.icon}
               onClick={() => {
                 setSlot(menuFor, newElement(e.kind as BandElementKind));
+                setJustPlaced(menuFor);
                 setMenuFor(null);
               }}
             >
@@ -301,17 +350,33 @@ function BandElementView({
   el,
   brand,
   editable,
+  autoOpen,
+  onAutoOpened,
   onChange,
   onRemove,
 }: {
   el: BandElement;
   brand?: Brand;
   editable: boolean;
+  /** Freshly placed from the slot menu, so its own picker opens straight away. */
+  autoOpen?: boolean;
+  onAutoOpened?: () => void;
   onChange: (el: BandElement) => void;
   onRemove: () => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLSpanElement>(null);
+  const tlpRef = useRef<HTMLButtonElement>(null);
+  const [tlpMenu, setTlpMenu] = useState(false);
+
+  /* A TLP badge is one of four ratings, so placing one asks which straight
+     away rather than leaving a badge that says the wrong thing. */
+  useEffect(() => {
+    if (autoOpen && el.kind === "tlp" && editable) {
+      setTlpMenu(true);
+      onAutoOpened?.();
+    }
+  }, [autoOpen, el.kind, editable, onAutoOpened]);
 
   /* The text is written straight into the element rather than through a field,
      so what is being edited is the thing on the page. React must not re-render
@@ -351,21 +416,26 @@ function BandElementView({
         return <span className="be-page">#</span>;
 
       case "tlp":
+        /* The rating is picked from the menu above the badge rather than typed,
+           because TLP is a fixed four-value scale, not free text. */
         return (
-          <span
-            className="be-tlp"
+          <button
+            ref={tlpRef}
+            type="button"
+            className={`be-tlp ${editable ? "pickable" : ""}`}
             style={{
               background: tlpTone(el.text, brand ?? FALLBACK_BRAND),
               color: brand?.colors.tlp ?? "var(--content-bold)",
             }}
+            disabled={!editable}
+            title={editable ? "Change the TLP rating" : undefined}
+            onClick={(e) => {
+              e.stopPropagation();
+              setTlpMenu((o) => !o);
+            }}
           >
-            <span
-              ref={textRef}
-              contentEditable={editable}
-              suppressContentEditableWarning
-              onInput={(e) => onChange({ ...el, text: e.currentTarget.textContent ?? "" })}
-            />
-          </span>
+            {el.text}
+          </button>
         );
 
       default:
@@ -389,6 +459,35 @@ function BandElementView({
         <button className="be-remove" title="Remove" onClick={onRemove}>
           <Icon name="close" size={12} />
         </button>
+      )}
+      {tlpMenu && (
+        <Popover
+          anchorRef={tlpRef}
+          onClose={() => setTlpMenu(false)}
+          placement="top"
+          width={168}
+        >
+          <div onClick={(e) => e.stopPropagation()}>
+            {TLP_RATINGS.map((r) => (
+              <MenuItem
+                key={r.text}
+                icon={el.text === r.text ? "check" : undefined}
+                onClick={() => {
+                  onChange({ ...el, text: r.text });
+                  setTlpMenu(false);
+                }}
+              >
+                <span className="tlp-opt">
+                  <span
+                    className="tlp-dot"
+                    style={{ background: (brand ?? FALLBACK_BRAND).tlp[r.tone] }}
+                  />
+                  {r.label}
+                </span>
+              </MenuItem>
+            ))}
+          </div>
+        </Popover>
       )}
       {el.kind === "image" && (
         <input

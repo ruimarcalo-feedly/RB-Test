@@ -122,17 +122,72 @@ export function fromDocument(doc: DocBlock[]): { title: string; blocks: Block[] 
 
 /* ------------------------------------------------------------------ */
 
+/**
+ * What each building block becomes in the document.
+ *
+ * The blocks that are page furniture — a logo, a page count, a TLP badge —
+ * are absent on purpose: they belong to a band, so the document never accepts
+ * one and this map is what says so.
+ */
+function docBlocksFor(label: string): TemplateBlock[] | null {
+  switch (label) {
+    case "Heading 1":
+      return [{ type: "heading", props: { level: 1 }, content: "Heading 1" }];
+    case "Heading 2":
+      return [{ type: "heading", props: { level: 2 }, content: "Heading 2" }];
+    case "Heading 3":
+      return [{ type: "heading", props: { level: 3 }, content: "Heading 3" }];
+    case "Heading 4":
+      return [{ type: "heading", props: { level: 4 }, content: "Heading 4" }];
+    case "Paragraph":
+      return [{ type: "paragraph", content: "Paragraph" }];
+    case "Divider":
+      return [{ type: "divider" }];
+    case "Code block":
+      return [{ type: "codeBlock", content: "" } as TemplateBlock];
+    case "Image":
+      return [{ type: "image" } as TemplateBlock];
+    case "Callout":
+      return [{ type: "quote", content: "Callout" } as TemplateBlock];
+    case "Table":
+      return [
+        {
+          type: "table",
+          content: {
+            type: "tableContent",
+            headerRows: 1,
+            columnWidths: [300, 300, 300],
+            rows: [
+              { cells: ["Column 1", "Column 2", "Column 3"] },
+              { cells: ["", "", ""] },
+              { cells: ["", "", ""] },
+            ],
+          },
+        } as TemplateBlock,
+      ];
+    default:
+      return null;
+  }
+}
+
 export function BlockNoteCanvas({
   title,
   blocks,
   readOnly,
   parameters,
+  insertRef,
   onChange,
 }: {
   title: string;
   blocks: Block[];
   readOnly: boolean;
   parameters: Parameter[];
+  /**
+   * Filled with a function that drops a building block into the document.
+   * The editor owns its own content, so the page outside hands the drop in
+   * rather than rewriting the document from the model.
+   */
+  insertRef?: React.MutableRefObject<((label: string, clientY: number) => boolean) | null>;
   onChange: (next: { title: string; blocks: Block[] }) => void;
 }) {
   const initialContent = useMemo(
@@ -152,6 +207,39 @@ export function BlockNoteCanvas({
   useEffect(() => {
     editor.isEditable = !readOnly;
   }, [editor, readOnly]);
+
+  /* A block dropped on the page lands where it was dropped, so the drop reads
+     as placement rather than as an append. The block under the cursor is found
+     by its own position on screen, and the new one goes above or below it
+     depending on which half was hit. */
+  useEffect(() => {
+    if (!insertRef) return;
+    insertRef.current = (label, clientY) => {
+      if (readOnly) return false;
+      const made = docBlocksFor(label);
+      if (!made) return false;
+      const doc = editor.document as { id: string }[];
+      if (!doc.length) return false;
+      let ref = doc[doc.length - 1];
+      let placement: "before" | "after" = "after";
+      for (const b of doc) {
+        const el = document.querySelector(`[data-id="${b.id}"]`);
+        if (!el) continue;
+        const r = el.getBoundingClientRect();
+        if (clientY < r.top + r.height / 2) {
+          ref = b;
+          placement = "before";
+          break;
+        }
+      }
+      editor.insertBlocks(made, ref, placement);
+      latest.current(fromDocument(editor.document as DocBlock[]));
+      return true;
+    };
+    return () => {
+      insertRef.current = null;
+    };
+  }, [editor, insertRef, readOnly]);
 
   /** Slash menu: the stock items, plus our own prompt block and the AI
       sections the Figma block menu offers. */

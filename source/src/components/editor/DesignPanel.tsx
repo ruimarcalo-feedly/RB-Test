@@ -1,7 +1,8 @@
-import { Icon, type IconName } from "../ui/Icon";
+import { Icon } from "../ui/Icon";
 import { Select } from "../ui/primitives";
 import { ColorField } from "../ui/ColorField";
 import { allFonts, BRAND_FONTS, type Brand } from "../../data/brand";
+import { BUILDING_BLOCKS, setBlockDrag } from "../../data/buildingBlocks";
 
 /**
  * Figma "Template editor - Design Tab".
@@ -13,27 +14,6 @@ import { allFonts, BRAND_FONTS, type Brand } from "../../data/brand";
  * living there rather than on the template.
  */
 
-/**
- * The palette of blocks the document can be built from — Figma "Building
- * blocks", five to a row in the design's order. Every glyph is the real icon
- * component from the file, so the palette reads as the product's own vocabulary
- * rather than a set of lookalikes.
- */
-const BUILDING_BLOCKS: { label: string; icon: IconName }[] = [
-  { label: "Heading 1", icon: "h1" },
-  { label: "Heading 2", icon: "h2" },
-  { label: "Heading 3", icon: "h3" },
-  { label: "Heading 4", icon: "h4" },
-  { label: "Paragraph", icon: "paragraph" },
-  { label: "Divider", icon: "divider" },
-  { label: "Code block", icon: "code" },
-  { label: "Image", icon: "image" },
-  { label: "Table", icon: "table" },
-  { label: "Callout", icon: "callout" },
-  { label: "TLP badge", icon: "tlp-badge" },
-  { label: "Page count", icon: "page-count" },
-  { label: "Logo", icon: "logo" },
-];
 
 export function DesignPanel({
   brands,
@@ -80,11 +60,22 @@ export function DesignPanel({
           Building blocks
         </div>
         {/* A palette rather than a list: 60px tiles, five to a row, as in the
-            design. Dragging one onto the canvas is out of scope for this pass,
-            so they read as the vocabulary the document is built from. */}
+            design. Each tile is dragged onto the page — into the document, or
+            into a header or footer slot for the blocks that are furniture. */}
         <div className="block-grid">
           {BUILDING_BLOCKS.map((b) => (
-            <button key={b.label} className="block-tile" title={b.label} disabled={readOnly}>
+            <button
+              key={b.label}
+              className="block-tile"
+              title={
+                readOnly
+                  ? b.label
+                  : `${b.label} — drag onto the page${b.band && !b.doc ? "'s header or footer" : ""}`
+              }
+              disabled={readOnly}
+              draggable={!readOnly}
+              onDragStart={(e) => setBlockDrag(e.dataTransfer, b.label)}
+            >
               <Icon name={b.icon} size={28} />
             </button>
           ))}
@@ -134,7 +125,6 @@ export function DesignPanel({
                 onChange={color("caption")}
                 disabled={readOnly}
               />
-              <ColorField label="TLP" value={brand.colors.tlp} onChange={color("tlp")} disabled={readOnly} />
             </div>
           </div>
 
@@ -154,38 +144,6 @@ export function DesignPanel({
                 value={brand.structure.table}
                 disabled={readOnly}
                 onChange={(v) => onEditBrand({ structure: { ...brand.structure, table: v } })}
-              />
-            </div>
-          </div>
-
-          <div className="field">
-            <div className="field-label" style={{ marginBottom: 10 }}>
-              TLP badge colors
-            </div>
-            <div className="color-stack">
-              <ColorField
-                label="Clear"
-                value={brand.tlp.clear}
-                disabled={readOnly}
-                onChange={(v) => onEditBrand({ tlp: { ...brand.tlp, clear: v } })}
-              />
-              <ColorField
-                label="Green"
-                value={brand.tlp.green}
-                disabled={readOnly}
-                onChange={(v) => onEditBrand({ tlp: { ...brand.tlp, green: v } })}
-              />
-              <ColorField
-                label="Amber"
-                value={brand.tlp.amber}
-                disabled={readOnly}
-                onChange={(v) => onEditBrand({ tlp: { ...brand.tlp, amber: v } })}
-              />
-              <ColorField
-                label="Red"
-                value={brand.tlp.red}
-                disabled={readOnly}
-                onChange={(v) => onEditBrand({ tlp: { ...brand.tlp, red: v } })}
               />
             </div>
           </div>

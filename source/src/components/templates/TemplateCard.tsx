@@ -59,48 +59,58 @@ export function TemplateCard({
       </div>
 
       {menu && (
-        <Popover anchorRef={moreRef} onClose={() => setMenu(false)} align="end" width={216}>
-          <MenuItem
-            icon="wand"
-            onClick={() => {
-              setMenu(false);
-              onCreateReport?.();
-            }}
-          >
-            Create Report
-          </MenuItem>
-          {isCustom && onEdit && (
+        <Popover
+          anchorRef={moreRef}
+          onClose={() => setMenu(false)}
+          align="end"
+          width={216}
+        >
+          {/* The menu is portalled out of the card, but React still bubbles its
+              clicks up this tree, so without this every menu item would also
+              trigger the card's own "open" click. */}
+          <div onClick={(e) => e.stopPropagation()}>
             <MenuItem
-              icon="pencil"
+              icon="wand"
               onClick={() => {
                 setMenu(false);
-                onEdit();
+                onCreateReport?.();
               }}
             >
-              Edit template
+              Create Report
             </MenuItem>
-          )}
-          <MenuItem
-            icon="duplicate"
-            onClick={() => {
-              setMenu(false);
-              onDuplicate?.();
-            }}
-          >
-            Duplicate template
-          </MenuItem>
-          {isCustom && onDelete && (
+            {isCustom && onEdit && (
+              <MenuItem
+                icon="pencil"
+                onClick={() => {
+                  setMenu(false);
+                  onEdit();
+                }}
+              >
+                Edit template
+              </MenuItem>
+            )}
             <MenuItem
-              icon="trash"
-              tone="danger"
+              icon="duplicate"
               onClick={() => {
                 setMenu(false);
-                onDelete();
+                onDuplicate?.();
               }}
             >
-              Delete template
+              Duplicate template
             </MenuItem>
-          )}
+            {isCustom && onDelete && (
+              <MenuItem
+                icon="trash"
+                tone="danger"
+                onClick={() => {
+                  setMenu(false);
+                  onDelete();
+                }}
+              >
+                Delete template
+              </MenuItem>
+            )}
+          </div>
         </Popover>
       )}
     </div>
