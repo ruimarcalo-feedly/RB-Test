@@ -182,6 +182,72 @@ export function Popover({
   );
 }
 
+/* ------------------------------------------------------------------ *
+ * Tip — a short label that names a control on hover or focus
+ * ------------------------------------------------------------------ */
+
+/**
+ * For controls that are only a glyph, such as the building-block tiles.
+ *
+ * It is portalled to the body, so it is never clipped by a scrolling panel,
+ * and it waits a beat before showing so a cursor passing over a grid does not
+ * flash a label on every tile. It goes away the moment the control is pressed
+ * or dragged, so it never sits over the thing being dragged.
+ */
+export function Tip({
+  label,
+  children,
+  placement = "top",
+}: {
+  label: string;
+  children: ReactNode;
+  placement?: "top" | "bottom";
+}) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const timer = useRef<number | undefined>(undefined);
+  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+
+  const show = () => {
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => {
+      const r = ref.current?.getBoundingClientRect();
+      if (!r) return;
+      setPos({ left: r.left + r.width / 2, top: placement === "top" ? r.top : r.bottom });
+    }, 250);
+  };
+  const hide = () => {
+    window.clearTimeout(timer.current);
+    setPos(null);
+  };
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+
+  return (
+    <span
+      ref={ref}
+      className="tip-anchor"
+      onPointerEnter={show}
+      onPointerLeave={hide}
+      onFocus={show}
+      onBlur={hide}
+      onPointerDown={hide}
+      onDragStart={hide}
+    >
+      {children}
+      {pos &&
+        createPortal(
+          <div
+            className={`tooltip ${placement}`}
+            role="tooltip"
+            style={{ left: pos.left, top: pos.top }}
+          >
+            {label}
+          </div>,
+          overlayRoot()
+        )}
+    </span>
+  );
+}
+
 export function MenuItem({
   children,
   icon,

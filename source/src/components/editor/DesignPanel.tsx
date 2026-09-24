@@ -1,5 +1,5 @@
 import { Icon } from "../ui/Icon";
-import { Select } from "../ui/primitives";
+import { Select, Tip } from "../ui/primitives";
 import { ColorField } from "../ui/ColorField";
 import { allFonts, BRAND_FONTS, type Brand } from "../../data/brand";
 import { BUILDING_BLOCKS, setBlockDrag } from "../../data/buildingBlocks";
@@ -63,21 +63,19 @@ export function DesignPanel({
             design. Each tile is dragged onto the page — into the document, or
             into a header or footer slot for the blocks that are furniture. */}
         <div className="block-grid">
+          {/* Each tile is only a glyph, so it names itself on hover. */}
           {BUILDING_BLOCKS.map((b) => (
-            <button
-              key={b.label}
-              className="block-tile"
-              title={
-                readOnly
-                  ? b.label
-                  : `${b.label} — drag onto the page${b.band && !b.doc ? "'s header or footer" : ""}`
-              }
-              disabled={readOnly}
-              draggable={!readOnly}
-              onDragStart={(e) => setBlockDrag(e.dataTransfer, b.label)}
-            >
-              <Icon name={b.icon} size={28} />
-            </button>
+            <Tip key={b.label} label={b.label}>
+              <button
+                className="block-tile"
+                aria-label={b.label}
+                disabled={readOnly}
+                draggable={!readOnly}
+                onDragStart={(e) => setBlockDrag(e.dataTransfer, b.label)}
+              >
+                <Icon name={b.icon} size={28} />
+              </button>
+            </Tip>
           ))}
         </div>
       </div>

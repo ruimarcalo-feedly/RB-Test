@@ -3564,6 +3564,36 @@ select {
   grid-template-columns: repeat(5, 60px);
   gap: 8px;
 }
+/* ---------- Tip: a label for a glyph-only control ---------- */
+.tip-anchor {
+  display: inline-flex;
+}
+.tooltip {
+  position: fixed;
+  /* Above menus and modals, below the toasts. */
+  z-index: 180;
+  padding: 4px 8px;
+  border-radius: var(--radius-default);
+  background: var(--content-bold);
+  color: var(--content-inverse);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: tip-in 0.12s ease-out;
+}
+.tooltip.top {
+  transform: translate(-50%, calc(-100% - 6px));
+}
+.tooltip.bottom {
+  transform: translate(-50%, 6px);
+}
+@keyframes tip-in {
+  from {
+    opacity: 0;
+  }
+}
 .block-tile {
   width: 60px;
   height: 60px;
@@ -3599,8 +3629,10 @@ select {
   padding-bottom: 2px;
   line-height: 18px;
 }
-/* The last tile is the brand's own, so it carries the accent. */
-.block-tile:last-child {
+/* The last tile is the brand's own, so it carries the accent. Each tile sits in
+   its own tooltip wrapper, so "last" is the wrapper's place in the grid, not
+   the tile's place in its wrapper. */
+.block-grid > :last-child .block-tile {
   border-color: var(--bg-accent);
   color: var(--bg-accent);
 }
