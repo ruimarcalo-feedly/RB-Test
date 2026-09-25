@@ -12,9 +12,14 @@ import type { BandElementKind } from "./brand";
  * - `band` — the header/footer element it becomes, for the blocks that are page
  *   furniture rather than content.
  *
- * A few belong to only one of the two. A logo or a page count is furniture and
- * has no meaning in the middle of a section; a table or a code block is content
- * and does not fit in a band's slot.
+ * A few belong to only one of the two. A page count is furniture and has no
+ * meaning in the middle of a section; a table or a code block is content and
+ * does not fit in a band's slot.
+ *
+ * The brand's own assets — its logo, its hero, anything else uploaded to it in
+ * the Org Profile — are not in this list. They depend on which brand is picked,
+ * so the panel adds one tile per asset of that brand after these, and they drag
+ * with an `asset:` payload of their own (see `setAssetDrag`).
  */
 export interface BuildingBlock {
   label: string;
@@ -38,7 +43,6 @@ export const BUILDING_BLOCKS: BuildingBlock[] = [
   { label: "Callout", icon: "callout", doc: true },
   { label: "TLP badge", icon: "tlp-badge", doc: false, band: "tlp" },
   { label: "Page count", icon: "page-count", doc: false, band: "pageCount" },
-  { label: "Logo", icon: "logo", doc: false, band: "logo" },
 ];
 
 /**
@@ -84,4 +88,27 @@ export function readBlockDrag(dt: DataTransfer | null): BuildingBlock | undefine
   const typed = dragLabel(dt);
   if (!typed) return undefined;
   return BUILDING_BLOCKS.find((b) => b.label.toLowerCase() === typed);
+}
+
+/* ------------------------------------------------------------------ *
+ * Brand assets
+ * ------------------------------------------------------------------ */
+
+const ASSET_PREFIX = "asset:";
+
+/** Starts the drag of one of the brand's assets. */
+export function setAssetDrag(dt: DataTransfer, assetId: string) {
+  setBlockDrag(dt, `${ASSET_PREFIX}${assetId}`);
+}
+
+/** Whether a drag, as read during `dragover`, is a brand asset. */
+export function isAssetLabel(label: string | null): boolean {
+  return !!label && label.startsWith(ASSET_PREFIX);
+}
+
+/** The asset id a drop carries, or null if it is not an asset. */
+export function readAssetDrag(dt: DataTransfer | null): string | null {
+  if (!dt) return null;
+  const direct = dt.getData(BLOCK_MIME) || dragLabel(dt) || "";
+  return direct.startsWith(ASSET_PREFIX) ? direct.slice(ASSET_PREFIX.length) : null;
 }

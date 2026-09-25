@@ -227,6 +227,9 @@ export type BandElementKind =
   | "image"
   | "tlp"
   | "pageCount"
+  /** One of the brand's own assets, by id. */
+  | "asset"
+  /** Older shape of the brand logo; still rendered, no longer offered. */
   | "logo";
 
 export interface BandElement {
@@ -235,6 +238,13 @@ export interface BandElement {
   text?: string;
   /** An uploaded image, as a data URI. */
   src?: string;
+  /**
+   * For an `asset` element, which of the brand's assets it shows. It names the
+   * asset rather than holding its image, so a template that changes brand
+   * shows the new brand's asset of the same id — its logo, its hero — in the
+   * same place.
+   */
+  assetId?: string;
 }
 
 /** Which pages a band appears on — Figma's "Cover only" / "All pages" select. */
@@ -280,8 +290,18 @@ export const BAND_ELEMENTS: { kind: BandElementKind; label: string; icon: IconNa
   { kind: "image", label: "Image", icon: "image" },
   { kind: "tlp", label: "TLP Badge", icon: "tlp-badge" },
   { kind: "pageCount", label: "Page count", icon: "page-count" },
-  { kind: "logo", label: "Logo", icon: "logo" },
 ];
+
+/**
+ * The asset an `asset` element points at, in the brand now selected. A logo
+ * element from before assets were placeable resolves to the brand's logo.
+ */
+export function elementAsset(el: BandElement, brand: Brand | undefined): BrandAsset | undefined {
+  if (!brand) return undefined;
+  if (el.kind === "logo") return brandLogo(brand);
+  if (el.kind === "asset") return brand.assets.find((a) => a.id === el.assetId);
+  return undefined;
+}
 
 /** What a freshly inserted element says, so a slot is never empty-looking. */
 export function newElement(kind: BandElementKind): BandElement {
@@ -311,7 +331,7 @@ export function newElement(kind: BandElementKind): BandElement {
  * changes its cover and its wordmark with it.
  */
 export const BRANDED_HEADER: PageBand = {
-  left: { kind: "logo" },
+  left: { kind: "asset", assetId: "logo" },
   middle: null,
   right: null,
   scope: "cover",

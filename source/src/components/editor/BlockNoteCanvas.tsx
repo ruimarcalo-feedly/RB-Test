@@ -170,6 +170,9 @@ function docBlocksFor(label: string): TemplateBlock[] | null {
   }
 }
 
+/** What a drop puts in the document: a building block by label, or an image. */
+export type DocInsert = string | { image: string; name: string };
+
 export function BlockNoteCanvas({
   title,
   blocks,
@@ -187,7 +190,7 @@ export function BlockNoteCanvas({
    * The editor owns its own content, so the page outside hands the drop in
    * rather than rewriting the document from the model.
    */
-  insertRef?: React.MutableRefObject<((label: string, clientY: number) => boolean) | null>;
+  insertRef?: React.MutableRefObject<((what: DocInsert, clientY: number) => boolean) | null>;
   onChange: (next: { title: string; blocks: Block[] }) => void;
 }) {
   const initialContent = useMemo(
@@ -214,9 +217,15 @@ export function BlockNoteCanvas({
      depending on which half was hit. */
   useEffect(() => {
     if (!insertRef) return;
-    insertRef.current = (label, clientY) => {
+    insertRef.current = (what, clientY) => {
       if (readOnly) return false;
-      const made = docBlocksFor(label);
+      /* A brand asset goes in as an image block showing that asset. */
+      const made =
+        typeof what === "string"
+          ? docBlocksFor(what)
+          : ([
+              { type: "image", props: { url: what.image, name: what.name, caption: "" } },
+            ] as TemplateBlock[]);
       if (!made) return false;
       const doc = editor.document as { id: string }[];
       if (!doc.length) return false;

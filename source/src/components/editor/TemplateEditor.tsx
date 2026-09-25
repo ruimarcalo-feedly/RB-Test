@@ -4,13 +4,19 @@ import { Button, Field, Popover, TagInput, MenuItem, layerStack } from "../ui/pr
 import { ParameterDialog } from "./ParameterDialog";
 import { AudienceDialog } from "./AudienceDialog";
 import { GenerateWithPromptDialog } from "./GenerateWithPromptDialog";
-import { BlockNoteCanvas } from "./BlockNoteCanvas";
+import { BlockNoteCanvas, type DocInsert } from "./BlockNoteCanvas";
 import { DesignPanel } from "./DesignPanel";
 import { PageBandEditor } from "./PageBandEditor";
 import { useStore } from "../../state/store";
 import { AUDIENCE_CONTENT, type Parameter } from "../../data/mockData";
 import { EMPTY_BAND, bandVars, brandVars, type PageBand } from "../../data/brand";
-import { BUILDING_BLOCKS, dragLabel, readBlockDrag } from "../../data/buildingBlocks";
+import {
+  BUILDING_BLOCKS,
+  dragLabel,
+  isAssetLabel,
+  readAssetDrag,
+  readBlockDrag,
+} from "../../data/buildingBlocks";
 
 type Tab = "context" | "parameters" | "design";
 
@@ -72,7 +78,7 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
   /* Whether a dragged block is over the document, and the handle the canvas
      gives us for putting one in. */
   const [docDrop, setDocDrop] = useState(false);
-  const insertBlock = useRef<((label: string, clientY: number) => boolean) | null>(null);
+  const insertBlock = useRef<((what: DocInsert, clientY: number) => boolean) | null>(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -371,7 +377,7 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
               onDragOver={(e) => {
                 const label = dragLabel(e.dataTransfer);
                 if (readOnly || label === null) return;
-                if (label && !DOC_DROPPABLE.has(label)) return;
+                if (label && !DOC_DROPPABLE.has(label) && !isAssetLabel(label)) return;
                 e.preventDefault();
                 e.dataTransfer.dropEffect = "copy";
                 setDocDrop(true);
@@ -383,6 +389,16 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
               onDrop={(e) => {
                 setDocDrop(false);
                 if (readOnly) return;
+                /* A brand asset becomes an image of that asset. */
+                const assetId = readAssetDrag(e.dataTransfer);
+                const asset = assetId ? brand?.assets.find((a) => a.id === assetId) : undefined;
+                if (asset) {
+                  e.preventDefault();
+                  setActiveBand(null);
+                  if (insertBlock.current?.({ image: asset.src, name: asset.name }, e.clientY))
+                    setDirty(true);
+                  return;
+                }
                 const block = readBlockDrag(e.dataTransfer);
                 if (!block?.doc) return;
                 e.preventDefault();

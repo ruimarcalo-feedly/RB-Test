@@ -1,11 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "../ui/Icon";
 import { Button, Modal, Popover, MenuItem } from "../ui/primitives";
-import { BUILDING_BLOCKS, dragLabel, readBlockDrag } from "../../data/buildingBlocks";
+import {
+  BUILDING_BLOCKS,
+  dragLabel,
+  isAssetLabel,
+  readAssetDrag,
+  readBlockDrag,
+} from "../../data/buildingBlocks";
 import {
   BAND_ELEMENTS,
   bandImage,
-  brandLogo,
+  elementAsset,
   newElement,
   tlpTone,
   type Brand,
@@ -80,6 +86,9 @@ export function PageBandEditor({
   const [justPlaced, setJustPlaced] = useState<SlotKey | null>(null);
   /* The slot a dragged block is currently over, so the target says so. */
   const [dropSlot, setDropSlot] = useState<SlotKey | null>(null);
+  /* Whether a brand asset is over the band's open space, to become its
+     background rather than a slot's element. */
+  const [bgDrop, setBgDrop] = useState(false);
   const [bgDialog, setBgDialog] = useState(false);
   const [scopeOpen, setScopeOpen] = useState(false);
   const [bgOpen, setBgOpen] = useState(false);
@@ -108,6 +117,23 @@ export function PageBandEditor({
   const set = (patch: Partial<PageBand>) => onChange({ ...band, ...patch });
   const setSlot = (slot: SlotKey, el: BandElement | null) => onChange({ ...band, [slot]: el });
 
+  /** Puts a dropped block or asset into a slot. */
+  const dropInto = (slot: SlotKey, e: React.DragEvent) => {
+    const assetId = readAssetDrag(e.dataTransfer);
+    if (assetId) {
+      e.preventDefault();
+      onActivate?.();
+      setSlot(slot, { kind: "asset", assetId });
+      return;
+    }
+    const block = readBlockDrag(e.dataTransfer);
+    if (!block?.band) return;
+    e.preventDefault();
+    onActivate?.();
+    setSlot(slot, newElement(block.band));
+    setJustPlaced(slot);
+  };
+
   return (
     <div
       className={`band-wrap ${kind} ${mode} ${active ? "active" : ""}`}
@@ -128,7 +154,32 @@ export function PageBandEditor({
       )}
 
       <div
-        className={`band ${image ? "has-image" : ""}`}
+        className={`band ${image ? "has-image" : ""} ${bgDrop ? "bg-drop" : ""}`}
+        onDragOver={(e) => {
+          if (!editable || !isAssetLabel(dragLabel(e.dataTransfer))) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "copy";
+          setDropSlot(null);
+          setBgDrop(true);
+        }}
+        onDragLeave={(e) => {
+          if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+          setBgDrop(false);
+          setDropSlot(null);
+        }}
+        onDrop={(e) => {
+          setBgDrop(false);
+          setDropSlot(null);
+          if (!editable) return;
+          const assetId = readAssetDrag(e.dataTransfer);
+          if (!assetId) return;
+          e.preventDefault();
+          onActivate?.();
+          /* The same thing the background dialog does when an asset is picked
+             there: the band shows the brand's asset, by id, so it follows the
+             brand if the template changes brand. */
+          set({ image: null, imageAsset: assetId });
+        }}
         style={{
           background: image
             ? `${band.background} url("${image}") center / cover no-repeat`
@@ -136,56 +187,83 @@ export function PageBandEditor({
         }}
       >
         {SLOTS.map((slot) => (
-          /* A slot takes a dragged building block, as long as that block is one
-             a band can hold — a table or a code block belongs in the document,
-             so the drag is simply not accepted here and the cursor says so. */
+          /* Two drop targets per slot. The slot's own box — its element, or
+             its empty "+" — takes whatever it is given, a brand asset
+             included. The rest of the slot's column takes the ordinary blocks
+             too, so a heading dropped a little wide of a box still lands. A
+             brand asset dropped in that open space is not the slot's: it
+             falls through to the band itself and becomes the background. */
           <div
             className={`band-slot ${slot} ${dropSlot === slot ? "drop-over" : ""}`}
             key={slot}
             onDragOver={(e) => {
               const label = dragLabel(e.dataTransfer);
-              if (!editable || label === null) return;
+              if (!editable || label === null || isAssetLabel(label)) return;
               /* Only the blocks a band can hold. The rest get the browser's own
                  "cannot drop here" cursor, which is the honest answer. */
               if (label && !BAND_DROPPABLE.has(label)) return;
               e.preventDefault();
+              e.stopPropagation();
               e.dataTransfer.dropEffect = "copy";
+              setBgDrop(false);
               setDropSlot(slot);
             }}
-            onDragLeave={() => setDropSlot((s) => (s === slot ? null : s))}
             onDrop={(e) => {
+              if (!editable || readAssetDrag(e.dataTransfer)) return;
+              e.stopPropagation();
               setDropSlot(null);
-              if (!editable) return;
-              const block = readBlockDrag(e.dataTransfer);
-              if (!block?.band) return;
-              e.preventDefault();
-              onActivate?.();
-              setSlot(slot, newElement(block.band));
-              setJustPlaced(slot);
+              dropInto(slot, e);
             }}
           >
-            {band[slot] ? (
-              <BandElementView
-                el={band[slot]!}
-                brand={brand}
-                editable={editable}
-                autoOpen={justPlaced === slot}
-                onAutoOpened={() => setJustPlaced(null)}
-                onChange={(el) => setSlot(slot, el)}
-                onRemove={() => setSlot(slot, null)}
-              />
-            ) : editable ? (
-              <button
-                ref={slotRefs[slot]}
-                className="band-add"
-                onClick={() => setMenuFor(slot)}
-                title={`Add to the ${slot} of the ${kind}`}
-              >
-                <Icon name="plus" size={20} />
-              </button>
-            ) : null}
+            <div
+              className={`slot-drop ${dropSlot === slot ? "over" : ""}`}
+              onDragOver={(e) => {
+                const label = dragLabel(e.dataTransfer);
+                if (!editable || label === null) return;
+                if (label && !BAND_DROPPABLE.has(label) && !isAssetLabel(label)) return;
+                e.preventDefault();
+                e.stopPropagation();
+                e.dataTransfer.dropEffect = "copy";
+                setBgDrop(false);
+                setDropSlot(slot);
+              }}
+              onDrop={(e) => {
+                if (!editable) return;
+                e.stopPropagation();
+                setDropSlot(null);
+                setBgDrop(false);
+                dropInto(slot, e);
+              }}
+            >
+              {band[slot] ? (
+                <BandElementView
+                  el={band[slot]!}
+                  brand={brand}
+                  editable={editable}
+                  autoOpen={justPlaced === slot}
+                  onAutoOpened={() => setJustPlaced(null)}
+                  onChange={(el) => setSlot(slot, el)}
+                  onRemove={() => setSlot(slot, null)}
+                />
+              ) : editable ? (
+                <button
+                  ref={slotRefs[slot]}
+                  className="band-add"
+                  onClick={() => setMenuFor(slot)}
+                  title={`Add to the ${slot} of the ${kind}`}
+                >
+                  <Icon name="plus" size={20} />
+                </button>
+              ) : null}
+            </div>
           </div>
         ))}
+        {bgDrop && (
+          <span className="band-bg-hint">
+            <Icon name="image" size={16} />
+            Set as background
+          </span>
+        )}
       </div>
 
       {mode !== "plain" && (
@@ -211,6 +289,26 @@ export function PageBandEditor({
               {e.label}
             </MenuItem>
           ))}
+          {/* The brand's own assets, under the palette glyph that marks
+              anything coming from a brand. Whatever is uploaded to the brand
+              in the Org Profile shows up here. */}
+          {brand && brand.assets.length > 0 && (
+            <>
+              <div className="menu-sep" />
+              {brand.assets.map((a) => (
+                <MenuItem
+                  key={a.id}
+                  icon="brand"
+                  onClick={() => {
+                    setSlot(menuFor, { kind: "asset", assetId: a.id });
+                    setMenuFor(null);
+                  }}
+                >
+                  {a.name}
+                </MenuItem>
+              ))}
+            </>
+          )}
         </Popover>
       )}
 
@@ -390,13 +488,18 @@ function BandElementView({
 
   const body = () => {
     switch (el.kind) {
-      case "logo": {
-        const logo = brandLogo(brand);
-        return logo ? (
-          <img className="be-logo" src={logo.src} alt={logo.name} />
+      case "logo":
+      case "asset": {
+        /* Resolved from whichever brand is selected now, so swapping brand
+           swaps the image in place. An asset the new brand does not carry
+           says so rather than leaving an empty gap in the band. */
+        const asset = elementAsset(el, brand);
+        return asset ? (
+          <img className="be-logo" src={asset.src} alt={asset.name} />
         ) : (
           <span className="be-placeholder">
-            <Icon name="brand" size={16} /> No brand logo
+            <Icon name="brand" size={16} />
+            {brand ? "Not in this brand" : "No brand selected"}
           </span>
         );
       }

@@ -2,7 +2,7 @@ import { Icon } from "../ui/Icon";
 import { Select, Tip } from "../ui/primitives";
 import { ColorField } from "../ui/ColorField";
 import { allFonts, BRAND_FONTS, type Brand } from "../../data/brand";
-import { BUILDING_BLOCKS, setBlockDrag } from "../../data/buildingBlocks";
+import { BUILDING_BLOCKS, setAssetDrag, setBlockDrag } from "../../data/buildingBlocks";
 
 /**
  * Figma "Template editor - Design Tab".
@@ -74,6 +74,27 @@ export function DesignPanel({
                 onDragStart={(e) => setBlockDrag(e.dataTransfer, b.label)}
               >
                 <Icon name={b.icon} size={28} />
+              </button>
+            </Tip>
+          ))}
+          {/* Then the brand's own assets, one tile each, showing the image
+              itself and marked with the palette glyph because they come with
+              the brand. They follow the brand picked above, so they are absent
+              with no brand and change when the brand does — and anything
+              uploaded to the brand in the Org Profile appears here too. */}
+          {brand?.assets.map((a) => (
+            <Tip key={`asset-${brand.id}-${a.id}`} label={a.name}>
+              <button
+                className="block-tile asset"
+                aria-label={a.name}
+                disabled={readOnly}
+                draggable={!readOnly}
+                onDragStart={(e) => setAssetDrag(e.dataTransfer, a.id)}
+              >
+                <img src={a.src} alt="" draggable={false} />
+                <span className="asset-mark" aria-hidden="true">
+                  <Icon name="brand" size={16} />
+                </span>
               </button>
             </Tip>
           ))}
