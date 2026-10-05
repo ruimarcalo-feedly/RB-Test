@@ -81,4 +81,8 @@
     "Segoe UI", Helvetica, Arial, sans-serif;
   --font-mono: "SFMono-Regular", ui-monospace, "SF Mono", Menlo, Consolas,
     "Liberation Mono", monospace;
+  /* The AI prompts in a template — the instructions a report is written from.
+     A fixed face rather than the brand's, since they are never part of the
+     finished report. */
+  --font-prompt: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }

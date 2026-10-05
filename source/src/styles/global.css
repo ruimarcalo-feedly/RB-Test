@@ -1550,7 +1550,7 @@ select {
   background: var(--bg-light);
   border-radius: var(--radius-default);
   padding: 8px;
-  font-family: var(--font-mono);
+  font-family: var(--font-prompt);
   font-size: 14px;
   line-height: 20px;
   color: var(--content-bold);
@@ -2488,7 +2488,7 @@ select {
   padding: 8px;
   background: var(--bg-light);
   border-radius: var(--radius-default);
-  font-family: var(--font-mono);
+  font-family: var(--font-prompt);
   font-size: 14px;
   line-height: 20px;
   color: var(--content-bold);
