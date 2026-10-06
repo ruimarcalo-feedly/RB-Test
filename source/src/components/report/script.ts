@@ -142,7 +142,7 @@ function subjectStep(): Act[] {
     { t: "tickHead" },
     {
       t: "stepRunning",
-      step: { label: "Paused to ask for more details", doneLabel: "Details gathered" },
+      step: { label: "Paused to ask for more details below", doneLabel: "Details gathered" },
     },
     { t: "askSubject" },
     { t: "tickStep" },

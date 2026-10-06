@@ -109,13 +109,11 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
   const [exportMenu, setExportMenu] = useState(false);
   /**
    * The template sheet can be pushed down to the bottom edge and pulled back.
-   * It starts collapsed and rises on its own once the flow starts working, so
-   * opening the editor doesn't land with the template already in the way.
+   * On every create-report path it stays collapsed until the reader asks for
+   * it: the flow never raises it on its own, so the template is there to look
+   * at, not something that lands in the way of the conversation.
    */
   const [sheetOpen, setSheetOpen] = useState(false);
-  /** Once the reader has moved the sheet themselves, we stop moving it for them. */
-  const sheetTouched = useRef(false);
-  const sheetRaised = useRef(false);
   const exportRef = useRef<HTMLButtonElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const timers = useRef<number[]>([]);
@@ -320,12 +318,6 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
           break;
         case "status":
           push({ kind: "status", text: act.text, state: "running", steps: act.steps ?? [], expanded: true });
-          /* The first piece of work the AI does is preparing this template, so
-             that is the moment the sheet rises into view. */
-          if (!sheetRaised.current && !sheetTouched.current) {
-            sheetRaised.current = true;
-            setSheetOpen(true);
-          }
           if (pace()) return;
           break;
         case "step":
@@ -343,7 +335,7 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
           break;
         case "tickStep":
           /* A step that was waiting on an answer is named for the wait
-             ("Paused to ask for more details"); once it has one it is named for
+             ("Paused to ask for more details below"); once it has one it is named for
              what it got ("Details gathered"). */
           patchLastStatus((e) => ({
             ...e,
@@ -842,10 +834,7 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
               activeParam={activeParam}
               values={paramValues}
               open={sheetOpen}
-              onToggle={() => {
-                sheetTouched.current = true;
-                setSheetOpen((o) => !o);
-              }}
+              onToggle={() => setSheetOpen((o) => !o)}
             />
           )}
         </div>
