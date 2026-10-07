@@ -1470,15 +1470,30 @@ function TemplatePreview({
       className={`template-preview ${open ? "open" : "hidden"}`}
       style={{ "--tp-head": `${headH}px` } as CSSProperties}
     >
-      <div className="tp-head" ref={headRef}>
-        <span>Template:</span>
+      {/* Figma "new template card" (3580:128974). The whole header is the
+          handle: click anywhere on it to raise or lower the sheet. The
+          Show / Hide template button stays as the visible cue. */}
+      <div
+        className="tp-head"
+        ref={headRef}
+        role="button"
+        tabIndex={0}
+        aria-expanded={open}
+        aria-label={`${open ? "Hide" : "Show"} template: ${template.name}`}
+        onClick={onToggle}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onToggle();
+          }
+        }}
+      >
         <span className="tp-name">{template.name}</span>
         {template.audience && <span className="badge">{template.audience}</span>}
         <span className="spacer" />
-        <button className="btn ghost sm" onClick={onToggle}>
-          <Icon name={open ? "chevron-down" : "chevron-up"} size={14} />
-          {open ? "Hide" : "Show"}
-        </button>
+        <span className="tp-toggle" aria-hidden="true">
+          {open ? "Hide template" : "Show template"}
+        </span>
       </div>
       <div
         className="tp-body"

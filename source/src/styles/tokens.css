@@ -55,6 +55,8 @@
   /* Radius */
   --radius-default: 4px;
   --radius-large: 8px;
+  /* Figma "complementary": the small outlined buttons. */
+  --radius-complementary: 6px;
   /* Figma: 'giant' radius, used by the page and the template preview card. */
   --radius-giant: 12px;
   --radius-pill: 100px;
