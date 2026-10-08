@@ -37,6 +37,8 @@
   --info-bg: #eef5fd;
   --info-border: #cfe2f7;
   --param-bg: #ebf2fa;
+  /* Figma "Content/Info". */
+  --content-info: #3979cc;
   --param-border: #d7e4f5;
   --param-text: #2f5bb7;
   /* Figma "background/info-medium" — the elicitation card's parameter badge. */

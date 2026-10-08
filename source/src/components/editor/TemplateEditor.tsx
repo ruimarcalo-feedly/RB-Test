@@ -151,7 +151,7 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
         <Button onClick={closeOverlay}>Close</Button>
         <div className="editor-title">
           <span className="truncate">{template.name}</span>
-          <span className="kind">{readOnly ? "Built-in template" : "Custom Template"}</span>
+          <span className="kind">{readOnly ? "Feedly Template" : "Custom Template"}</span>
         </div>
         <span className="spacer" />
         {readOnly ? (
@@ -346,7 +346,7 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
               <Icon name="info" size={24} style={{ color: "#2f6fd0" }} />
               <span className="strong">Feedly templates cannot be edited.</span>
               <span className="muted">
-                Duplicate it to turn it into a Custom template you can freely change.
+                Duplicate it to turn it into a Custom Template you can freely change.
               </span>
             </div>
           )}

@@ -594,11 +594,6 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
         <Button onClick={closeOverlay}>Close</Button>
         <div className="editor-title">
           <span className="truncate">{title}</span>
-          {!generated && title === "New report" && (
-            <span className="kind">
-              {template.kind === "custom" ? "Custom Template" : "Built-in template"}
-            </span>
-          )}
         </div>
         <span className="spacer" />
         {generated ? (
@@ -1493,6 +1488,13 @@ function TemplatePreview({
         <span className="spacer" />
         <span className="tp-toggle" aria-hidden="true">
           {open ? "Hide template" : "Show template"}
+        </span>
+      </div>
+      {/* Figma "TopBanner" (3580:128974): read-only notice under the header. */}
+      <div className="tp-banner">
+        <Icon name="info" size={24} />
+        <span>
+Templates cannot be edited during report creation.
         </span>
       </div>
       <div

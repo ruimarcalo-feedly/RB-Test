@@ -339,6 +339,7 @@ select {
   border-radius: 6px;
 }
 .btn.icon {
+  flex: 0 0 auto;
   width: 32px;
   padding: 0;
 }
@@ -2441,20 +2442,43 @@ select {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 16px;
+  padding: 16px;
   border-bottom: 1px solid var(--border-light);
   border-radius: var(--radius-giant) var(--radius-giant) 0 0;
   font-size: 14px;
   line-height: 20px;
   font-weight: 650;
 }
+/* Figma "TopBanner": blue read-only notice between header and body. */
+.tp-banner {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 56px;
+  padding: 12px 24px;
+  background: var(--param-bg);
+  border-bottom: 1px solid var(--border-light);
+  color: var(--content-bold);
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 550;
+}
+.tp-banner svg {
+  flex: 0 0 auto;
+  color: var(--content-info);
+}
 .tp-head {
   cursor: pointer;
   user-select: none;
   transition: background 0.12s;
 }
-.tp-head:hover {
+/* Hovering the header only changes the Show / Hide button, like a button hover. */
+.tp-head:hover .tp-toggle {
   background: var(--bg-light);
+}
+.tp-head:active .tp-toggle {
+  background: var(--bg-hover);
 }
 .tp-head:focus-visible {
   outline: 2px solid var(--bg-accent);
@@ -2469,6 +2493,7 @@ select {
 /* The outlined "Show template" / "Hide template" button. It is the cue, not the
    target: the whole header takes the click. */
 .tp-toggle {
+  transition: background 0.12s ease;
   display: inline-flex;
   align-items: center;
   min-height: 24px;
