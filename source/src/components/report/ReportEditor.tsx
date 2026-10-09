@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Icon, Spinner, type IconName } from "../ui/Icon";
+import { BrandPicker } from "../org/BrandPicker";
 import { Button, Field, Select, Popover, MenuItem } from "../ui/primitives";
 import { useStore, nextId } from "../../state/store";
 import { PromptText } from "../editor/PromptText";
@@ -1313,16 +1314,7 @@ function DetailsPanel({
         <div className="field-help" style={{ margin: "4px 0 8px" }}>
           The brand style applied to your report. Brands are saved in the Org Profile.
         </div>
-        <Select
-          block
-          icon="brand"
-          value={brands.find((b) => b.id === brandId)?.name}
-          placeholder="No brand"
-          options={["No brand", ...brands.map((b) => b.name)]}
-          onChange={(name) =>
-            setBrandId(name === "No brand" ? undefined : brands.find((b) => b.name === name)?.id)
-          }
-        />
+        <BrandPicker brands={brands} brandId={brandId} onPick={setBrandId} />
       </div>
 
       <div style={{ height: 1, background: "var(--border-lightest)", margin: "22px 0" }} />

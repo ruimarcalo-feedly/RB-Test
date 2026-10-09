@@ -3852,6 +3852,33 @@ select {
 }
 /* The label hanging off the band, naming which one it is. It is grey until the
    band is the thing being worked on. */
+/* The x that takes a band's background image off: shown while the band is
+   hovered or selected, in the band's top-right corner. */
+.band-bg-remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0.5px solid var(--border-lightest);
+  border-radius: 50%;
+  background: var(--bg-lightest);
+  color: var(--content-bold);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.24);
+  cursor: pointer;
+}
+.band-bg-remove:hover {
+  background: var(--bg-light);
+}
+.band-wrap:hover .band-bg-remove,
+.band-wrap.active .band-bg-remove {
+  display: inline-flex;
+}
 .band-tag {
   position: absolute;
   left: 50%;
@@ -4017,7 +4044,9 @@ select {
    thing it controls reads as belonging to whatever comes next. */
 .band-toolbar {
   position: absolute;
-  left: 4px;
+  /* Centred over the band it belongs to. */
+  left: 50%;
+  transform: translateX(-50%);
   bottom: calc(100% + 8px);
   display: flex;
   align-items: center;

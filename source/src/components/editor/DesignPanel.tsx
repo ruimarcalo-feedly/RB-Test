@@ -1,5 +1,6 @@
 import { Icon } from "../ui/Icon";
 import { Select, Tip } from "../ui/primitives";
+import { BrandPicker } from "../org/BrandPicker";
 import { ColorField } from "../ui/ColorField";
 import { allFonts, BRAND_FONTS, type Brand } from "../../data/brand";
 import { BUILDING_BLOCKS, setAssetDrag, setBlockDrag } from "../../data/buildingBlocks";
@@ -40,17 +41,7 @@ export function DesignPanel({
         <div className="field-help" style={{ margin: "0 0 8px" }}>
           All brands are stored in the Org Profile and contain styles from your organization(s).
         </div>
-        <Select
-          block
-          icon="brand"
-          disabled={readOnly}
-          value={brand?.name}
-          placeholder="No brand"
-          options={["No brand", ...brands.map((b) => b.name)]}
-          onChange={(name) =>
-            onPickBrand(name === "No brand" ? undefined : brands.find((b) => b.name === name)?.id)
-          }
-        />
+        <BrandPicker brands={brands} brandId={brandId} onPick={onPickBrand} disabled={readOnly} />
       </div>
 
       <div className="side-rule" />

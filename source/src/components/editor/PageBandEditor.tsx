@@ -258,6 +258,22 @@ export function PageBandEditor({
             </div>
           </div>
         ))}
+        {/* Once a band has a background image, a small x in its top-right
+            corner takes it off again. The band keeps its colour. */}
+        {editable && image && !bgDrop && (
+          <button
+            className="band-bg-remove"
+            title="Remove background image"
+            aria-label="Remove background image"
+            onClick={(e) => {
+              e.stopPropagation();
+              onActivate?.();
+              set({ image: null, imageAsset: undefined });
+            }}
+          >
+            <Icon name="close" size={14} />
+          </button>
+        )}
         {bgDrop && (
           <span className="band-bg-hint">
             <Icon name="image" size={16} />
