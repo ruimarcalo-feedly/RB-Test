@@ -20,36 +20,33 @@ reference their assets relatively, so the site works at
 `https://<user>.github.io/RB-Test/`. `.nojekyll` keeps Pages from running the
 files through Jekyll.
 
-## Working on it
+## Two versions: A (locked) and B
 
-The source lives in `source/`.
+The prototype runs as two parallel versions, switched from the org menu
+("ACME North America", top left):
+
+- **Version A** is the locked baseline. It is served from the repository root
+  (`index.html` + `assets/`), built from `source/`. Do not change it: `source/`
+  is frozen, and the git tag `version-a-locked` marks the point it was frozen.
+- **Version B** is where all new work goes. It is served from `b/`, built from
+  `source-b/`.
+
+Each build knows which version it is through the `VITE_VARIANT` environment
+variable, which the org menu uses to show the current version and link to the
+other one.
+
+## Working on B
 
 ```
-cd source
+cd source-b
 npm install
 npm run dev
 ```
 
-## Rebuilding the site after a change
+## Rebuilding B after a change
 
 ```
-cd source
-npm run build -- --base=./
-cp -R dist/. ..
+cd source-b
+VITE_VARIANT=B npm run build -- --base=./
+rm -rf ../b && cp -R dist/. ../b
 ```
-
-The `--base=./` matters: without it the built page asks for `/assets/...` at
-the domain root, which is not where a project Pages site lives.
-
-## Layout
-
-| Path | |
-|---|---|
-| `index.html`, `assets/` | the built site that Pages serves |
-| `source/src/components/` | the screens, by area — `editor/`, `report/`, `org/`, `ui/`, `layout/` |
-| `source/src/data/` | the mock content, and `brand.ts` — the brand model, both brands and their assets |
-| `source/src/state/store.tsx` | one store holding templates, reports, brands and org items |
-| `source/src/styles/global.css` | every style, with the design tokens at the top |
-
-Images (logos, cover artwork) are inlined as data URIs in
-`source/src/data/brand.ts`, so the build stays one self-contained bundle.

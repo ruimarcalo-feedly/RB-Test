@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Icon, type IconName } from "../ui/Icon";
 import { useStore, type View } from "../../state/store";
+import { Popover } from "../ui/primitives";
+import { VARIANT, switchVariant, type Variant } from "../../variant";
 
 interface NavEntry {
   label: string;
@@ -41,15 +43,45 @@ export function LeftNav() {
   const { view, setView } = useStore();
   const [openGroup, setOpenGroup] = useState<string | null>("Vulnerabilities");
   const [newsOpen, setNewsOpen] = useState(true);
+  const orgRef = useRef<HTMLButtonElement>(null);
+  const [orgOpen, setOrgOpen] = useState(false);
 
   return (
     <nav className="leftnav">
       <div className="leftnav-org">
-        <span className="leftnav-logo">
-          <Icon name="logo" size={22} />
-        </span>
-        <span className="leftnav-orgname">ACME North America</span>
-        <Icon name="chevron-down" size={16} style={{ color: "var(--content-medium)" }} />
+        {/* The org switcher doubles as the switch between the prototype's two
+            parallel versions. */}
+        <button
+          ref={orgRef}
+          className="leftnav-org-btn"
+          onClick={() => setOrgOpen((o) => !o)}
+          aria-expanded={orgOpen}
+        >
+          <span className="leftnav-logo">
+            <Icon name="logo" size={22} />
+          </span>
+          <span className="leftnav-orgname">ACME North America</span>
+          <Icon name="chevron-down" size={16} style={{ color: "var(--content-medium)" }} />
+        </button>
+        {orgOpen && (
+          <Popover anchorRef={orgRef} onClose={() => setOrgOpen(false)} width={240}>
+            {(["A", "B"] as Variant[]).map((v) => (
+              <button
+                key={v}
+                className="menu-item"
+                onClick={() => {
+                  setOrgOpen(false);
+                  switchVariant(v);
+                }}
+              >
+                <span style={{ flex: 1 }}>Acme North America {v}</span>
+                {v === VARIANT && (
+                  <Icon name="check" size={16} style={{ color: "var(--bg-accent)" }} />
+                )}
+              </button>
+            ))}
+          </Popover>
+        )}
         <span className="spacer" />
         <Icon name="collapse" size={18} style={{ color: "var(--content-light)" }} />
       </div>
