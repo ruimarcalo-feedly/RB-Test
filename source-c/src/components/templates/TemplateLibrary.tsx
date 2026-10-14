@@ -4,6 +4,10 @@ import { Button, Modal } from "../ui/primitives";
 import { TemplateCard } from "./TemplateCard";
 import { useStore } from "../../state/store";
 import type { Template } from "../../data/mockData";
+import { VARIANT } from "../../variant";
+
+/** The library's own entry for templates from the previous templating system. */
+const LEGACY = "Legacy";
 
 /**
  * "Manage templates" → Template Library modal.
@@ -28,8 +32,11 @@ export function TemplateLibrary({ onClose }: { onClose: () => void }) {
     [audiences]
   );
 
+  const legacy = templates.filter((t) => t.legacy);
   const shown = templates.filter((t) =>
-    audience === "Custom audience" ? t.kind === "custom" : t.audience === audience
+    audience === LEGACY
+      ? t.legacy
+      : !t.legacy && (audience === "Custom audience" ? t.kind === "custom" : t.audience === audience)
   );
 
   return (
@@ -47,6 +54,19 @@ export function TemplateLibrary({ onClose }: { onClose: () => void }) {
                 {a}
               </button>
             ))}
+            {legacy.length > 0 && (
+              <button
+                className={`library-aud ${audience === LEGACY ? "active" : ""}`}
+                onClick={() => setAudience(LEGACY)}
+              >
+                {LEGACY}
+                {/* Version B gates legacy templates behind an upgrade, so it
+                    keeps count of what is left to do. */}
+                {VARIANT === "B" && (
+                  <span className="legacy-count">{legacy.length} left to update</span>
+                )}
+              </button>
+            )}
           </div>
           <Button
             icon="plus"
@@ -68,6 +88,13 @@ export function TemplateLibrary({ onClose }: { onClose: () => void }) {
               <Icon name="close" size={16} />
             </button>
           </div>
+          {audience === LEGACY && VARIANT === "B" && (
+            <div className="param-warn library-warn">
+              <Icon name="info" size={18} />
+              Legacy templates were built on a previous templating system. To take advantage of
+              new features you can upgrade them by editing their details.
+            </div>
+          )}
           <div className="library-grid">
             {shown.length === 0 && (
               <div className="empty">

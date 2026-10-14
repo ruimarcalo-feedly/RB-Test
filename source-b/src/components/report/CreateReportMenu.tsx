@@ -22,6 +22,7 @@ import {
 type Level =
   | { kind: "audiences" }
   | { kind: "recent" }
+  | { kind: "legacy" }
   | { kind: "templates"; audience: string };
 
 /** Templates for one audience, in the order the library lays them out:
@@ -59,7 +60,8 @@ export function CreateReportMenu({
    */
   showRecent?: boolean;
 }) {
-  const { templates, audiences } = useStore();
+  const { templates, audiences, openTemplateEditor, toast } = useStore();
+  const legacy = useMemo(() => templates.filter((t) => t.legacy), [templates]);
 
   const [level, setLevel] = useState<Level>({ kind: "audiences" });
   /** The pane on its way out, kept around just long enough to slide off. */
@@ -98,7 +100,8 @@ export function CreateReportMenu({
      "Executive Memo" would say nothing. */
   const recent = useMemo(() => {
     const seen = new Set<string>();
-    return [...templates]
+    return templates
+      .filter((t) => !t.legacy)
       .sort((a, b) => a.lastUsed - b.lastUsed)
       .filter((t) => !seen.has(t.name) && (seen.add(t.name), true))
       .slice(0, 5);
@@ -136,7 +139,7 @@ export function CreateReportMenu({
               </button>
             </div>
           )}
-          <div className="crm-list">
+          <div className={`crm-list ${legacy.length ? "bordered" : ""}`}>
             <div className="crm-title">Select Audience</div>
             {audienceList.map((a) => (
               <button
@@ -151,7 +154,56 @@ export function CreateReportMenu({
               </button>
             ))}
           </div>
+          {/* Figma "Audience as pre-selection": legacy templates sit apart, at
+              the end of the menu. */}
+          {legacy.length > 0 && (
+            <div className="crm-list">
+              <button className="crm-item" onClick={() => go({ kind: "legacy" }, "fwd")}>
+                <span className="crm-mid plain">Legacy templates</span>
+                <span className="crm-right">
+                  <Icon name="chevron-right" size={20} />
+                </span>
+              </button>
+            </div>
+          )}
         </>
+      );
+    }
+
+    if (l.kind === "legacy") {
+      /* Version B, "Promoting template updating": a legacy template can't be
+         used until it is upgraded, so picking one opens it to upgrade. */
+      return (
+        <div className="crm-list">
+          <div className="crm-back">
+            <button
+              className="crm-backbtn"
+              onClick={() => go({ kind: "audiences" }, "back")}
+              title="Back to audiences"
+            >
+              <Icon name="chevron-left" size={16} />
+            </button>
+            <span>Legacy templates</span>
+          </div>
+          <div className="crm-title">Upgrade a template to use it</div>
+          {legacy.map((t) => (
+            <button
+              key={t.id}
+              className="crm-item"
+              onClick={() => {
+                onClose();
+                openTemplateEditor(t.id);
+                toast("Upgrade this legacy template to use it in a report");
+              }}
+            >
+              <span className="crm-left">
+                <Icon name={t.icon} size={20} />
+              </span>
+              <span className="crm-mid">{t.name}</span>
+              <span className="crm-note">Legacy</span>
+            </button>
+          ))}
+        </div>
       );
     }
 

@@ -10,6 +10,9 @@ import { COMPANIES, LANGUAGES } from "../data/mockData";
 /** "All Audiences" | "Last used" | an audience name. */
 type AudienceFilter = string;
 const ALL_AUDIENCES = "All Audiences";
+/* Figma "Promoting legacy compatibility": legacy templates have a filter of
+   their own and can be used straight from it. */
+const LEGACY_FILTER = "Legacy templates";
 type TypeFilter = "All types" | "Feedly templates" | "Custom templates";
 
 export function ReportBuilderPage() {
@@ -51,9 +54,15 @@ export function ReportBuilderPage() {
        card with no audience on it, and the audience is asked for once the
        report starts. Filtered to an audience, the cards are that audience's
        pairings and carry its badge, so nothing more needs asking. */
-    let list = audienceFilter === ALL_AUDIENCES ? templateFamilies(templates) : [...templates];
-    if (audienceFilter === ALL_AUDIENCES) {
-      /* already one per template */
+    let list =
+      audienceFilter === ALL_AUDIENCES
+        ? templateFamilies(templates)
+        : audienceFilter === LEGACY_FILTER
+          ? templates.filter((t) => t.legacy)
+          : /* A legacy template joins the rest once an audience is saved to it. */
+            templates.filter((t) => !t.legacy || t.audience);
+    if (audienceFilter === ALL_AUDIENCES || audienceFilter === LEGACY_FILTER) {
+      /* already the right set */
     } else if (audienceFilter !== "Last used") {
       list = list.filter((t) => t.audience === audienceFilter);
     } else {
@@ -173,6 +182,19 @@ export function ReportBuilderPage() {
             </span>
             Last used templates
           </button>
+          <button
+            className="menu-item"
+            style={audienceFilter === LEGACY_FILTER ? { background: "var(--bg-light)" } : undefined}
+            onClick={() => {
+              setAudienceFilter(LEGACY_FILTER);
+              setAudMenu(false);
+            }}
+          >
+            <span className="mi-icon">
+              <Icon name="history" size={18} />
+            </span>
+            Legacy templates
+          </button>
           <div className="menu-sep" />
           <div className="menu-label">Select audience</div>
           {audiences
@@ -222,10 +244,16 @@ export function ReportBuilderPage() {
             showAudience={audienceFilter !== ALL_AUDIENCES}
             audienceCount={audiencesFor(templates, t.name).length}
             onOpen={() =>
-              openReportEditor(t.id, { path: "none", askAudience: audienceFilter === ALL_AUDIENCES })
+              openReportEditor(t.id, {
+                path: "none",
+                askAudience: audienceFilter === ALL_AUDIENCES || Boolean(t.legacy),
+              })
             }
             onCreateReport={() =>
-              openReportEditor(t.id, { path: "none", askAudience: audienceFilter === ALL_AUDIENCES })
+              openReportEditor(t.id, {
+                path: "none",
+                askAudience: audienceFilter === ALL_AUDIENCES || Boolean(t.legacy),
+              })
             }
             onEdit={() => openTemplateEditor(t.id)}
             onDuplicate={() => {

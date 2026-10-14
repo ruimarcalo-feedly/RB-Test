@@ -4378,3 +4378,46 @@ select {
 .rtable tr.picked td {
   background: var(--param-bg);
 }
+
+/* Field validation (legacy template upgrade). */
+.field.has-error .textarea,
+.field.has-error .input,
+.field.has-error .select {
+  border-color: var(--danger);
+}
+.field-error {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--danger);
+}
+/* Figma "Updating 2": the legacy banner across the top of the editor body. */
+.legacy-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #fff5e5;
+  border-bottom: 1px solid var(--border-lightest);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--content-bold);
+}
+.legacy-banner svg {
+  flex: 0 0 auto;
+  color: #c98a00;
+}
+
+.legacy-count {
+  margin-left: auto;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: #ffefb6;
+  color: var(--content-bold);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+.library-warn {
+  margin: 0 24px 12px;
+}

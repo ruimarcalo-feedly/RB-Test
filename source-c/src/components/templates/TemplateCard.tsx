@@ -56,17 +56,25 @@ export function TemplateCard({
         {template.name}
       </div>
       <div className="tcard-desc">{template.description}</div>
+      {template.legacy ? (
+        /* A legacy template has no audience yet, only its origin to show. */
+        <div className="tcard-foot">
+          <span />
+          <span className="light t-body3">Legacy</span>
+        </div>
+      ) : (
       <div className="tcard-foot">
-        {/* Figma "Elicitation 4": under All Audiences a Feedly template's badge
-            counts the audiences it serves; a custom one still names its own. */}
-        <span className="badge">
-          <Icon name="audience" size={16} />
-          {showAudience || isCustom || audienceCount === undefined
-            ? template.audience || "No audience"
-            : `${audienceCount} ${audienceCount === 1 ? "audience" : "audiences"}`}
-        </span>
-        {isCustom && <span className="light t-body3">Custom</span>}
-      </div>
+          {/* Figma "Elicitation 4": under All Audiences a Feedly template's badge
+              counts the audiences it serves; a custom one still names its own. */}
+          <span className="badge">
+            <Icon name="audience" size={16} />
+            {showAudience || isCustom || audienceCount === undefined
+              ? template.audience || "No audience"
+              : `${audienceCount} ${audienceCount === 1 ? "audience" : "audiences"}`}
+          </span>
+          {isCustom && <span className="light t-body3">Custom</span>}
+        </div>
+      )}
 
       {menu && (
         <Popover

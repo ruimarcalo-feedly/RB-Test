@@ -88,8 +88,18 @@ interface Question {
 }
 
 export function ReportEditor({ context, templateId }: { context: CreateContext; templateId: string }) {
-  const { templates, reports, closeOverlay, addReport, toast, settings, openTemplateEditor, brands } =
-    useStore();
+  const {
+    templates,
+    reports,
+    closeOverlay,
+    addReport,
+    toast,
+    settings,
+    openTemplateEditor,
+    brands,
+    audiences,
+    updateTemplate,
+  } = useStore();
 
   /**
    * Set when the editor was opened from the "View previous reports" table.
@@ -106,14 +116,22 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
   const [activeId, setActiveId] = useState(templateId);
   const template =
     templates.find((t) => t.id === activeId) ?? templates.find((t) => t.id === templateId)!;
+  /* Figma "Promoting legacy compatibility": a legacy template has no audience
+     of its own, so the flow asks for one from every audience in the Org
+     Profile, and the answer can be kept on the template. */
+  const legacyAudience = !saved && Boolean(template.legacy) && !template.audience;
   const audienceOptions = useMemo(
-    () => audiencesFor(templates, template.name),
-    [templates, template.name]
+    () =>
+      legacyAudience
+        ? audiences.filter((a) => a !== "Custom audience")
+        : audiencesFor(templates, template.name),
+    [templates, template.name, legacyAudience, audiences]
   );
   /* Figma STEP 1, "Gather audience (which will select the correct template)".
      Skipped when the entry point already carried an audience (a Report Builder
      card under an audience filter) or the template only serves one. */
-  const askAudience = !saved && Boolean(context.askAudience) && audienceOptions.length > 1;
+  const askAudience =
+    legacyAudience || (!saved && Boolean(context.askAudience) && audienceOptions.length > 1);
   const [audience, setAudience] = useState<string | null>(askAudience ? null : template.audience);
   const audienceKnown = audience !== null;
 
@@ -265,7 +283,9 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
         title:
           p.name === "Tech stack"
             ? "What’s in your tech stack?"
-            : `What should we use for ${p.name}?`,
+            : p.name === "Topic"
+              ? "What should this report focus on?"
+              : `What should we use for ${p.name}?`,
         help: options ? "Suggestions are taken from the Org Profile" : undefined,
         type: p.type === "Org Profile" ? ("options" as const) : ("text" as const),
         options,
@@ -470,6 +490,14 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
     );
   };
 
+  /** "Save to template": the answer is kept on the legacy template for next time. */
+  const saveAudienceToTemplate = (label: string) => {
+    const picked = audienceOptions.find((a) => (AUDIENCE_MENU_LABEL[a] ?? a) === label) ?? label;
+    updateTemplate(template.id, { audience: picked });
+    toast(`${picked} saved as the audience of ${template.name}`);
+    answerAudience(label);
+  };
+
   const current = questions[qIndex];
   const showAudience = awaitingAudience && phase === "questions";
   const showQuestion = !awaitingAudience && phase === "questions" && Boolean(current);
@@ -500,16 +528,17 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
       const picked = brands.find((b) => b.name === value);
       if (picked) setBrandId(picked.id);
     }
+    /* Between questions the card stays where it is and simply moves on to the
+       next one; only the last answer hands back to the conversation. */
+    if (qIndex + 1 < questions.length) {
+      setQIndex((i) => i + 1);
+      return;
+    }
     setPhase("script");
     timers.current.push(
       window.setTimeout(() => {
-        if (qIndex + 1 < questions.length) {
-          setQIndex((i) => i + 1);
-          setPhase("questions");
-        } else {
-          setQIndex(questions.length);
-          after(BEAT);
-        }
+        setQIndex(questions.length);
+        after(BEAT);
       }, BEAT * 0.7)
     );
   };
@@ -751,6 +780,7 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
                       pager={false}
                       onBack={() => {}}
                       onNext={answerAudience}
+                      onSaveToTemplate={legacyAudience ? saveAudienceToTemplate : undefined}
                     />
                   ) : showQuestion ? (
                     <ElicitationCard
@@ -758,6 +788,9 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
                       q={current}
                       index={qIndex}
                       total={questions.length}
+                      /* Only the first question draws in; the ones after it
+                         swap in place. */
+                      still={qIndex > 0 || questions[0]?.id in answers}
                       onBack={() => setQIndex((i) => Math.max(0, i - 1))}
                       onNext={answerCurrent}
                     />
@@ -765,9 +798,9 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
                 </div>
               </div>
 
-              {/* The message box is always here, but it only takes a message once
-                  the report is written: until then the conversation is driven
-                  by the questions above it. */}
+              {/* The message box only appears once the report is written: until
+                  then the conversation is driven by the questions in it. */}
+              {generated && (
               <div className="composer-slot">
                   <div className={`composer ${generated ? "" : "busy"}`}>
                     <textarea
@@ -804,6 +837,7 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
                     </div>
                   </div>
               </div>
+              )}
             </>
           )}
 
@@ -1009,8 +1043,17 @@ function ElicitationCard({
   onBack,
   onNext,
   pager = true,
+  still = false,
+  onSaveToTemplate,
 }: {
   q: Question;
+  /**
+   * Legacy templates (Figma "Compatibility 2"): the answer can be used for this
+   * report only, or saved to the template as well.
+   */
+  onSaveToTemplate?: (v: string) => void;
+  /** Appear without the draw-in, when it follows another question. */
+  still?: boolean;
   index: number;
   /** How many questions the pager counts, for "1 of 3 questions". */
   total: number;
@@ -1052,7 +1095,7 @@ function ElicitationCard({
   };
 
   return (
-    <div className="elicit in-chat">
+    <div className={`elicit in-chat ${still ? "still" : ""}`}>
       <div className="elicit-head">
         <div className="elicit-top">
           <span
@@ -1158,9 +1201,24 @@ function ElicitationCard({
         )}
         <div className="elicit-nav">
           {pager && index > 0 && <Button onClick={onBack}>Back</Button>}
-          <Button variant="primary" disabled={!canContinue} onClick={() => onNext(value)}>
-            Continue
-          </Button>
+          {onSaveToTemplate ? (
+            <>
+              <Button disabled={!canContinue} onClick={() => onNext(value)}>
+                Use for report
+              </Button>
+              <Button
+                variant="primary"
+                disabled={!canContinue}
+                onClick={() => onSaveToTemplate(value)}
+              >
+                Save to template
+              </Button>
+            </>
+          ) : (
+            <Button variant="primary" disabled={!canContinue} onClick={() => onNext(value)}>
+              Continue
+            </Button>
+          )}
         </div>
       </div>
     </div>

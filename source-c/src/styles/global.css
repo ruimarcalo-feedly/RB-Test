@@ -4388,10 +4388,76 @@ select {
 .composer.busy {
   border-color: var(--border-medium);
 }
-/* In the conversation the panel scrolls, so the Org Profile preview drops
-   under its row rather than hanging off the panel's edge. */
+/* In the conversation the panel scrolls, so the Org Profile preview sits
+   above its row rather than hanging off the panel's edge, and never over
+   the card's Continue button. */
 .elicit.in-chat .opt-card {
   left: auto;
   right: 8px;
-  top: calc(100% - 4px);
+  top: auto;
+  bottom: calc(100% - 4px);
+}
+/* The message box arrives once the report is written, drawing up into place
+   the same way the question cards do. */
+.composer-slot .composer {
+  transform-origin: bottom center;
+  animation: elicit-in 460ms cubic-bezier(0.16, 0.84, 0.24, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .composer-slot .composer {
+    animation: none;
+  }
+}
+/* Follow-on questions swap in place rather than drawing in again. */
+.elicit.in-chat.still {
+  animation: none;
+}
+
+/* Field validation (legacy template upgrade). */
+.field.has-error .textarea,
+.field.has-error .input,
+.field.has-error .select {
+  border-color: var(--danger);
+}
+.field-error {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--danger);
+}
+/* Figma "Updating 2": the legacy banner across the top of the editor body. */
+.legacy-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #fff5e5;
+  border-bottom: 1px solid var(--border-lightest);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--content-bold);
+}
+.legacy-banner svg {
+  flex: 0 0 auto;
+  color: #c98a00;
+}
+
+.legacy-count {
+  margin-left: auto;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: #ffefb6;
+  color: var(--content-bold);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+.library-warn {
+  margin: 0 24px 12px;
+}
+/* With the legacy templates listed too, the Select Template menu can outgrow
+   the window, so it scrolls. */
+.crm {
+  max-height: calc(100vh - 140px);
+  overflow-y: auto;
 }

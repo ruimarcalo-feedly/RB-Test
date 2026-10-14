@@ -50,13 +50,21 @@ export function TemplateCard({
         {template.name}
       </div>
       <div className="tcard-desc">{template.description}</div>
+      {template.legacy ? (
+        /* A legacy template has no audience yet, only its origin to show. */
+        <div className="tcard-foot">
+          <span />
+          <span className="light t-body3">Legacy</span>
+        </div>
+      ) : (
       <div className="tcard-foot">
-        <span className="badge">
-          <Icon name="audience" size={16} />
-          {template.audience || "No audience"}
-        </span>
-        {isCustom && <span className="light t-body3">Custom</span>}
-      </div>
+          <span className="badge">
+            <Icon name="audience" size={16} />
+            {template.audience || "No audience"}
+          </span>
+          {isCustom && <span className="light t-body3">Custom</span>}
+        </div>
+      )}
 
       {menu && (
         <Popover

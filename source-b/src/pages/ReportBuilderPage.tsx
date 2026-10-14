@@ -44,7 +44,9 @@ export function ReportBuilderPage() {
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   const visibleTemplates = useMemo(() => {
-    let list = [...templates];
+    /* Legacy templates have to be upgraded before they can be used (version B),
+       so they only live in the Template Library until then. */
+    let list = templates.filter((t) => !t.legacy);
     if (audienceFilter !== "Last used") {
       list = list.filter((t) => t.audience === audienceFilter);
     } else {

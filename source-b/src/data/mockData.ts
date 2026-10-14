@@ -1,3 +1,4 @@
+import { VARIANT } from "../variant";
 import type { IconName } from "../components/ui/Icon";
 import { BRANDED_FOOTER, BRANDED_HEADER, FEEDLY_BRAND, type PageBand } from "./brand";
 
@@ -39,6 +40,12 @@ export interface Template {
   brandId?: string;
   header?: PageBand;
   footer?: PageBand;
+  /**
+   * Built on the previous templating system: no audience, no description, no
+   * parameters of its own. Version B gates these behind an upgrade; version C
+   * lets them be used as they are.
+   */
+  legacy?: boolean;
 }
 
 export interface Parameter {
@@ -521,11 +528,85 @@ const CUSTOM_TEMPLATES: Template[] = [
  * assets rather than copies of them, so swapping a template's brand swaps its
  * cover and logo too.
  */
+/* ------------------------------------------------------------------ *
+ * Legacy templates — Figma "Topic 3 - Handling legacy templates".
+ *
+ * Made on the old templating system, so they carry no audience, description
+ * or parameters. How they are treated is the difference between the two
+ * versions: B ("Promoting template updating") asks for them to be upgraded
+ * before they can be used; C ("Promoting legacy compatibility") makes them
+ * work as they are, with a Topic parameter added automatically.
+ * ------------------------------------------------------------------ */
+
+export const LEGACY_NOTE = "This is a template from an older version, please edit template to upgrade.";
+
+const LEGACY_NAMES = [
+  "Sector Threat Landscape",
+  "Peer Incident Roundup",
+  "Exploited in the Wild",
+  "Ransomware Watch",
+  "Supply Chain Exposure Brief",
+  "Campaign Tracker Update",
+  "Detection Handoff",
+  "Threat Hunt Package",
+];
+
+const LEGACY_TEMPLATES: Template[] = LEGACY_NAMES.map((name, i) => ({
+  id: `t-legacy-${slug(name)}`,
+  name,
+  description: LEGACY_NOTE,
+  icon: "history",
+  kind: "custom",
+  legacy: true,
+  audience: "",
+  lastUsed: 100 + i,
+  tradecrafts: [],
+  contextDescription: "",
+  /* Version C adds the Topic parameter automatically, so the template works
+     in the new flow without anyone touching it. */
+  parameters:
+    VARIANT === "C"
+      ? [
+          {
+            id: `p-topic-legacy-${i}`,
+            name: "Topic",
+            description: "What this report will focus on, e.g. CVE IDs, cyberattacks, TTPs.",
+            type: "Free text" as const,
+            optional: false,
+            topic: true,
+          },
+        ]
+      : [],
+  blocks: [
+    {
+      id: "lg1",
+      heading: "Executive Summary",
+      prompts: [
+        ...(VARIANT === "C" ? ["This report should focus on {{Topic}}."] : []),
+        "Summarize the most important developments in two or three sentences, and say what the reader should do about them.",
+      ],
+    },
+    {
+      id: "lg2",
+      heading: "Key Findings",
+      prompts: [
+        "List the findings that matter most, each with its evidence and the sources it comes from.",
+      ],
+    },
+    {
+      id: "lg3",
+      heading: "Recommendations",
+      prompts: ["Give the recommended actions, each with an owner and a timeframe."],
+    },
+  ],
+}));
+
 export const TEMPLATES: Template[] = [
   BUILT_IN_TEMPLATES[0],
   CUSTOM_TEMPLATES[0],
   ...BUILT_IN_TEMPLATES.slice(1),
   CUSTOM_TEMPLATES[1],
+  ...LEGACY_TEMPLATES,
 ].map((t) => ({
   ...t,
   brandId: FEEDLY_BRAND.id,

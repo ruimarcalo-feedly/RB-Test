@@ -10,7 +10,10 @@ import { AUDIENCE_MENU_ORDER, type Template } from "./mockData";
 /** One entry per template name, in alphabetical order, customs beside their base. */
 export function templateFamilies(templates: Template[]): Template[] {
   const seen = new Set<string>();
-  const firsts = templates.filter((t) => !seen.has(t.name) && (seen.add(t.name), true));
+  /* Legacy templates are listed apart from the rest, where they are listed at all. */
+  const firsts = templates.filter(
+    (t) => !t.legacy && !seen.has(t.name) && (seen.add(t.name), true)
+  );
   const base = (t: Template) => t.name.replace(/\s*\([^)]*\)\s*$/, "");
   return [...firsts].sort((a, b) => {
     const byBase = base(a).localeCompare(base(b));

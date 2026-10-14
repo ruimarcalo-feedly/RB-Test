@@ -340,9 +340,12 @@ export function Field({
   children,
   footNote,
   footNoteSize,
+  error,
 }: {
   label: string;
   required?: boolean;
+  /** A validation message under the field, which also turns its input red. */
+  error?: string;
   help?: string;
   /** Puts the design's info glyph beside the label, carrying this as its tip. */
   info?: string;
@@ -352,7 +355,7 @@ export function Field({
   footNoteSize?: "sm" | "md";
 }) {
   return (
-    <div className="field">
+    <div className={`field ${error ? "has-error" : ""}`}>
       <div className="field-label">
         {label}
         {info && (
@@ -367,6 +370,7 @@ export function Field({
       {footNote && (
         <div className={`field-help ${footNoteSize === "md" ? "md" : ""}`}>{footNote}</div>
       )}
+      {error && <div className="field-error">{error}</div>}
     </div>
   );
 }

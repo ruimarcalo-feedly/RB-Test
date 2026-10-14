@@ -72,6 +72,8 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
     setTab("design");
   };
   const [dirty, setDirty] = useState(false);
+  /* Validation messages only show once an upgrade has been attempted. */
+  const [showErrors, setShowErrors] = useState(false);
   const [savedOnce, setSavedOnce] = useState(false);
   const [genOpen, setGenOpen] = useState(isNew);
   const [generating, setGenerating] = useState(false);
@@ -142,6 +144,16 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
     if (!readOnly) setDirty(true);
   };
 
+  /* Version B — Figma "Promoting template updating": a legacy template has to
+     be upgraded before it can be used. Saving it is the upgrade, and it only
+     goes through once the description, audience and a parameter are in. */
+  const upgrading = VARIANT === "B" && Boolean(template.legacy);
+  /* Version C — "Promoting legacy compatibility": nothing is required of a
+     legacy template, so it can be used as it is. */
+  const relaxed = VARIANT === "C" && Boolean(template.legacy);
+  const missingDescription = !template.contextDescription.trim();
+  const missingAudience = !template.audience;
+
   /* The parameter rule for this version, shown in the Parameters tab and
      holding Save back until it is met. */
   const paramsMissing =
@@ -149,6 +161,24 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
     (GROUPED_PARAMS
       ? !template.parameters.some((p) => p.topic)
       : template.parameters.length === 0);
+
+  const upgrade = () => {
+    if (missingDescription || missingAudience || paramsMissing) {
+      setShowErrors(true);
+      if (!missingDescription && !missingAudience && paramsMissing) setTab("parameters");
+      else setTab("context");
+      toast("Fill in the required fields to upgrade this template");
+      return;
+    }
+    updateTemplate(template.id, {
+      legacy: false,
+      description: template.contextDescription,
+    });
+    setShowErrors(false);
+    setDirty(false);
+    setSavedOnce(true);
+    toast("Template upgraded to the new template structure");
+  };
 
   const save = () => {
     setDirty(false);
@@ -173,7 +203,9 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
         <Button onClick={closeOverlay}>Close</Button>
         <div className="editor-title">
           <span className="truncate">{template.name}</span>
-          <span className="kind">{readOnly ? "Feedly Template" : "Custom Template"}</span>
+          <span className="kind">
+            {readOnly ? "Feedly Template" : upgrading ? "Legacy Template" : "Custom Template"}
+          </span>
         </div>
         <span className="spacer" />
         {readOnly ? (
@@ -209,6 +241,13 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
             >
               <Icon name="ellipsis" size={16} />
             </button>
+            {upgrading ? (
+              /* Saving a legacy template is the upgrade, so Save is always
+                 there to press; what is still missing shows when it is. */
+              <Button variant="primary" onClick={upgrade}>
+                Save
+              </Button>
+            ) : (
             <Button
               variant={dirty && !paramsMissing ? "primary" : "default"}
               disabled={!dirty || paramsMissing}
@@ -217,9 +256,21 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
             >
               Save
             </Button>
+            )}
           </>
         )}
       </div>
+
+      {upgrading && (
+        <div className="legacy-banner">
+          <Icon name="info" size={18} />
+          <span>
+            <b>This is a legacy template. </b>
+            Please fill in required fields and save the template to upgrade it to our new
+            template structure.
+          </span>
+        </div>
+      )}
 
       {moreOpen && (
         <Popover anchorRef={moreRef} onClose={() => setMoreOpen(false)} align="end" width={210}>
@@ -292,8 +343,13 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
               <>
                 <Field
                   label="Description"
-                  required
+                  required={!relaxed}
                   help="What this template is about, what are the types of things the report should be focusing on."
+                  error={
+                    upgrading && showErrors && missingDescription
+                      ? "Please enter a description"
+                      : undefined
+                  }
                 >
                   <textarea
                     className="textarea"
@@ -307,8 +363,11 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
 
                 <Field
                   label="Audience"
-                  required
+                  required={!relaxed}
                   help="Who the report is for (CISO, SOC/IR, Board…). Sets the depth, tone, and sections."
+                  error={
+                    upgrading && showErrors && missingAudience ? "Please enter an Audience" : undefined
+                  }
                 >
                   <button
                     ref={audAnchor}
@@ -330,7 +389,7 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
 
                 <Field
                   label="Tradecrafts"
-                  required
+                  required={!relaxed}
                   help="The standards it's written to: ICD 203, Chicago style, and your writing rules."
                 >
                   <TagInput

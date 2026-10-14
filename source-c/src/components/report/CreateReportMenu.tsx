@@ -26,6 +26,7 @@ export function CreateReportMenu({
 }) {
   const { templates } = useStore();
   const families = useMemo(() => templateFamilies(templates), [templates]);
+  const legacy = useMemo(() => templates.filter((t) => t.legacy), [templates]);
 
   return (
     <Popover anchorRef={anchorRef} onClose={onClose} align="end" width={280} className="crm">
@@ -48,6 +49,29 @@ export function CreateReportMenu({
           </button>
         ))}
       </div>
+      {/* Version C, "Promoting legacy compatibility": legacy templates can be
+          used as they are, so they are listed too, apart from the rest. */}
+      {legacy.length > 0 && (
+        <div className="crm-list" style={{ borderTop: "1px solid var(--border-lightest)" }}>
+          <div className="crm-title">Legacy templates</div>
+          {legacy.map((t) => (
+            <button
+              key={t.id}
+              className="crm-item"
+              onClick={() => {
+                onClose();
+                onPick(t.id);
+              }}
+            >
+              <span className="crm-left">
+                <Icon name={t.icon} size={20} />
+              </span>
+              <span className="crm-mid">{t.name}</span>
+              <span className="crm-note">Legacy</span>
+            </button>
+          ))}
+        </div>
+      )}
     </Popover>
   );
 }

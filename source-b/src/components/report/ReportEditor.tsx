@@ -265,7 +265,9 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
         title:
           p.name === "Tech stack"
             ? "What’s in your tech stack?"
-            : `What should we use for ${p.name}?`,
+            : p.name === "Topic"
+              ? "What should this report focus on?"
+              : `What should we use for ${p.name}?`,
         help: options ? "Suggestions are taken from the Org Profile" : undefined,
         type: p.type === "Org Profile" ? ("options" as const) : ("text" as const),
         options,
