@@ -7,8 +7,9 @@ import { AGENT, INSIGHT_CARDS, type InsightCard } from "../data/mockData";
 
 /**
  * Intel Agent view — the entry point for the broad-context path (the
- * "Create Report" button in the header) and, by opening a row, for the
- * insight-card path.
+ * "Create Report" button in the header), the selection path (rows ticked in
+ * the table, then "Create report" on the selection bar) and, by opening a
+ * row, the insight-card path.
  * Figma: "3 - Broad context path" → Entry - Outside Report Builder,
  * and "4 - Insight Card path" → Insight 1.
  */
@@ -17,6 +18,15 @@ export function AgentPage() {
   const btnRef = useRef<HTMLButtonElement>(null);
   const [menu, setMenu] = useState(false);
   const [open, setOpen] = useState<InsightCard | null>(null);
+  /* Figma "2 - Intel Agent selection path": ticking rows swaps the table's
+     header for a selection bar, and creating a report from it carries the
+     ticked CVEs. */
+  const [picked, setPicked] = useState<string[]>([]);
+  const selRef = useRef<HTMLButtonElement>(null);
+  const [selMenu, setSelMenu] = useState(false);
+  const total = INSIGHT_CARDS.length * 46;
+  const togglePick = (cve: string) =>
+    setPicked((p) => (p.includes(cve) ? p.filter((x) => x !== cve) : [...p, cve]));
 
   return (
     <>
@@ -46,19 +56,29 @@ export function AgentPage() {
         </div>
       </div>
 
-      {/* Audience first, then that audience's templates — the same two-step
-          menu the Report Builder uses, without its recents shortcut. */}
+      {/* Audience first, then that audience's templates. */}
       {menu && (
         <CreateReportMenu
           anchorRef={btnRef}
-          showRecent={false}
           onClose={() => setMenu(false)}
           onPick={(id) =>
-            openReportEditor(id, {
-              path: "broad",
-              contextKind: "agent",
-              contextLabel: AGENT.view,
-            })
+            /* With rows ticked, the header button carries them too, the same
+               as the selection bar's "Create report". */
+            openReportEditor(
+              id,
+              picked.length
+                ? { path: "selection", cveIds: picked }
+                : { path: "broad", contextKind: "agent", contextLabel: AGENT.view }
+            )
+          }
+        />
+      )}
+      {selMenu && (
+        <CreateReportMenu
+          anchorRef={selRef}
+          onClose={() => setSelMenu(false)}
+          onPick={(id) =>
+            openReportEditor(id, { path: "selection", cveIds: picked })
           }
         />
       )}
@@ -85,13 +105,46 @@ export function AgentPage() {
         </div>
 
         <div className="section-head" style={{ marginTop: 26 }}>
-          <span className="section-title">Vulnerabilities ({INSIGHT_CARDS.length * 46})</span>
+          <span className="section-title">Vulnerabilities ({total})</span>
           <Button size="sm">Edit Columns</Button>
         </div>
+
+        {picked.length > 0 && (
+          <div className="sel-bar">
+            <span className="sel-count">
+              Selected {picked.length} of {total}
+            </span>
+            <Button size="sm" icon="export">
+              Export
+            </Button>
+            <button ref={selRef} className="btn sm" onClick={() => setSelMenu((m) => !m)}>
+              <Icon name="wand" size={14} />
+              Create report
+            </button>
+            <Button size="sm" icon="sparkle">
+              Analyse
+            </Button>
+            <span className="spacer" />
+            <button className="btn ghost sm" onClick={() => setPicked([])}>
+              Clear selection
+            </button>
+          </div>
+        )}
 
         <table className="rtable">
           <thead>
             <tr>
+              <th style={{ width: 36 }}>
+                <input
+                  type="checkbox"
+                  className="src-check"
+                  aria-label="Select all"
+                  checked={picked.length === INSIGHT_CARDS.length}
+                  onChange={(e) =>
+                    setPicked(e.target.checked ? INSIGHT_CARDS.map((c) => c.cve) : [])
+                  }
+                />
+              </th>
               <th style={{ width: 90 }}>Status</th>
               <th style={{ width: 120 }}>Date Published</th>
               <th style={{ width: "24%" }}>CVE ID</th>
@@ -101,7 +154,16 @@ export function AgentPage() {
           </thead>
           <tbody>
             {INSIGHT_CARDS.map((c) => (
-              <tr key={c.id}>
+              <tr key={c.id} className={picked.includes(c.cve) ? "picked" : undefined}>
+                <td>
+                  <input
+                    type="checkbox"
+                    className="src-check"
+                    aria-label={`Select ${c.cve}`}
+                    checked={picked.includes(c.cve)}
+                    onChange={() => togglePick(c.cve)}
+                  />
+                </td>
                 <td>
                   <span className={`status-pill ${c.status === "New" ? "new" : "updated"}`}>
                     {c.status}
@@ -179,7 +241,6 @@ function InsightPanel({ card, onClose }: { card: InsightCard; onClose: () => voi
         {menu && (
           <CreateReportMenu
             anchorRef={btnRef}
-            showRecent={false}
             onClose={() => setMenu(false)}
             onPick={(id) => {
               onClose();

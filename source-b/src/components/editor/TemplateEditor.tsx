@@ -8,7 +8,21 @@ import { BlockNoteCanvas, type DocInsert } from "./BlockNoteCanvas";
 import { DesignPanel } from "./DesignPanel";
 import { PageBandEditor } from "./PageBandEditor";
 import { useStore } from "../../state/store";
-import { AUDIENCE_CONTENT, type Parameter } from "../../data/mockData";
+import { AUDIENCE_CONTENT, type Block, type Parameter } from "../../data/mockData";
+import { VARIANT } from "../../variant";
+
+/**
+ * How parameters are organised, by prototype version (Figma "Topic 2 -
+ * Parameter editing"):
+ *   B — Option A: one flat list, and a template needs at least one parameter.
+ *   C — Option B: topic parameters apart from general ones, and a template
+ *       needs at least one topic parameter.
+ */
+const GROUPED_PARAMS = VARIANT === "C";
+
+/** Whether a parameter's chip appears anywhere in the template. */
+const usesParam = (blocks: Block[], name: string) =>
+  blocks.some((b) => b.prompts.some((p) => p.includes(`{{${name}}}`)));
 import { EMPTY_BAND, bandVars, brandVars, type PageBand } from "../../data/brand";
 import {
   BUILDING_BLOCKS,
@@ -63,7 +77,7 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
   const [generating, setGenerating] = useState(false);
   const [paramDialog, setParamDialog] = useState<
     | null
-    | { mode: "add"; seedName?: string; insert?: (name: string) => void }
+    | { mode: "add"; seedName?: string; topic?: boolean; insert?: (name: string) => void }
     | { mode: "edit"; param: Parameter }
   >(null);
   const [audienceDialog, setAudienceDialog] = useState<null | {
@@ -128,6 +142,14 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
     if (!readOnly) setDirty(true);
   };
 
+  /* The parameter rule for this version, shown in the Parameters tab and
+     holding Save back until it is met. */
+  const paramsMissing =
+    !readOnly &&
+    (GROUPED_PARAMS
+      ? !template.parameters.some((p) => p.topic)
+      : template.parameters.length === 0);
+
   const save = () => {
     setDirty(false);
     setSavedOnce(true);
@@ -187,7 +209,12 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
             >
               <Icon name="ellipsis" size={16} />
             </button>
-            <Button variant={dirty ? "primary" : "default"} disabled={!dirty} onClick={save}>
+            <Button
+              variant={dirty && !paramsMissing ? "primary" : "default"}
+              disabled={!dirty || paramsMissing}
+              title={paramsMissing ? "Add a parameter before saving" : undefined}
+              onClick={save}
+            >
               Save
             </Button>
           </>
@@ -322,8 +349,9 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
             ) : tab === "parameters" ? (
               <ParametersPanel
                 parameters={template.parameters}
+                readOnly={readOnly}
                 onEdit={(p) => setParamDialog({ mode: "edit", param: p })}
-                onAdd={() => setParamDialog({ mode: "add" })}
+                onAdd={(topic) => setParamDialog({ mode: "add", topic })}
               />
             ) : (
               <DesignPanel
@@ -416,7 +444,18 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
                   blocks={template.blocks}
                   readOnly={readOnly}
                   parameters={template.parameters}
-                  onChange={({ title, blocks }) => patch({ reportTitle: title, blocks })}
+                  onChange={({ title, blocks }) => {
+                    /* Taking a parameter's chip out of the template takes the
+                       parameter with it, which is how the last one can go. */
+                    const kept = template.parameters.filter(
+                      (p) => !(usesParam(template.blocks, p.name) && !usesParam(blocks, p.name))
+                    );
+                    patch({
+                      reportTitle: title,
+                      blocks,
+                      ...(kept.length !== template.parameters.length ? { parameters: kept } : {}),
+                    });
+                  }}
                 />
               )}
             </div>
@@ -490,7 +529,7 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
       {paramDialog?.mode === "add" && (
         <ParameterDialog
           mode="add"
-          initial={{ name: paramDialog.seedName }}
+          initial={{ name: paramDialog.seedName, topic: paramDialog.topic }}
           onClose={() => setParamDialog(null)}
           onSave={(p) => {
             patch({ parameters: [...template.parameters, p] });
@@ -623,35 +662,80 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
 
 function ParametersPanel({
   parameters,
+  readOnly,
   onEdit,
   onAdd,
 }: {
   parameters: Parameter[];
+  readOnly: boolean;
   onEdit: (p: Parameter) => void;
-  onAdd: () => void;
+  /** `topic` is set when adding from the Topic parameters group. */
+  onAdd: (topic?: boolean) => void;
 }) {
+  const row = (p: Parameter) => (
+    <button key={p.id} className="param-row" onClick={() => onEdit(p)}>
+      <span className="param-badge">
+        <Icon name="braces" size={16} />
+        {p.name}
+      </span>
+      <span className="popt">{p.optional ? "Optional" : "Required"}</span>
+      <span className="spacer" />
+      <Icon name="target" size={16} style={{ color: "var(--content-light)" }} />
+    </button>
+  );
+  const warn = (text: string) => (
+    <div className="param-warn">
+      <Icon name="info" size={18} />
+      {text}
+    </div>
+  );
+  const topics = parameters.filter((p) => p.topic);
+  const general = parameters.filter((p) => !p.topic);
+
   return (
     <div className="side-section">
       <p className="t-body2 muted" style={{ marginTop: 0 }}>
-        Parameters are what you fill in each time you generate a report, to make it more specific.
+        Some details change every time you create a report: which vendors, which time range.
+        Parameters are how you fill them in.
       </p>
-      <p className="t-body2 muted">
-        To add a parameter to your template use {"{brackets}"} to create or search for existing ones.
-      </p>
-      {parameters.map((p) => (
-        <button key={p.id} className="param-row" onClick={() => onEdit(p)}>
-          <Icon name="braces" size={16} style={{ color: "var(--content-medium)" }} />
-          <span style={{ flex: 1, minWidth: 0 }}>
-            <span className="pname">{p.name}</span>
-            <br />
-            <span className="popt">{p.optional ? "Optional" : "Required"}</span>
-          </span>
-          <Icon name="target" size={16} style={{ color: "var(--content-light)" }} />
-        </button>
-      ))}
-      <Button icon="plus" onClick={onAdd}>
-        Add parameter
-      </Button>
+      <p className="t-body2 muted">Type {"{brackets}"} in your template to add one.</p>
+
+      {GROUPED_PARAMS ? (
+        /* Option B: the topic sits in a group of its own, so it can't get lost
+           among the rest. */
+        <>
+          <div className="param-group-head">
+            <span>Topic parameters</span>
+            <Button size="sm" icon="plus" onClick={() => onAdd(true)}>
+              Add
+            </Button>
+          </div>
+          {topics.length
+            ? topics.map(row)
+            : !readOnly && warn("At least one topic parameter is required")}
+          <div className="param-group-rule" />
+          <div className="param-group-head">
+            <span>General parameters</span>
+            <Button size="sm" icon="plus" onClick={() => onAdd(false)}>
+              Add
+            </Button>
+          </div>
+          {general.length ? (
+            general.map(row)
+          ) : (
+            <div className="param-empty">This template has no general parameters yet</div>
+          )}
+        </>
+      ) : (
+        /* Option A: one list, all on the same level. */
+        <>
+          {parameters.map(row)}
+          {parameters.length === 0 && !readOnly && warn("Templates require at least one parameter")}
+          <Button icon="plus" onClick={() => onAdd()} style={{ marginTop: 8 }}>
+            Add parameter
+          </Button>
+        </>
+      )}
     </div>
   );
 }

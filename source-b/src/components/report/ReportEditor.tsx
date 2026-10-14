@@ -6,20 +6,23 @@ import { useStore, nextId } from "../../state/store";
 import { PromptText } from "../editor/PromptText";
 import {
   buildScript,
-  contextCards,
+  cveSuggestions,
+  furtherDetailsQuestion,
   subjectQuestion,
   type Act,
   type ContextCard,
   type CreateContext,
   type StatusStep,
 } from "./script";
-import { suggestOptions, suggestionSource, type Signals, type SuggestedOption } from "../../data/suggestions";
+import { suggestOptions, type Signals, type SuggestedOption } from "../../data/suggestions";
+import { audiencesFor, pairingFor } from "../../data/templateFamily";
 import { EMPTY_BAND, bandVars, brandVars, type Brand } from "../../data/brand";
 import { PageBandEditor } from "../editor/PageBandEditor";
 import { ReportDocument } from "./ReportDocument";
 import { VULN_ADVISORY_DOC, proseDoc, type DocNode } from "../../data/reportDoc";
 import {
   ARTICLES,
+  AUDIENCE_MENU_LABEL,
   COMPANIES,
   REPORT_META,
   FETCHED_SOURCES,
@@ -29,6 +32,7 @@ import {
   REPORT_BODIES,
   TECH_STACK_VALUES,
   THREAT_GRAPH_SOURCES,
+  TIME_INTERVAL,
   type SourceItem,
   type Template,
 } from "../../data/mockData";
@@ -52,6 +56,8 @@ interface ChatEntry {
   pairs?: { q: string; a: string }[];
   /** The run's own line is done while its later steps carry on. */
   headDone?: boolean;
+  /** What the entry point carried, attached under the opening message. */
+  cards?: ContextCard[];
 }
 
 interface Question {
@@ -68,13 +74,22 @@ interface Question {
   options?: SuggestedOption[];
   /** The "Other (use @ …)" row — the language step doesn't offer one. */
   allowOther?: boolean;
+  /** What the Other row says, where it isn't the Org Profile one. */
+  otherLabel?: string;
+  /** Options that arrive already ticked, because the entry point picked them. */
+  ticked?: string[];
+  /** The text box's placeholder, for a free-text question. */
+  placeholder?: string;
+  /** The green tag of the flow's own questions (the audience). */
+  green?: boolean;
+  /** No Required / Optional note beside the tag. */
+  noTag?: boolean;
   required?: boolean;
 }
 
 export function ReportEditor({ context, templateId }: { context: CreateContext; templateId: string }) {
   const { templates, reports, closeOverlay, addReport, toast, settings, openTemplateEditor, brands } =
     useStore();
-  const template = templates.find((t) => t.id === templateId)!;
 
   /**
    * Set when the editor was opened from the "View previous reports" table.
@@ -84,6 +99,23 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
   const saved = context.savedReportId
     ? reports.find((r) => r.id === context.savedReportId)
     : undefined;
+
+  /* A template picked without an audience lands on whichever of its pairings
+     serves the audience chosen in the conversation, so the template in hand
+     can change once, partway through. */
+  const [activeId, setActiveId] = useState(templateId);
+  const template =
+    templates.find((t) => t.id === activeId) ?? templates.find((t) => t.id === templateId)!;
+  const audienceOptions = useMemo(
+    () => audiencesFor(templates, template.name),
+    [templates, template.name]
+  );
+  /* Figma STEP 1, "Gather audience (which will select the correct template)".
+     Skipped when the entry point already carried an audience (a Report Builder
+     card under an audience filter) or the template only serves one. */
+  const askAudience = !saved && Boolean(context.askAudience) && audienceOptions.length > 1;
+  const [audience, setAudience] = useState<string | null>(askAudience ? null : template.audience);
+  const audienceKnown = audience !== null;
 
   const [tab, setTab] = useState<Tab>("ask");
   const [phase, setPhase] = useState<Phase>(saved ? "done" : "script");
@@ -132,6 +164,19 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
 
   /** Threat Graph list: the selected/fetched sources, then the graph's own hits. */
   const [sources, setSources] = useState<SourceItem[]>(() => {
+    const cveSource = (cve: string): SourceItem => {
+      const card = INSIGHT_CARDS.find((c) => c.cve === cve);
+      return {
+        id: `src-${cve}`,
+        title: cve,
+        kind: "cve",
+        tags: card ? [card.weakness] : [],
+        cvss: card ? `CVSS ${card.cvss}` : undefined,
+        cvssHigh: card ? card.cvss >= 8 : false,
+        exploit: card ? card.tags.includes("EXPLOIT") : false,
+        checked: true,
+      };
+    };
     const carried: SourceItem[] =
       context.path === "articles"
         ? attachedArticles.map((a) => ({
@@ -144,19 +189,10 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
             checked: true,
           }))
         : context.path === "insight" && insight
-          ? [
-              {
-                id: `src-${insight.id}`,
-                title: insight.cve,
-                kind: "cve",
-                tags: [insight.weakness],
-                cvss: `CVSS ${insight.cvss}`,
-                cvssHigh: insight.cvss >= 8,
-                exploit: insight.tags.includes("EXPLOIT"),
-                checked: true,
-              },
-            ]
-          : [];
+          ? [cveSource(insight.cve)]
+          : context.path === "selection"
+            ? (context.cveIds ?? []).map(cveSource)
+            : [];
     return [...carried, ...THREAT_GRAPH_SOURCES];
   });
 
@@ -175,11 +211,11 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
           ? attachedArticles.map((a) => a.title)
           : context.path === "insight" && insight
             ? [insight.cve]
-            : FETCHED_SOURCES.slice(0, 3).map((s) => s.title),
+            : context.path === "selection"
+              ? context.cveIds ?? []
+              : FETCHED_SOURCES.slice(0, 3).map((s) => s.title),
       templateName: template.name,
       templateDescription: template.description,
-      // The insight card's own summary rides along as the subject — it is what
-      // the internal "Create a report about {entity}" prompt carries.
       subject: subject || (insight ? `${insight.cve} — ${insight.summary}` : undefined),
       contextLabel: context.contextLabel,
     }),
@@ -187,31 +223,58 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
   );
 
   /**
-   * Step 2: one card per template parameter. The opening question is step 1 and
-   * is deliberately not part of this pager — the Figma frames show "1 of 2" for
-   * a template with one parameter on every path.
+   * Figma STEPS 2 and 3, one card each, counted "x of y questions": the
+   * template's parameters (for the Vulnerability Advisory its CVE ID, which
+   * says what the report is about), any of the extra steps the settings leave
+   * open, and the further-details question, which always comes last.
    */
   const questions = useMemo<Question[]>(() => {
-    const qs: Question[] = template.parameters.map((p) => {
+    const qs: Question[] = [];
+    /* Templates without a subject parameter of their own still need to be
+       told what the report is about. */
+    if (!template.parameters.some((p) => p.topic)) qs.push(subjectQuestion());
+    /* What the report is about comes first, then everything else. */
+    const ordered = [
+      ...template.parameters.filter((p) => p.topic),
+      ...template.parameters.filter((p) => !p.topic),
+    ];
+    for (const p of ordered) {
+      if (p.name === "CVE ID") {
+        const sug = cveSuggestions(context);
+        qs.push({
+          id: p.id,
+          label: "CVE ID",
+          tagHelp: p.description,
+          title: "What vulnerability/vulnerabilities should this report be about?",
+          /* Figma: "With no context, we can't offer suggestions to pick from." */
+          help: sug ? "Suggestions are based on your attached context" : undefined,
+          type: sug ? "options" : "text",
+          options: sug?.options.map((label) => ({ label, suggested: false })),
+          ticked: sug?.ticked,
+          otherLabel: "Other",
+          placeholder: "Type in a CVE-ID or vulnerability name",
+          required: !p.optional,
+        });
+        continue;
+      }
       const options = p.type === "Org Profile" ? suggestOptions(p.name, signals) : undefined;
-      return {
+      qs.push({
         id: p.id,
-        label: p.name === "Tech stack" ? "Tech stacks" : p.name,
+        label: p.name === "Tech stack" ? "Tech Stacks" : p.name,
         tagHelp: p.description,
         title:
           p.name === "Tech stack"
-            ? "What's in your tech stack?"
+            ? "What’s in your tech stack?"
             : `What should we use for ${p.name}?`,
-        help: options ? suggestionSource(signals, options) : undefined,
+        help: options ? "Suggestions are taken from the Org Profile" : undefined,
         type: p.type === "Org Profile" ? ("options" as const) : ("text" as const),
         options,
         required: !p.optional,
-      };
-    });
-    /* Figma "Create Report Flow - EXTRA steps" and "Report Builder settings":
-       each of the three settings says the same thing — "we will ask which to
-       use when generating a report" — so a step appears only when the setting
-       actually leaves a choice open. One value each, and the flow asks nothing. */
+      });
+    }
+    /* Figma "Create Report Flow - EXTRA steps": "If present, either of these
+       EXTRA steps will appear before the Final Step on any of the flows". Each
+       setting only becomes a question when it leaves a choice open. */
     if (settings.languages.length > 1) {
       qs.push({
         id: "q-language",
@@ -255,33 +318,50 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
         options: settings.brands.map((b) => ({ label: b, suggested: false })),
       });
     }
-
+    qs.push(furtherDetailsQuestion());
     return qs;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     template,
+    context,
     signals.articleTitles.join("|"),
-    subject,
     settings.languages,
     settings.companies,
     settings.brands,
   ]);
 
+  /** The audience question, with only the audiences this template serves. */
+  const audienceQ: Question = useMemo(
+    () => ({
+      id: "q-audience",
+      label: "Audience",
+      icon: "audience",
+      green: true,
+      noTag: true,
+      title: "Who are you writing this report for?",
+      help: "Audiences are stored in the Org Profile",
+      type: "radio",
+      allowOther: false,
+      required: true,
+      options: audienceOptions.map((a) => ({ label: AUDIENCE_MENU_LABEL[a] ?? a, suggested: false })),
+    }),
+    [audienceOptions]
+  );
+
   /* ---------------- the script runner ---------------- */
 
-  const script = useMemo(() => buildScript(context, template), [context, template]);
-  /* Whatever the entry point carried, shown along the top of the first question
-     rather than as a bubble of its own. */
-  const cards = useMemo(() => contextCards(context), [context]);
-  const subjectQ = useMemo(() => subjectQuestion(cards.length > 0), [cards.length]);
+  /* Built once, from the template as it was picked: the audience answer
+     changes which pairing is in hand, not what was said at the start. */
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const script = useMemo(() => buildScript(context, template, askAudience), []);
   const cursor = useRef(0);
-  const [awaitingSubject, setAwaitingSubject] = useState(false);
+  const [awaitingAudience, setAwaitingAudience] = useState(false);
 
   const push = (e: Omit<ChatEntry, "id">) => setChat((c) => [...c, { id: nextId("c"), ...e }]);
 
   const patchLastStatus = (fn: (e: ChatEntry) => ChatEntry) =>
     setChat((c) => {
-      const i = [...c].reverse().findIndex((e) => e.kind === "status" && e.state === "running");
+      const i = [...c].reverse().findIndex((e) => e.kind === "status");
       if (i < 0) return c;
       const idx = c.length - 1 - i;
       return c.map((e, j) => (j === idx ? fn(e) : e));
@@ -294,137 +374,64 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
     timers.current.push(window.setTimeout(run, ms));
   };
 
+  /* Everything in the conversation lands one thing at a time — including the
+     elicitation card, which only opens once the message before it has arrived. */
   const run = () => {
-    while (cursor.current < script.length) {
-      const act: Act = script[cursor.current];
-      cursor.current += 1;
-      /* Everything in the conversation lands one thing at a time — including
-         the elicitation card, which only opens once the message before it has
-         arrived. A script step that already carries its own wait keeps it. */
-      const pace = () => {
-        if (script[cursor.current]?.t !== "wait") {
-          after(BEAT);
-          return true;
-        }
-        return false;
-      };
-      switch (act.t) {
-        case "ai":
-          push({ kind: "ai", text: act.text });
-          if (pace()) return;
-          break;
-        case "user":
-          push({ kind: "user", text: act.text });
-          if (pace()) return;
-          break;
-        case "status":
-          push({ kind: "status", text: act.text, state: "running", steps: act.steps ?? [], expanded: true });
-          if (pace()) return;
-          break;
-        case "step":
-          patchLastStatus((e) => ({ ...e, steps: [...(e.steps ?? []), act.step] }));
-          break;
-        case "stepRunning":
-          patchLastStatus((e) => ({
-            ...e,
-            steps: [...(e.steps ?? []), { ...act.step, running: true }],
-          }));
-          if (pace()) return;
-          break;
-        case "tickHead":
-          patchLastStatus((e) => ({ ...e, headDone: true }));
-          break;
-        case "tickStep":
-          /* A step that was waiting on an answer is named for the wait
-             ("Paused to ask for more details below"); once it has one it is named for
-             what it got ("Details gathered"). */
-          patchLastStatus((e) => ({
-            ...e,
-            steps: (e.steps ?? []).map((st) =>
-              st.running ? { ...st, running: false, label: st.doneLabel ?? st.label } : st
-            ),
-          }));
-          break;
-        case "statusDone":
-          patchLastStatus((e) => ({ ...e, text: act.text, state: "ok", expanded: false }));
-          break;
-        case "wait":
-          after(act.ms);
-          return;
-        case "askSubject":
-          setAwaitingSubject(true);
-          setPhase("questions");
-          return;
-        case "ask":
-          setPhase("questions");
-          return;
-        case "generate":
-          startGenerating();
-          return;
-      }
+    if (cursor.current >= script.length) return;
+    const act: Act = script[cursor.current];
+    cursor.current += 1;
+    switch (act.t) {
+      case "ai":
+        push({ kind: "ai", text: act.text });
+        after(BEAT);
+        return;
+      case "user":
+        push({ kind: "user", text: act.text, cards: act.cards });
+        after(BEAT);
+        return;
+      case "askAudience":
+        setAwaitingAudience(true);
+        setPhase("questions");
+        return;
+      case "ask":
+        setPhase("questions");
+        return;
+      case "generate":
+        startGenerating();
+        return;
     }
   };
 
+  /** The steps the report goes through once every detail is in. */
+  const GEN_STEPS: StatusStep[] = [
+    { label: "Determining time interval", interval: TIME_INTERVAL },
+    {
+      label: "Searching for relevant articles and threat intelligence reports",
+      sources: FETCHED_SOURCES.slice(0, 3),
+    },
+  ];
+
   /**
    * A finished report's conversation, rebuilt from the script its entry point
-   * would have run plus the answers it was created with — the transcript the
-   * Figma "Report Builder - Ask AI" frames show for a completed report.
+   * would have run — the transcript a completed report shows when reopened.
    */
   const transcript = (): ChatEntry[] => {
     const out: ChatEntry[] = [];
     const add = (e: Omit<ChatEntry, "id">) =>
       out.push({ id: nextId("c"), instant: true, ...e });
-    const lastStatus = () => [...out].reverse().find((e) => e.kind === "status");
     for (const act of script) {
-      switch (act.t) {
-        case "ai":
-          add({ kind: "ai", text: act.text });
-          break;
-        case "user":
-          add({ kind: "user", text: act.text });
-          break;
-        case "status":
-          add({
-            kind: "status",
-            text: act.text,
-            state: "ok",
-            steps: act.steps ?? [],
-            expanded: false,
-            headDone: true,
-          });
-          break;
-        case "step":
-        /* In a finished report every step is done, including the two that
-           waited on an answer. */
-        case "stepRunning": {
-          const e = lastStatus();
-          if (e)
-            e.steps = [
-              ...(e.steps ?? []),
-              { ...act.step, label: act.step.doneLabel ?? act.step.label },
-            ];
-          break;
-        }
-        case "statusDone": {
-          const e = lastStatus();
-          if (e) e.text = act.text;
-          break;
-        }
-        case "askSubject":
-          /* Nothing is posted as the questions are answered — they all go up
-             together at the end, so the subject rides in that block rather
-             than as a bubble of its own. */
-          break;
-        default:
-          break;
-      }
+      if (act.t === "ai") add({ kind: "ai", text: act.text });
+      if (act.t === "user") add({ kind: "user", text: act.text, cards: act.cards });
     }
-    add({ kind: "user", pairs: answerPairs() });
+    add({ kind: "user", pairs: answerPairs(answers) });
     add({
-      kind: "ai",
-      text: "Perfect! I've got everything I need, and I will now start generating the report. I'll ping you when I'm done.",
+      kind: "status",
+      text: "All details collected",
+      state: "ok",
+      headDone: true,
+      expanded: false,
+      steps: [...GEN_STEPS, { label: "Report successfully completed" }],
     });
-    add({ kind: "status", text: "Report successfully completed", state: "ok", steps: [], expanded: false });
     return out;
   };
 
@@ -437,20 +444,35 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [chat, qIndex, phase, awaitingSubject]);
+  }, [chat, qIndex, phase, awaitingAudience]);
 
   /* ---------------- answering ---------------- */
 
-  const answerSubject = (value: string) => {
-    setSubject(value);
-    setAwaitingSubject(false);
+  const answerAudience = (label: string) => {
+    const picked = audienceOptions.find((a) => (AUDIENCE_MENU_LABEL[a] ?? a) === label) ?? label;
+    const pairing = pairingFor(templates, template.name, picked);
+    if (pairing) {
+      setActiveId(pairing.id);
+      setBrandId(pairing.brandId);
+    }
+    setAudience(picked);
+    setAwaitingAudience(false);
     setPhase("script");
-    after(BEAT);
+    push({ kind: "user", text: `This report is meant for: ${label}` });
+    timers.current.push(
+      window.setTimeout(() => {
+        push({
+          kind: "ai",
+          text: "Perfect! For this audience, the template requires you to fill in a few details.",
+        });
+        after(BEAT);
+      }, BEAT)
+    );
   };
 
   const current = questions[qIndex];
-  const showSubject = awaitingSubject && phase === "questions";
-  const showQuestion = !awaitingSubject && phase === "questions" && Boolean(current);
+  const showAudience = awaitingAudience && phase === "questions";
+  const showQuestion = !awaitingAudience && phase === "questions" && Boolean(current);
   /** Answers by parameter name, so the sheet can show them in the prompts. */
   const paramValues = useMemo(() => {
     const out: Record<string, string> = {};
@@ -469,6 +491,7 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
   const answerCurrent = (value: string) => {
     const q = questions[qIndex];
     setAnswers((a) => ({ ...a, [q.id]: value }));
+    if (q.id === "q-subject") setSubject(value);
     if (q.id === "q-language" && value && value !== "Something else") setLanguage(value);
     if (q.id === "q-company" && value) setCompany(value);
     /* The brand answer is the report's brand, so the page restyles as soon as
@@ -477,9 +500,6 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
       const picked = brands.find((b) => b.name === value);
       if (picked) setBrandId(picked.id);
     }
-
-    /* Nothing is posted while the run is going — the answers go up together
-       once it finishes, so the conversation isn't interleaved with the card. */
     setPhase("script");
     timers.current.push(
       window.setTimeout(() => {
@@ -487,8 +507,6 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
           setQIndex((i) => i + 1);
           setPhase("questions");
         } else {
-          /* The run picks up where it left off: tick the step, finish the card,
-             then write the report. */
           setQIndex(questions.length);
           after(BEAT);
         }
@@ -496,48 +514,74 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
     );
   };
 
-  /** Every question the reader answered, in the order they were asked. */
-  const answerPairs = (a: Record<string, string> = answers, subj = subject) => {
-    const out: { q: string; a: string }[] = [];
-    if (subj.trim()) out.push({ q: subjectQ.title, a: subj.trim() });
-    for (const q of questions) {
-      out.push({
-        q: q.title,
-        a: a[q.id] || "Skip",
-      });
-    }
-    return out;
-  };
+  /**
+   * Figma STEP 4: the card opens on "All details collected", the time interval
+   * and the sources land one after the other, and the report is written.
+   */
+  /* The report is filed from a timer that was set several renders earlier, so
+     it reads the answers as they are by then, not as they were when it was set. */
+  const latest = useRef({ answers, template, audience, subject, language, company });
+  latest.current = { answers, template, audience, subject, language, company };
+
+  /** Every question in the flow with its answer, in the order they were asked. */
+  const answerPairs = (a: Record<string, string>) =>
+    questions.map((q) => ({ q: q.title, a: a[q.id]?.trim() || "Skipped" }));
 
   const startGenerating = () => {
     setQIndex(questions.length);
-    push({ kind: "user", pairs: answerPairs() });
-    push({
-      kind: "ai",
-      text: "Perfect! I've got everything I need, and I will now start generating the report. I'll ping you when I'm done.",
-    });
-    push({ kind: "status", text: "Generating new report", state: "running", steps: [], expanded: false });
     setPhase("generating");
+    /* The answers go up together as one message from the reader, question by
+       question, before the work on the report starts. */
+    push({ kind: "user", pairs: answerPairs(latest.current.answers) });
+    timers.current.push(window.setTimeout(startWork, BEAT));
+  };
+
+  const startWork = () => {
+    push({
+      kind: "status",
+      text: "All details collected",
+      state: "running",
+      headDone: true,
+      steps: [],
+      expanded: true,
+    });
+    const addStep = (ms: number, step: StatusStep) =>
+      timers.current.push(
+        window.setTimeout(
+          () => patchLastStatus((e) => ({ ...e, steps: [...(e.steps ?? []), step] })),
+          ms
+        )
+      );
+    addStep(600, GEN_STEPS[0]);
+    addStep(1500, GEN_STEPS[1]);
+    addStep(2400, { label: "Generating report...", running: true });
     const t = window.setTimeout(() => {
       setTitle(reportTitle);
       setPhase("done");
-      patchLastStatus((e) => ({ ...e, text: "Report successfully completed", state: "ok" }));
+      patchLastStatus((e) => ({
+        ...e,
+        state: "ok",
+        steps: (e.steps ?? []).map((st) =>
+          st.running ? { ...st, running: false, label: "Report successfully completed" } : st
+        ),
+      }));
       toast("Report was successfully completed");
+      const now = latest.current;
       addReport({
         id: nextId("r"),
         headline: reportTitle,
-        templateName: template.name,
-        templateAudience: template.audience || "CISO",
+        templateName: now.template.name,
+        templateAudience: now.audience || now.template.audience || "CISO",
         createdBy: "Rui Marçalo",
         createdOn: "Sep 1, 2026",
         // Kept so the row in "View previous reports" can reopen this report.
-        origin: { ...context, savedReportId: undefined },
-        subject,
-        answers,
-        language,
-        company,
+        origin: { ...context, askAudience: false, savedReportId: undefined },
+        subject: now.subject,
+        answers: now.answers,
+        language: now.language,
+        company: now.company,
       });
-    }, 2600);
+    }, 5000);
     timers.current.push(t);
   };
 
@@ -698,34 +742,31 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
               {/* The elicitation card and the composer share this slot; the card
                   takes the composer's place while a question is open. */}
               <div className="composer-slot">
-                {showSubject ? (
+                {showAudience ? (
+                  /* The audience is a step of its own: no counter, nothing to
+                     go back to. */
                   <ElicitationCard
-                    key="subject"
-                    q={subjectQ}
+                    key="audience"
+                    q={audienceQ}
                     index={0}
+                    total={0}
                     pager={false}
-                    cards={cards}
                     onBack={() => {}}
-                    onNext={answerSubject}
-                    /* The parameter questions come after it, so the opening
-                       question always continues rather than finishing. */
-                    isLast={false}
+                    onNext={answerAudience}
                   />
                 ) : showQuestion ? (
                   <ElicitationCard
                     key={current.id}
                     q={current}
                     index={qIndex}
+                    total={questions.length}
                     onBack={() => setQIndex((i) => Math.max(0, i - 1))}
                     onNext={answerCurrent}
-                    isLast={qIndex === questions.length - 1}
                   />
                 ) : (
                   <div className={`composer ${generated ? "" : "busy"}`}>
                     <textarea
-                      placeholder={
-                        generated ? "Write here any changes you\u2019d like to make" : "Thinking..."
-                      }
+                      placeholder={"Write here any changes you\u2019d like to make"}
                       value={composer}
                       disabled={!generated}
                       onChange={(e) => setComposer(e.target.value)}
@@ -824,7 +865,8 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
           </div>
 
           {/* The template sheet sits over the page until the report is written. */}
-          {!generated && !regenerating && phase !== "generating" && (
+          {/* Figma: "Template preview is only available after audience selection." */}
+          {!generated && !regenerating && phase !== "generating" && audienceKnown && (
             <TemplatePreview
               template={template}
               activeParam={activeParam}
@@ -857,6 +899,33 @@ function ChatBubble({ entry, onToggle }: { entry: ChatEntry; onToggle: () => voi
             {pair.a}
           </div>
         ))}
+      </div>
+    ) : entry.cards && entry.cards.length > 0 ? (
+      /* Figma `ContextCarousel`: what the entry point carried rides under the
+         opening message, scrolling sideways under a fade when it overflows. */
+      <div className={`chat-user-wrap${anim}`}>
+        <div className="chat-user">{entry.text}</div>
+        <div className={`chat-attach ${entry.cards.length > 2 ? "fade" : ""}`}>
+          {entry.cards.map((c) => (
+            <div className="ctx-card" key={c.title}>
+              <Icon name={c.icon} size={16} style={{ color: "var(--content-medium)" }} />
+              <div className="ctx-body">
+                <span className="ctx-title">{c.title}</span>
+                {c.source && (
+                  <span className="ctx-sub">
+                    <span className="ctx-src">{c.source}</span>
+                    {c.age && (
+                      <>
+                        <span className="ctx-dot">•</span>
+                        <span className="ctx-age">{c.age}</span>
+                      </>
+                    )}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     ) : (
       <div className={`chat-user${anim}`}>{entry.text}</div>
@@ -928,23 +997,21 @@ function ChatBubble({ entry, onToggle }: { entry: ChatEntry; onToggle: () => voi
 function ElicitationCard({
   q,
   index,
+  total,
   onBack,
   onNext,
-  isLast,
   pager = true,
-  cards,
 }: {
   q: Question;
   index: number;
+  /** How many questions the pager counts, for "1 of 3 questions". */
+  total: number;
   onBack: () => void;
   onNext: (v: string) => void;
-  isLast: boolean;
   /** A standalone question carries no counter and nothing to go back to. */
   pager?: boolean;
-  /** Context carried by the entry point, shown along the top of the card. */
-  cards?: ContextCard[];
 }) {
-  const [picked, setPicked] = useState<string[]>([]);
+  const [picked, setPicked] = useState<string[]>(q.ticked ?? []);
   const [text, setText] = useState("");
   /* Figma "Elicitation interactions": the Other row turns into an input, and
      what is typed becomes a checked option of its own. */
@@ -953,7 +1020,7 @@ function ElicitationCard({
   const [hovered, setHovered] = useState<string | null>(null);
 
   useEffect(() => {
-    setPicked([]);
+    setPicked(q.ticked ?? []);
     setText("");
     setOtherOpen(false);
     setOther("");
@@ -978,44 +1045,16 @@ function ElicitationCard({
 
   return (
     <div className="elicit">
-      {/* Figma `ContextCarousel`: whatever the entry point carried sits on top of
-          the question rather than in the conversation, so what the answer is
-          being added to is in front of the reader while they write it. It
-          scrolls sideways when there is more than fits, under a fade. */}
-      {cards && cards.length > 0 && (
-        <div className="ctx-carousel">
-          {cards.map((c) => (
-            <div className="ctx-card" key={c.title}>
-              <Icon name={c.icon} size={16} style={{ color: "var(--content-medium)" }} />
-              <div className="ctx-body">
-                <span className="ctx-title">{c.title}</span>
-                {c.source && (
-                  <span className="ctx-sub">
-                    <span className="ctx-src">{c.source}</span>
-                    {c.age && (
-                      <>
-                        <span className="ctx-dot">•</span>
-                        <span className="ctx-age">{c.age}</span>
-                      </>
-                    )}
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
-          <div className="ctx-fade" aria-hidden />
-        </div>
-      )}
       <div className="elicit-head">
         <div className="elicit-top">
           <span
-            className={isQuestionLabel ? "elicit-tag question" : "elicit-tag"}
+            className={isQuestionLabel || q.green ? "elicit-tag question" : "elicit-tag"}
             title={q.tagHelp}
           >
             {!isQuestionLabel && <Icon name={q.icon ?? "braces"} size={16} />}
             {q.label}
           </span>
-          <span className="elicit-req">{q.required ? "Required" : "Optional"}</span>
+          {!q.noTag && <span className="elicit-req">{q.required ? "Required" : "Optional"}</span>}
         </div>
         <div className="elicit-label">
           <div className="elicit-q">{q.title}</div>
@@ -1088,7 +1127,7 @@ function ElicitationCard({
               onClick={() => setOtherOpen(true)}
             >
               <span className="opt-other-box" />
-              <span>Other (use @ to access Org Profile items)</span>
+              <span>{q.otherLabel ?? "Other (use @ to access Org Profile items)"}</span>
             </button>
           )}
         </div>
@@ -1096,21 +1135,22 @@ function ElicitationCard({
         <textarea
           className="textarea elicit-text"
           rows={3}
-          placeholder="Write in your answer here"
+          placeholder={q.placeholder ?? "Write in your answer here"}
           value={text}
           onChange={(e) => setText(e.target.value)}
         />
       )}
 
       <div className="elicit-foot">
+        {pager && total > 0 && (
+          <span className="elicit-count">
+            {index + 1} of {total} questions
+          </span>
+        )}
         <div className="elicit-nav">
-          {pager && (
-            <Button disabled={index === 0} onClick={onBack}>
-              Back
-            </Button>
-          )}
+          {pager && index > 0 && <Button onClick={onBack}>Back</Button>}
           <Button variant="primary" disabled={!canContinue} onClick={() => onNext(value)}>
-            {isLast ? "Finish" : "Continue"}
+            Continue
           </Button>
         </div>
       </div>
@@ -1143,6 +1183,8 @@ function SourcesPanel({
       ? attachedArticles.map((a) => ({ icon: "feed" as const, title: a.title, sub: `Selected article • ${a.age}` }))
       : context.path === "insight" && insightLabel
         ? [{ icon: "bug" as const, title: insightLabel, sub: "Insight card" }]
+        : context.path === "selection"
+          ? (context.cveIds ?? []).map((c) => ({ icon: "bug" as const, title: c, sub: "Selected in Intel Agent" }))
         : context.path === "broad" && context.contextLabel
           ? [{ icon: "bug" as const, title: context.contextLabel, sub: "Intel Agent" }]
           : [];

@@ -20,7 +20,7 @@ reference their assets relatively, so the site works at
 `https://<user>.github.io/RB-Test/`. `.nojekyll` keeps Pages from running the
 files through Jekyll.
 
-## Two versions: A (locked) and B
+## Three versions: A (locked), B and C
 
 The prototype runs as two parallel versions, switched from the org menu
 ("ACME North America", top left):
@@ -28,14 +28,18 @@ The prototype runs as two parallel versions, switched from the org menu
 - **Version A** is the locked baseline. It is served from the repository root
   (`index.html` + `assets/`), built from `source/`. Do not change it: `source/`
   is frozen, and the git tag `version-a-locked` marks the point it was frozen.
-- **Version B** is where all new work goes. It is served from `b/`, built from
-  `source-b/`.
+- **Version B** is served from `b/`, built from `source-b/`: the revised
+  create-report flow with audience picked before the template (audience
+  pre-selection) and parameters as one flat list (Option A).
+- **Version C** is served from `c/`, built from `source-c/`: the same flow with
+  the audience asked during elicitation and topic parameters kept apart from
+  general ones (Option B).
 
 Each build knows which version it is through the `VITE_VARIANT` environment
 variable, which the org menu uses to show the current version and link to the
 other one.
 
-## Working on B
+## Working on B or C (same steps in `source-c`, with `VITE_VARIANT=C` and `../c`)
 
 ```
 cd source-b

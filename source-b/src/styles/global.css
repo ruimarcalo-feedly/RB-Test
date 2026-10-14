@@ -644,7 +644,8 @@ select {
  * an audience rotates the panel along instead of opening a second popover.   */
 .crm {
   position: absolute;
-  z-index: 60;
+  /* Above the insight card's scrim, which it opens from. */
+  z-index: 150;
   width: 280px;
   min-width: 200px;
   background: var(--bg-lightest);
@@ -1068,6 +1069,7 @@ select {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-height: 28px;
   padding-top: 4px;
 }
 .tcard-more {
@@ -1657,27 +1659,78 @@ select {
 }
 
 /* Parameters list */
+/* Figma "Parameter Revision" — a parameter is its badge plus Required /
+   Optional, on a plain row. */
 .param-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
-  padding: 8px 10px;
+  min-height: 32px;
+  padding: 4px 8px;
   border: 0;
   border-radius: 6px;
-  background: var(--bg-light);
+  background: transparent;
   text-align: left;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 .param-row:hover {
-  background: var(--bg-hover);
+  background: var(--bg-light);
 }
-.param-row .pname {
+.param-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 4px;
+  border: 1px solid var(--content-info);
+  border-radius: 4px;
+  background: var(--param-bg);
+  color: var(--content-bold);
   font-size: 14px;
-  line-height: 18px;
+  line-height: 20px;
+  white-space: nowrap;
 }
 .param-row .popt {
   font-size: 12px;
+  line-height: 16px;
+  color: var(--content-light);
+}
+.param-warn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  background: #fffae7;
+  color: var(--content-bold);
+  font-size: 14px;
+  line-height: 20px;
+}
+.param-warn svg {
+  flex: 0 0 auto;
+  color: #c98a00;
+}
+.param-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 4px 0 8px;
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 650;
+  color: var(--content-medium);
+}
+.param-group-rule {
+  height: 1px;
+  margin: 12px 0;
+  background: var(--border-lightest);
+}
+.param-empty {
+  padding: 4px 0;
+  font-size: 13px;
+  line-height: 16px;
   color: var(--content-light);
 }
 
@@ -1758,6 +1811,32 @@ select {
 }
 .chat-user.answers .qa b {
   font-weight: 700;
+}
+/* The opening message with what the entry point carried attached under it. */
+.chat-user-wrap {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+.chat-attach {
+  display: flex;
+  gap: 8px;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.chat-attach.fade {
+  -webkit-mask-image: linear-gradient(to right, #000 80%, transparent);
+  mask-image: linear-gradient(to right, #000 80%, transparent);
+}
+.chat-attach::-webkit-scrollbar {
+  display: none;
+}
+.chat-attach .ctx-card {
+  background: var(--bg-lightest);
 }
 .chat-user {
   align-self: flex-end;
@@ -2119,8 +2198,15 @@ select {
   gap: 10px;
   padding: 0 12px 12px;
 }
-/* The footer carries only Back and Continue — Figma's question counter on the
-   left is dropped, so the buttons keep the whole row and stay right-aligned. */
+/* Figma "[2.1 Parameter Revision": the question counter sits on the left,
+   Back and Continue on the right. */
+.elicit-count {
+  margin-right: auto;
+  font-size: 13px;
+  line-height: 16px;
+  color: var(--content-medium);
+  white-space: nowrap;
+}
 .elicit-nav {
   display: flex;
   align-items: center;
@@ -4268,4 +4354,27 @@ select {
 .canvas-doc .tableWrapper th {
   background: var(--b-table, var(--bg-light));
   font-weight: 600;
+}
+
+/* Figma "2 - Intel Agent selection path": the bar that replaces the table's
+   header once rows are ticked. */
+.sel-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 12px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-large);
+  background: var(--bg-light);
+}
+.sel-count {
+  margin-right: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--content-bold);
+}
+.rtable tr.picked td {
+  background: var(--param-bg);
 }

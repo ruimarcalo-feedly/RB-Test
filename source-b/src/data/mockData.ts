@@ -47,6 +47,12 @@ export interface Parameter {
   description: string;
   type: "Org Profile" | "Free text" | "Date";
   optional: boolean;
+  /**
+   * A topic parameter collects what the report is about (its CVE, its threat
+   * actor…). Version C keeps these in a group of their own, and a template
+   * needs at least one.
+   */
+  topic?: boolean;
 }
 
 import type { CreateContext } from "./context";
@@ -202,7 +208,7 @@ const VULN_BLOCKS: Block[] = [
     id: "b2",
     heading: "CVE Analysis",
     prompts: [
-      "The structured detail table on the CVE itself. Identifier, severity scores, affected products with version ranges, exploitation status, exploit maturity (including any public PoC or weaponized exploit detail), patch availability, zero-day window.",
+      "The structured detail table on the {{CVE ID}} itself. Identifier, severity scores, affected products with version ranges, exploitation status, exploit maturity (including any public PoC or weaponized exploit detail), patch availability, zero-day window.",
       "Every CVE requires a patch urgency tier label based on a specific four-tier structured decision matrix (Critical, High, Medium, Low) unless overridden by an organizational profile.",
     ],
   },
@@ -276,6 +282,7 @@ export const CVE_PARAM: Parameter = {
   description: "The CVE identifier, or list of coordinated CVEs, the report covers",
   type: "Free text",
   optional: false,
+  topic: true,
 };
 
 /* ------------------------------------------------------------------ *
@@ -325,7 +332,7 @@ const BUILT_INS: BuiltIn[] = [
     contextDescription:
       "A Vulnerability Advisory is a focused report communicating a specific vulnerability (or set of related vulnerabilities) and what to do about it. The unit of analysis is the CVE (or grouped CVEs in a coordinated disclosure).",
     tradecrafts: ["ICD 203", "Chicago Manual Style", "Writing Style Rules"],
-    parameters: [TECH_STACK_PARAM],
+    parameters: [CVE_PARAM, TECH_STACK_PARAM],
     blocks: VULN_BLOCKS,
     audiences: [
       "CISO",
@@ -493,7 +500,7 @@ const CUSTOM_TEMPLATES: Template[] = [
     tradecrafts: ["ICD 203", "Chicago Manual Style", "Writing Style Rules"],
     contextDescription:
       "Matt's Vulnerability Advisory — adds a patch-urgency matrix and always references the tech stack.",
-    parameters: [TECH_STACK_PARAM],
+    parameters: [CVE_PARAM, TECH_STACK_PARAM],
     blocks: VULN_BLOCKS.map((b) => ({ ...b, prompts: [...b.prompts] })),
   },
 ];
@@ -527,8 +534,25 @@ export const TEMPLATES: Template[] = [
 }));
 
 export const BLANK_BLOCKS: Block[] = [
-  { id: "nb1", heading: "Name your first section here", prompts: [LOREM_PROMPT] },
+  {
+    id: "nb1",
+    heading: "Name your first section here",
+    prompts: [
+      LOREM_PROMPT,
+      "Add parameters to infuse this template with variables that will make this report as specific as possible. A parameter that grabs the report's {{Topic}} is essential.",
+    ],
+  },
 ];
+
+/** The one parameter every new template starts with: what the report is about. */
+export const TOPIC_PARAM: Parameter = {
+  id: "p-topic",
+  name: "Topic",
+  description: "What this report will focus on, e.g. CVE IDs, cyberattacks, TTPs.",
+  type: "Free text",
+  optional: false,
+  topic: true,
+};
 
 /* ------------------------------------------------------------------ *
  * Previous reports

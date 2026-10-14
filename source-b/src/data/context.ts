@@ -7,7 +7,7 @@
  * replay the same conversation.
  */
 
-export type CreatePath = "articles" | "none" | "broad" | "insight";
+export type CreatePath = "articles" | "selection" | "none" | "broad" | "insight";
 
 export interface CreateContext {
   path: CreatePath;
@@ -16,6 +16,14 @@ export interface CreateContext {
   /** The agent / board / folder / AI feed the user came from (broad path). */
   contextLabel?: string;
   contextKind?: "agent" | "board" | "folder" | "feed";
+  /** CVE rows picked in an Intel Agent's table (selection path). */
+  cveIds?: string[];
+  /**
+   * The template was picked without an audience (the Select Template list, or
+   * a Report Builder card under "All Audiences"), so the flow asks for one
+   * before anything else.
+   */
+  askAudience?: boolean;
   /** The insight card's entity (insight path). */
   insightId?: string;
   /**

@@ -11,6 +11,7 @@ import {
   AUDIENCES,
   AUDIENCE_CONTENT,
   BLANK_BLOCKS,
+  TOPIC_PARAM,
   ORG_ITEMS,
   REPORTS,
   TEMPLATES,
@@ -203,7 +204,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           lastUsed: -1,
           tradecrafts: [],
           contextDescription: "",
-          parameters: [],
+          /* Figma "Create new template manually": a new template starts with a
+             Topic parameter, already placed in its first section. */
+          parameters: [{ ...TOPIC_PARAM, id: nextId("p") }],
           blocks: BLANK_BLOCKS.map((b) => ({ ...b, prompts: [...b.prompts] })),
           /* A new template is a custom one, so it starts on the organisation's
              brand like every other custom template — with empty bands. */

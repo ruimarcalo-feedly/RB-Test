@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { Icon, type IconName } from "../ui/Icon";
 import { useStore, type View } from "../../state/store";
 import { Popover } from "../ui/primitives";
-import { VARIANT, switchVariant, type Variant } from "../../variant";
+import { VARIANT, VARIANTS, VARIANT_LABEL, switchVariant } from "../../variant";
 
 interface NavEntry {
   label: string;
@@ -64,8 +64,8 @@ export function LeftNav() {
           <Icon name="chevron-down" size={16} style={{ color: "var(--content-medium)" }} />
         </button>
         {orgOpen && (
-          <Popover anchorRef={orgRef} onClose={() => setOrgOpen(false)} width={240}>
-            {(["A", "B"] as Variant[]).map((v) => (
+          <Popover anchorRef={orgRef} onClose={() => setOrgOpen(false)} width={300}>
+            {VARIANTS.map((v) => (
               <button
                 key={v}
                 className="menu-item"
@@ -74,7 +74,7 @@ export function LeftNav() {
                   switchVariant(v);
                 }}
               >
-                <span style={{ flex: 1 }}>Acme North America {v}</span>
+                <span style={{ flex: 1 }}>{VARIANT_LABEL[v]}</span>
                 {v === VARIANT && (
                   <Icon name="check" size={16} style={{ color: "var(--bg-accent)" }} />
                 )}

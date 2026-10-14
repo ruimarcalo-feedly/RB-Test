@@ -3,14 +3,16 @@ import { Button, Checkbox, Field, Modal, Select } from "../ui/primitives";
 import type { Parameter } from "../../data/mockData";
 import { nextId } from "../../state/store";
 
-const TYPES: Parameter["type"][] = ["Org Profile", "Free text", "Date"];
+const TYPES: Parameter["type"][] = ["Free text", "Org Profile", "Date"];
 
-const TYPE_HELP: Record<Parameter["type"], string> = {
-  "Org Profile":
-    "An Org Profile type will suggest items stored in the Org Profile when you are creating your report.",
-  "Free text": "A Free text type asks for a written answer when you are creating your report.",
-  Date: "A Date type asks for a date or date range when you are creating your report.",
+/* Figma "Add parameter" (Parameter Revision): free text is called "Open ended". */
+const TYPE_LABEL: Record<Parameter["type"], string> = {
+  "Free text": "Open ended",
+  "Org Profile": "Org Profile",
+  Date: "Date",
 };
+const TYPE_HELP =
+  "Open ended lets you type any value when you create a report. An Org Profile type suggests items from your Org Profile.";
 
 /**
  * Add / Edit parameter dialog.
@@ -31,7 +33,7 @@ export function ParameterDialog({
 }) {
   const [name, setName] = useState(initial?.name ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
-  const [type, setType] = useState<Parameter["type"]>(initial?.type ?? "Org Profile");
+  const [type, setType] = useState<Parameter["type"]>(initial?.type ?? "Free text");
   const [optional, setOptional] = useState(initial?.optional ?? false);
 
   const valid = name.trim().length > 0 && description.trim().length > 0;
@@ -55,10 +57,11 @@ export function ParameterDialog({
                   description: description.trim(),
                   type,
                   optional,
+                  topic: initial?.topic,
                 })
               }
             >
-              Add parameter
+              Save parameter
             </Button>
           </>
         ) : (
@@ -76,6 +79,7 @@ export function ParameterDialog({
                   description: description.trim(),
                   type,
                   optional,
+                  topic: initial?.topic,
                 })
               }
             >
@@ -90,7 +94,7 @@ export function ParameterDialog({
           className="input"
           value={name}
           autoFocus
-          placeholder="e.g. Tech Stack"
+          placeholder="i.e CVE ID"
           onChange={(e) => setName(e.target.value)}
         />
       </Field>
@@ -102,16 +106,24 @@ export function ParameterDialog({
       >
         <textarea
           className="textarea"
-          rows={2}
+          rows={4}
           value={description}
-          placeholder="Describe what this parameter is about in detail"
+          placeholder={"What this report will focus on.\ni.e. CVE IDs, Cyberattacks, TTPs, etc."}
           onChange={(e) => setDescription(e.target.value)}
         />
       </Field>
-      <Field label="Type" footNote={TYPE_HELP[type]}>
-        <Select block value={type} options={TYPES} onChange={(v) => setType(v as Parameter["type"])} />
+      <Field label="Type" footNote={TYPE_HELP}>
+        <Select
+          block
+          value={TYPE_LABEL[type]}
+          options={TYPES.map((t) => TYPE_LABEL[t])}
+          onChange={(v) => setType(TYPES.find((t) => TYPE_LABEL[t] === v) ?? "Free text")}
+        />
       </Field>
-      <Checkbox checked={optional} onChange={setOptional} label="Mark parameter as optional" />
+      <Checkbox checked={optional} onChange={setOptional} label="Mark as optional" />
+      <div className="field-help" style={{ margin: "2px 0 0 26px" }}>
+        Optional parameters can be skipped when you generate a report.
+      </div>
     </Modal>
   );
 }
