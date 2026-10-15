@@ -189,10 +189,10 @@ export function furtherDetailsQuestion() {
   return {
     id: "q-further",
     label: "Question",
-    title: "Would you like to add any further details?",
-    help: "This can help us craft an even more focused report",
+    title: "Do you have any further instructions?",
+    help: "This can help us tailor your report further",
     type: "text" as const,
-    placeholder: "Write in your answer here, type in @ to reference items from the Org Profile",
+    placeholder: "Write in your answer here",
     required: false,
   };
 }
