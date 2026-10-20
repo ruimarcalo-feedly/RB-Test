@@ -4421,3 +4421,37 @@ select {
 .library-warn {
   margin: 0 24px 12px;
 }
+
+/* Versions B and C — Figma "Elicitation 11": the question card sits in the
+   conversation, whole (counter and buttons inside), and the message box stays
+   at the bottom of the panel, disabled until the report is written. */
+.elicit.in-chat {
+  transform-origin: top center;
+}
+.composer.busy {
+  border-color: var(--border-medium);
+}
+/* In the conversation the panel scrolls, so the Org Profile preview sits
+   above its row rather than hanging off the panel's edge, and never over
+   the card's Continue button. */
+.elicit.in-chat .opt-card {
+  left: auto;
+  right: 8px;
+  top: auto;
+  bottom: calc(100% - 4px);
+}
+/* The message box arrives once the report is written, drawing up into place
+   the same way the question cards do. */
+.composer-slot .composer {
+  transform-origin: bottom center;
+  animation: elicit-in 460ms cubic-bezier(0.16, 0.84, 0.24, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .composer-slot .composer {
+    animation: none;
+  }
+}
+/* Follow-on questions swap in place rather than drawing in again. */
+.elicit.in-chat.still {
+  animation: none;
+}

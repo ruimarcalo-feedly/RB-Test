@@ -502,16 +502,17 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
       const picked = brands.find((b) => b.name === value);
       if (picked) setBrandId(picked.id);
     }
+    /* Between questions the card stays where it is and simply moves on to the
+       next one; only the last answer hands back to the conversation. */
+    if (qIndex + 1 < questions.length) {
+      setQIndex((i) => i + 1);
+      return;
+    }
     setPhase("script");
     timers.current.push(
       window.setTimeout(() => {
-        if (qIndex + 1 < questions.length) {
-          setQIndex((i) => i + 1);
-          setPhase("questions");
-        } else {
-          setQIndex(questions.length);
-          after(BEAT);
-        }
+        setQIndex(questions.length);
+        after(BEAT);
       }, BEAT * 0.7)
     );
   };
@@ -738,34 +739,40 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
                   {chat.map((e) => (
                     <ChatBubble key={e.id} entry={e} onToggle={() => toggleStatus(e.id)} />
                   ))}
+                  {/* The question is part of the conversation, under the message
+                      that asked it (Figma "Elicitation 10"). */}
+                  {showAudience ? (
+                    /* The audience is a step of its own: no counter, nothing to
+                       go back to. */
+                    <ElicitationCard
+                      key="audience"
+                      q={audienceQ}
+                      index={0}
+                      total={0}
+                      pager={false}
+                      onBack={() => {}}
+                      onNext={answerAudience}
+                    />
+                  ) : showQuestion ? (
+                    <ElicitationCard
+                      key={current.id}
+                      q={current}
+                      index={qIndex}
+                      total={questions.length}
+                      /* Only the first question draws in; the ones after it
+                         swap in place. */
+                      still={qIndex > 0 || questions[0]?.id in answers}
+                      onBack={() => setQIndex((i) => Math.max(0, i - 1))}
+                      onNext={answerCurrent}
+                    />
+                  ) : null}
                 </div>
               </div>
 
-              {/* The elicitation card and the composer share this slot; the card
-                  takes the composer's place while a question is open. */}
+              {/* The message box only appears once the report is written: until
+                  then the conversation is driven by the questions in it. */}
+              {generated && (
               <div className="composer-slot">
-                {showAudience ? (
-                  /* The audience is a step of its own: no counter, nothing to
-                     go back to. */
-                  <ElicitationCard
-                    key="audience"
-                    q={audienceQ}
-                    index={0}
-                    total={0}
-                    pager={false}
-                    onBack={() => {}}
-                    onNext={answerAudience}
-                  />
-                ) : showQuestion ? (
-                  <ElicitationCard
-                    key={current.id}
-                    q={current}
-                    index={qIndex}
-                    total={questions.length}
-                    onBack={() => setQIndex((i) => Math.max(0, i - 1))}
-                    onNext={answerCurrent}
-                  />
-                ) : (
                   <div className={`composer ${generated ? "" : "busy"}`}>
                     <textarea
                       placeholder={"Write here any changes you\u2019d like to make"}
@@ -796,8 +803,8 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
                       )}
                     </div>
                   </div>
-                )}
               </div>
+              )}
             </>
           )}
 
@@ -1003,6 +1010,7 @@ function ElicitationCard({
   onBack,
   onNext,
   pager = true,
+  still = false,
 }: {
   q: Question;
   index: number;
@@ -1012,6 +1020,8 @@ function ElicitationCard({
   onNext: (v: string) => void;
   /** A standalone question carries no counter and nothing to go back to. */
   pager?: boolean;
+  /** Appear without the draw-in, when it follows another question. */
+  still?: boolean;
 }) {
   const [picked, setPicked] = useState<string[]>(q.ticked ?? []);
   const [text, setText] = useState("");
@@ -1046,7 +1056,7 @@ function ElicitationCard({
   };
 
   return (
-    <div className="elicit">
+    <div className={`elicit in-chat ${still ? "still" : ""}`}>
       <div className="elicit-head">
         <div className="elicit-top">
           <span

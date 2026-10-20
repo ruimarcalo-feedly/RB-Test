@@ -1,0 +1,1722 @@
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { Icon, Spinner, type IconName } from "../ui/Icon";
+import { BrandPicker } from "../org/BrandPicker";
+import { Button, Field, Select, Popover, MenuItem } from "../ui/primitives";
+import { useStore, nextId } from "../../state/store";
+import { PromptText } from "../editor/PromptText";
+import {
+  buildScript,
+  cveSuggestions,
+  furtherDetailsQuestion,
+  subjectQuestion,
+  type Act,
+  type ContextCard,
+  type CreateContext,
+  type StatusStep,
+} from "./script";
+import { suggestOptions, type Signals, type SuggestedOption } from "../../data/suggestions";
+import { audiencesFor, pairingFor } from "../../data/templateFamily";
+import { EMPTY_BAND, bandVars, brandVars, type Brand } from "../../data/brand";
+import { PageBandEditor } from "../editor/PageBandEditor";
+import { ReportDocument } from "./ReportDocument";
+import { VULN_ADVISORY_DOC, proseDoc, type DocNode } from "../../data/reportDoc";
+import {
+  ARTICLES,
+  AUDIENCE_MENU_LABEL,
+  COMPANIES,
+  REPORT_META,
+  FETCHED_SOURCES,
+  GENERATED_TITLE,
+  INSIGHT_CARDS,
+  LANGUAGES,
+  REPORT_BODIES,
+  TECH_STACK_VALUES,
+  THREAT_GRAPH_SOURCES,
+  TIME_INTERVAL,
+  type SourceItem,
+  type Template,
+} from "../../data/mockData";
+
+type Tab = "ask" | "sources" | "details";
+
+/** script → questions → generating → done, matching steps 1–4 in the Figma flows. */
+type Phase = "script" | "questions" | "generating" | "done";
+
+interface ChatEntry {
+  id: string;
+  kind: "ai" | "user" | "status";
+  text?: string;
+  /** Status cards only. */
+  state?: "running" | "ok";
+  steps?: StatusStep[];
+  expanded?: boolean;
+  /** Rebuilt transcripts mount all at once, so they skip the entry animation. */
+  instant?: boolean;
+  /** The answers, posted as one message once the run is done. */
+  pairs?: { q: string; a: string }[];
+  /** The run's own line is done while its later steps carry on. */
+  headDone?: boolean;
+  /** What the entry point carried, attached under the opening message. */
+  cards?: ContextCard[];
+}
+
+interface Question {
+  id: string;
+  label: string;
+  /** Icon in the tag; parameters use the `{ }` braces. */
+  icon?: IconName;
+  /** The parameter's description, shown when the tag is hovered. */
+  tagHelp?: string;
+  title: string;
+  help?: string;
+  /** options = multi-select, radio = single-select (the extra steps), text = free. */
+  type: "options" | "radio" | "text";
+  options?: SuggestedOption[];
+  /** The "Other (use @ …)" row — the language step doesn't offer one. */
+  allowOther?: boolean;
+  /** What the Other row says, where it isn't the Org Profile one. */
+  otherLabel?: string;
+  /** Options that arrive already ticked, because the entry point picked them. */
+  ticked?: string[];
+  /** The text box's placeholder, for a free-text question. */
+  placeholder?: string;
+  /** The green tag of the flow's own questions (the audience). */
+  green?: boolean;
+  /** No Required / Optional note beside the tag. */
+  noTag?: boolean;
+  required?: boolean;
+}
+
+export function ReportEditor({ context, templateId }: { context: CreateContext; templateId: string }) {
+  const {
+    templates,
+    reports,
+    closeOverlay,
+    addReport,
+    toast,
+    settings,
+    openTemplateEditor,
+    brands,
+    audiences,
+    updateTemplate,
+  } = useStore();
+
+  /**
+   * Set when the editor was opened from the "View previous reports" table.
+   * The report already exists, so the flow is not re-run — its finished
+   * transcript is rebuilt and the editor opens in its done state.
+   */
+  const saved = context.savedReportId
+    ? reports.find((r) => r.id === context.savedReportId)
+    : undefined;
+
+  /* A template picked without an audience lands on whichever of its pairings
+     serves the audience chosen in the conversation, so the template in hand
+     can change once, partway through. */
+  const [activeId, setActiveId] = useState(templateId);
+  const template =
+    templates.find((t) => t.id === activeId) ?? templates.find((t) => t.id === templateId)!;
+  /* Figma "Promoting legacy compatibility": a legacy template has no audience
+     of its own, so the flow asks for one from every audience in the Org
+     Profile, and the answer can be kept on the template. */
+  const legacyAudience = !saved && Boolean(template.legacy) && !template.audience;
+  const audienceOptions = useMemo(
+    () =>
+      legacyAudience
+        ? audiences.filter((a) => a !== "Custom audience")
+        : audiencesFor(templates, template.name),
+    [templates, template.name, legacyAudience, audiences]
+  );
+  /* Figma STEP 1, "Gather audience (which will select the correct template)".
+     Skipped when the entry point already carried an audience (a Report Builder
+     card under an audience filter) or the template only serves one. */
+  const askAudience =
+    legacyAudience || (!saved && Boolean(context.askAudience) && audienceOptions.length > 1);
+  const [audience, setAudience] = useState<string | null>(askAudience ? null : template.audience);
+  const audienceKnown = audience !== null;
+
+  const [tab, setTab] = useState<Tab>("ask");
+  const [phase, setPhase] = useState<Phase>(saved ? "done" : "script");
+  const [chat, setChat] = useState<ChatEntry[]>([]);
+  const [qIndex, setQIndex] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, string>>(saved?.answers ?? {});
+  const [subject, setSubject] = useState(saved?.subject ?? "");
+  const [composer, setComposer] = useState("");
+  const [applying, setApplying] = useState(false);
+  const [language, setLanguage] = useState(
+    saved?.language ?? settings.languages[0] ?? "English (US)"
+  );
+  const [company, setCompany] = useState(
+    saved?.company || settings.companies[0] || COMPANIES[0]
+  );
+  const [title, setTitle] = useState(saved?.headline ?? "New report");
+  /* The report inherits the template's brand and can be moved onto another one
+     here without going back to the template — the styling is a property of
+     this report from the moment it is written. */
+  const [brandId, setBrandId] = useState<string | undefined>(template.brandId);
+  /** Sources / Details edits that need a regeneration before they take effect. */
+  const [dirty, setDirty] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
+  const [exportMenu, setExportMenu] = useState(false);
+  /**
+   * The template sheet can be pushed down to the bottom edge and pulled back.
+   * On every create-report path it stays collapsed until the reader asks for
+   * it: the flow never raises it on its own, so the template is there to look
+   * at, not something that lands in the way of the conversation.
+   */
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const exportRef = useRef<HTMLButtonElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const timers = useRef<number[]>([]);
+
+  const insight = context.insightId
+    ? INSIGHT_CARDS.find((c) => c.id === context.insightId)
+    : undefined;
+
+  /* ---------------- sources this report is working from ---------------- */
+
+  const attachedArticles = useMemo(
+    () => ARTICLES.filter((a) => (context.articleIds ?? []).includes(a.id)),
+    [context.articleIds]
+  );
+
+  /** Threat Graph list: the selected/fetched sources, then the graph's own hits. */
+  const [sources, setSources] = useState<SourceItem[]>(() => {
+    const cveSource = (cve: string): SourceItem => {
+      const card = INSIGHT_CARDS.find((c) => c.cve === cve);
+      return {
+        id: `src-${cve}`,
+        title: cve,
+        kind: "cve",
+        tags: card ? [card.weakness] : [],
+        cvss: card ? `CVSS ${card.cvss}` : undefined,
+        cvssHigh: card ? card.cvss >= 8 : false,
+        exploit: card ? card.tags.includes("EXPLOIT") : false,
+        checked: true,
+      };
+    };
+    const carried: SourceItem[] =
+      context.path === "articles"
+        ? attachedArticles.map((a) => ({
+            id: `src-${a.id}`,
+            title: a.title,
+            kind: "article",
+            source: "Massachusetts Data Breach Filings",
+            age: a.age,
+            tags: ["Selected by you"],
+            checked: true,
+          }))
+        : context.path === "insight" && insight
+          ? [cveSource(insight.cve)]
+          : context.path === "selection"
+            ? (context.cveIds ?? []).map(cveSource)
+            : [];
+    return [...carried, ...THREAT_GRAPH_SOURCES];
+  });
+
+  /**
+   * The generated report's headline. Nothing in a written report is composed
+   * from what the user typed on the way in: every path produces the one
+   * finished document the Figma frames show, under its title.
+   */
+  const reportTitle = saved ? saved.headline : GENERATED_TITLE;
+
+  /** Signals sent off to build the parameter suggestions. */
+  const signals: Signals = useMemo(
+    () => ({
+      articleTitles:
+        context.path === "articles"
+          ? attachedArticles.map((a) => a.title)
+          : context.path === "insight" && insight
+            ? [insight.cve]
+            : context.path === "selection"
+              ? context.cveIds ?? []
+              : FETCHED_SOURCES.slice(0, 3).map((s) => s.title),
+      templateName: template.name,
+      templateDescription: template.description,
+      subject: subject || (insight ? `${insight.cve} — ${insight.summary}` : undefined),
+      contextLabel: context.contextLabel,
+    }),
+    [context, attachedArticles, insight, template, subject]
+  );
+
+  /**
+   * Figma STEPS 2 and 3, one card each, counted "x of y questions": the
+   * template's parameters (for the Vulnerability Advisory its CVE ID, which
+   * says what the report is about), any of the extra steps the settings leave
+   * open, and the further-details question, which always comes last.
+   */
+  const questions = useMemo<Question[]>(() => {
+    const qs: Question[] = [];
+    /* Templates without a subject parameter of their own still need to be
+       told what the report is about. */
+    if (!template.parameters.some((p) => p.topic)) qs.push(subjectQuestion());
+    /* What the report is about comes first, then everything else. */
+    const ordered = [
+      ...template.parameters.filter((p) => p.topic),
+      ...template.parameters.filter((p) => !p.topic),
+    ];
+    for (const p of ordered) {
+      if (p.name === "CVE ID") {
+        const sug = cveSuggestions(context);
+        qs.push({
+          id: p.id,
+          label: "CVE ID",
+          tagHelp: p.description,
+          title: "What vulnerability/vulnerabilities should this report be about?",
+          /* Figma: "With no context, we can't offer suggestions to pick from." */
+          help: sug ? "Suggestions are based on your attached context" : undefined,
+          type: sug ? "options" : "text",
+          options: sug?.options.map((label) => ({ label, suggested: false })),
+          ticked: sug?.ticked,
+          otherLabel: "Other",
+          placeholder: "Type in a CVE-ID or vulnerability name",
+          required: !p.optional,
+        });
+        continue;
+      }
+      const options = p.type === "Org Profile" ? suggestOptions(p.name, signals) : undefined;
+      qs.push({
+        id: p.id,
+        label: p.name === "Tech stack" ? "Tech Stacks" : p.name,
+        tagHelp: p.description,
+        title:
+          p.name === "Tech stack"
+            ? "What’s in your tech stack?"
+            : p.name === "Topic"
+              ? "What should this report focus on?"
+              : `What should we use for ${p.name}?`,
+        help: options ? "Suggestions are taken from the Org Profile" : undefined,
+        type: p.type === "Org Profile" ? ("options" as const) : ("text" as const),
+        options,
+        required: !p.optional,
+      });
+    }
+    /* Figma "Create Report Flow - EXTRA steps": "If present, either of these
+       EXTRA steps will appear before the Final Step on any of the flows". Each
+       setting only becomes a question when it leaves a choice open. */
+    if (settings.languages.length > 1) {
+      qs.push({
+        id: "q-language",
+        label: "Language",
+        icon: "text",
+        title: "What language should this report be in?",
+        help: "Options are coming from your Report Builder settings",
+        type: "radio",
+        allowOther: false,
+        options: [...settings.languages, "Something else"].map((l) => ({
+          label: l,
+          suggested: false,
+        })),
+      });
+    }
+    if (settings.companies.length !== 1) {
+      qs.push({
+        id: "q-company",
+        label: "Company Overview",
+        icon: "building",
+        title: "What company is this report for?",
+        help: settings.companies.length
+          ? "Options are coming from your Report Builder settings"
+          : "Suggestions are coming from your Org Profile",
+        type: "radio",
+        options: (settings.companies.length ? settings.companies : COMPANIES).map((c) => ({
+          label: c,
+          suggested: false,
+        })),
+      });
+    }
+    if (settings.brands.length > 1) {
+      qs.push({
+        id: "q-brand",
+        label: "Brand",
+        icon: "brand",
+        title: "Which brand should this report use?",
+        help: "Options are coming from your Report Builder settings",
+        type: "radio",
+        allowOther: false,
+        options: settings.brands.map((b) => ({ label: b, suggested: false })),
+      });
+    }
+    qs.push(furtherDetailsQuestion());
+    return qs;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    template,
+    context,
+    signals.articleTitles.join("|"),
+    settings.languages,
+    settings.companies,
+    settings.brands,
+  ]);
+
+  /** The audience question, with only the audiences this template serves. */
+  const audienceQ: Question = useMemo(
+    () => ({
+      id: "q-audience",
+      label: "Audience",
+      icon: "audience",
+      green: true,
+      noTag: true,
+      title: "Who are you writing this report for?",
+      help: "Audiences are stored in the Org Profile",
+      type: "radio",
+      allowOther: false,
+      required: true,
+      options: audienceOptions.map((a) => ({ label: AUDIENCE_MENU_LABEL[a] ?? a, suggested: false })),
+    }),
+    [audienceOptions]
+  );
+
+  /* ---------------- the script runner ---------------- */
+
+  /* Built once, from the template as it was picked: the audience answer
+     changes which pairing is in hand, not what was said at the start. */
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const script = useMemo(() => buildScript(context, template, askAudience), []);
+  const cursor = useRef(0);
+  const [awaitingAudience, setAwaitingAudience] = useState(false);
+
+  const push = (e: Omit<ChatEntry, "id">) => setChat((c) => [...c, { id: nextId("c"), ...e }]);
+
+  const patchLastStatus = (fn: (e: ChatEntry) => ChatEntry) =>
+    setChat((c) => {
+      const i = [...c].reverse().findIndex((e) => e.kind === "status");
+      if (i < 0) return c;
+      const idx = c.length - 1 - i;
+      return c.map((e, j) => (j === idx ? fn(e) : e));
+    });
+
+  /** A beat between one message landing and the next one starting. */
+  const BEAT = 420;
+
+  const after = (ms: number) => {
+    timers.current.push(window.setTimeout(run, ms));
+  };
+
+  /* Everything in the conversation lands one thing at a time — including the
+     elicitation card, which only opens once the message before it has arrived. */
+  const run = () => {
+    if (cursor.current >= script.length) return;
+    const act: Act = script[cursor.current];
+    cursor.current += 1;
+    switch (act.t) {
+      case "ai":
+        push({ kind: "ai", text: act.text });
+        after(BEAT);
+        return;
+      case "user":
+        push({ kind: "user", text: act.text, cards: act.cards });
+        after(BEAT);
+        return;
+      case "askAudience":
+        setAwaitingAudience(true);
+        setPhase("questions");
+        return;
+      case "ask":
+        setPhase("questions");
+        return;
+      case "generate":
+        startGenerating();
+        return;
+    }
+  };
+
+  /** The steps the report goes through once every detail is in. */
+  const GEN_STEPS: StatusStep[] = [
+    { label: "Determining time interval", interval: TIME_INTERVAL },
+    {
+      label: "Searching for relevant articles and threat intelligence reports",
+      sources: FETCHED_SOURCES.slice(0, 3),
+    },
+  ];
+
+  /**
+   * A finished report's conversation, rebuilt from the script its entry point
+   * would have run — the transcript a completed report shows when reopened.
+   */
+  const transcript = (): ChatEntry[] => {
+    const out: ChatEntry[] = [];
+    const add = (e: Omit<ChatEntry, "id">) =>
+      out.push({ id: nextId("c"), instant: true, ...e });
+    for (const act of script) {
+      if (act.t === "ai") add({ kind: "ai", text: act.text });
+      if (act.t === "user") add({ kind: "user", text: act.text, cards: act.cards });
+    }
+    add({ kind: "user", pairs: answerPairs(answers) });
+    add({
+      kind: "status",
+      text: "All details collected",
+      state: "ok",
+      headDone: true,
+      expanded: false,
+      steps: [...GEN_STEPS, { label: "Report successfully completed" }],
+    });
+    return out;
+  };
+
+  useEffect(() => {
+    if (saved) setChat(transcript());
+    else run();
+    return () => timers.current.forEach(window.clearTimeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [chat, qIndex, phase, awaitingAudience]);
+
+  /* ---------------- answering ---------------- */
+
+  const answerAudience = (label: string) => {
+    const picked = audienceOptions.find((a) => (AUDIENCE_MENU_LABEL[a] ?? a) === label) ?? label;
+    const pairing = pairingFor(templates, template.name, picked);
+    if (pairing) {
+      setActiveId(pairing.id);
+      setBrandId(pairing.brandId);
+    }
+    setAudience(picked);
+    setAwaitingAudience(false);
+    setPhase("script");
+    push({ kind: "user", text: `This report is meant for: ${label}` });
+    timers.current.push(
+      window.setTimeout(() => {
+        push({
+          kind: "ai",
+          text: "Perfect! For this audience, the template requires you to fill in a few details.",
+        });
+        after(BEAT);
+      }, BEAT)
+    );
+  };
+
+  /** "Save to template": the answer is kept on the legacy template for next time. */
+  const saveAudienceToTemplate = (label: string) => {
+    const picked = audienceOptions.find((a) => (AUDIENCE_MENU_LABEL[a] ?? a) === label) ?? label;
+    updateTemplate(template.id, { audience: picked });
+    toast(`${picked} saved as the audience of ${template.name}`);
+    answerAudience(label);
+  };
+
+  const current = questions[qIndex];
+  const showAudience = awaitingAudience && phase === "questions";
+  const showQuestion = !awaitingAudience && phase === "questions" && Boolean(current);
+  /** Answers by parameter name, so the sheet can show them in the prompts. */
+  const paramValues = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const p of template.parameters) {
+      const v = answers[p.id];
+      if (v) out[p.name] = v;
+    }
+    return out;
+  }, [template.parameters, answers]);
+
+  /** The parameter the open question is about, marked out in the template sheet. */
+  const activeParam = showQuestion
+    ? template.parameters.find((p) => p.id === current.id)?.name
+    : undefined;
+
+  const answerCurrent = (value: string) => {
+    const q = questions[qIndex];
+    setAnswers((a) => ({ ...a, [q.id]: value }));
+    if (q.id === "q-subject") setSubject(value);
+    if (q.id === "q-language" && value && value !== "Something else") setLanguage(value);
+    if (q.id === "q-company" && value) setCompany(value);
+    /* The brand answer is the report's brand, so the page restyles as soon as
+       the question is answered rather than only once the report is written. */
+    if (q.id === "q-brand" && value) {
+      const picked = brands.find((b) => b.name === value);
+      if (picked) setBrandId(picked.id);
+    }
+    /* Between questions the card stays where it is and simply moves on to the
+       next one; only the last answer hands back to the conversation. */
+    if (qIndex + 1 < questions.length) {
+      setQIndex((i) => i + 1);
+      return;
+    }
+    setPhase("script");
+    timers.current.push(
+      window.setTimeout(() => {
+        setQIndex(questions.length);
+        after(BEAT);
+      }, BEAT * 0.7)
+    );
+  };
+
+  /**
+   * Figma STEP 4: the card opens on "All details collected", the time interval
+   * and the sources land one after the other, and the report is written.
+   */
+  /* The report is filed from a timer that was set several renders earlier, so
+     it reads the answers as they are by then, not as they were when it was set. */
+  const latest = useRef({ answers, template, audience, subject, language, company });
+  latest.current = { answers, template, audience, subject, language, company };
+
+  /** Every question in the flow with its answer, in the order they were asked. */
+  const answerPairs = (a: Record<string, string>) =>
+    questions.map((q) => ({ q: q.title, a: a[q.id]?.trim() || "Skipped" }));
+
+  const startGenerating = () => {
+    setQIndex(questions.length);
+    setPhase("generating");
+    /* The answers go up together as one message from the reader, question by
+       question, before the work on the report starts. */
+    push({ kind: "user", pairs: answerPairs(latest.current.answers) });
+    timers.current.push(window.setTimeout(startWork, BEAT));
+  };
+
+  const startWork = () => {
+    push({
+      kind: "status",
+      text: "All details collected",
+      state: "running",
+      headDone: true,
+      steps: [],
+      expanded: true,
+    });
+    const addStep = (ms: number, step: StatusStep) =>
+      timers.current.push(
+        window.setTimeout(
+          () => patchLastStatus((e) => ({ ...e, steps: [...(e.steps ?? []), step] })),
+          ms
+        )
+      );
+    addStep(600, GEN_STEPS[0]);
+    addStep(1500, GEN_STEPS[1]);
+    addStep(2400, { label: "Generating report...", running: true });
+    const t = window.setTimeout(() => {
+      setTitle(reportTitle);
+      setPhase("done");
+      patchLastStatus((e) => ({
+        ...e,
+        state: "ok",
+        steps: (e.steps ?? []).map((st) =>
+          st.running ? { ...st, running: false, label: "Report successfully completed" } : st
+        ),
+      }));
+      toast("Report was successfully completed");
+      const now = latest.current;
+      addReport({
+        id: nextId("r"),
+        headline: reportTitle,
+        templateName: now.template.name,
+        templateAudience: now.audience || now.template.audience || "CISO",
+        createdBy: "Rui Marçalo",
+        createdOn: "Sep 1, 2026",
+        // Kept so the row in "View previous reports" can reopen this report.
+        origin: { ...context, askAudience: false, savedReportId: undefined },
+        subject: now.subject,
+        answers: now.answers,
+        language: now.language,
+        company: now.company,
+      });
+    }, 5000);
+    timers.current.push(t);
+  };
+
+  const sendComposer = () => {
+    if (!composer.trim() || phase !== "done" || applying) return;
+    push({ kind: "user", text: composer.trim() });
+    setComposer("");
+    setApplying(true);
+    push({ kind: "status", text: "Applying changes to report", state: "running", steps: [], expanded: false });
+    const t = window.setTimeout(() => {
+      setApplying(false);
+      patchLastStatus((e) => ({ ...e, text: "Changes applied", state: "ok" }));
+      toast("Report was successfully updated");
+    }, 2200);
+    timers.current.push(t);
+  };
+
+  /* ---------------- Sources / Details regeneration ---------------- *
+   * Figma "Report Builder - Sources" and "- Details": changing a source, the
+   * language or the Company Overview reveals Cancel / Regenerate, and regenerating
+   * puts the document back into its skeleton state while it is rebuilt. */
+
+  const applied = useRef({ sources, language, company });
+
+  const cancelChanges = () => {
+    setSources(applied.current.sources);
+    setLanguage(applied.current.language);
+    setCompany(applied.current.company);
+    setDirty(false);
+  };
+
+  const regenerate = () => {
+    if (regenerating) return;
+    setRegenerating(true);
+    const next = { sources, language, company };
+    const t = window.setTimeout(() => {
+      applied.current = next;
+      setRegenerating(false);
+      setDirty(false);
+      toast("Report was successfully regenerated");
+    }, 2400);
+    timers.current.push(t);
+  };
+
+  const toggleStatus = (id: string) =>
+    setChat((c) => c.map((e) => (e.id === id ? { ...e, expanded: !e.expanded } : e)));
+
+  /* ---------------- render ---------------- */
+
+  const generated = phase === "done";
+  const waiting = !generated && !regenerating && phase !== "generating";
+
+  return (
+    <div className="editor">
+      <div className="editor-top">
+        <Button onClick={closeOverlay}>Close</Button>
+        <div className="editor-title">
+          <span className="truncate">{title}</span>
+        </div>
+        <span className="spacer" />
+        {generated ? (
+          <>
+            <span className="t-body3 light">Edited just now</span>
+            <Button icon="history" title="Version history" />
+            <button
+              ref={exportRef}
+              className="btn primary"
+              onClick={() => setExportMenu((o) => !o)}
+            >
+              <Icon name="export" size={16} />
+              Export
+            </button>
+            {exportMenu && (
+              <Popover anchorRef={exportRef} onClose={() => setExportMenu(false)} align="end" width={228}>
+                <MenuItem
+                  icon="doc"
+                  onClick={() => {
+                    setExportMenu(false);
+                    toast("Exporting as PDF");
+                  }}
+                >
+                  Export as PDF
+                </MenuItem>
+                <MenuItem
+                  icon="doc"
+                  onClick={() => {
+                    setExportMenu(false);
+                    toast("Exporting as DOC");
+                  }}
+                >
+                  Export as DOC
+                </MenuItem>
+                <MenuItem
+                  icon="text"
+                  onClick={() => {
+                    setExportMenu(false);
+                    toast("Copied .MD to clipboard");
+                  }}
+                >
+                  Copy .MD to clipboard
+                </MenuItem>
+              </Popover>
+            )}
+          </>
+        ) : phase === "generating" ? (
+          <>
+            <Button icon="history" title="Version history" />
+            <Button icon="export" disabled>
+              Export
+            </Button>
+          </>
+        ) : (
+          <>
+            <span className="t-body3 light">Edited just now</span>
+            <Button icon="ellipsis" title="More" />
+            <Button variant="primary">Save</Button>
+          </>
+        )}
+      </div>
+
+      <div className="editor-body">
+        <aside className="editor-side wide">
+          <div className="tabs left">
+            <button className={`tab ${tab === "ask" ? "active" : ""}`} onClick={() => setTab("ask")}>
+              <Icon name="sparkle" size={16} />
+              Ask AI
+            </button>
+            {/* Nothing to look at in either until the report exists. */}
+            <button
+              className={`tab ${tab === "sources" ? "active" : ""}`}
+              onClick={() => setTab("sources")}
+              disabled={!generated}
+              title={generated ? undefined : "Available once the report is written"}
+            >
+              <Icon name="link" size={16} />
+              Sources
+            </button>
+            <button
+              className={`tab ${tab === "details" ? "active" : ""}`}
+              onClick={() => setTab("details")}
+              disabled={!generated}
+              title={generated ? undefined : "Available once the report is written"}
+            >
+              <Icon name="details" size={16} />
+              Details
+            </button>
+          </div>
+
+          {tab === "ask" && (
+            <>
+              <div className="side-scroll" ref={scrollRef}>
+                <div className="chat">
+                  {chat.map((e) => (
+                    <ChatBubble key={e.id} entry={e} onToggle={() => toggleStatus(e.id)} />
+                  ))}
+                  {/* Version C (Figma "Elicitation 10"): the question is part of
+                      the conversation, under the message that asked it, and the
+                      message box stays at the bottom, disabled until the flow
+                      is done with it. */}
+                  {showAudience ? (
+                    /* The audience is a step of its own: no counter, nothing to
+                       go back to. */
+                    <ElicitationCard
+                      key="audience"
+                      q={audienceQ}
+                      index={0}
+                      total={0}
+                      pager={false}
+                      onBack={() => {}}
+                      onNext={answerAudience}
+                      onSaveToTemplate={legacyAudience ? saveAudienceToTemplate : undefined}
+                    />
+                  ) : showQuestion ? (
+                    <ElicitationCard
+                      key={current.id}
+                      q={current}
+                      index={qIndex}
+                      total={questions.length}
+                      /* Only the first question draws in; the ones after it
+                         swap in place. */
+                      still={qIndex > 0 || questions[0]?.id in answers}
+                      onBack={() => setQIndex((i) => Math.max(0, i - 1))}
+                      onNext={answerCurrent}
+                    />
+                  ) : null}
+                </div>
+              </div>
+
+              {/* The message box only appears once the report is written: until
+                  then the conversation is driven by the questions in it. */}
+              {generated && (
+              <div className="composer-slot">
+                  <div className={`composer ${generated ? "" : "busy"}`}>
+                    <textarea
+                      placeholder={
+                        generated || phase === "generating"
+                          ? "Write here any changes you\u2019d like to make"
+                          : "What can I do for you?"
+                      }
+                      value={composer}
+                      disabled={!generated}
+                      onChange={(e) => setComposer(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          sendComposer();
+                        }
+                      }}
+                    />
+                    <div className="composer-foot">
+                      <button className="composer-plus" title="Attach">
+                        <Icon name="plus" size={16} />
+                      </button>
+                      {generated && !applying ? (
+                        <button className="send" onClick={sendComposer} title="Send">
+                          <Icon name="arrow-up" size={16} />
+                        </button>
+                      ) : (
+                        /* While the AI is working the control is the stop mark on
+                           its own, with no button behind it. */
+                        <span className="composer-stop" aria-hidden>
+                          <Icon name="stop" size={14} />
+                        </span>
+                      )}
+                    </div>
+                  </div>
+              </div>
+              )}
+            </>
+          )}
+
+          {tab === "sources" && (
+            <SourcesPanel
+              sources={sources}
+              setSources={(next) => {
+                setSources(next);
+                if (generated) setDirty(true);
+              }}
+              context={context}
+              attachedArticles={attachedArticles}
+              insightLabel={insight?.cve}
+            />
+          )}
+
+          {tab === "details" && (
+            <DetailsPanel
+              templateName={`${template.name} - ${template.audience}`}
+              answers={answers}
+              questions={questions}
+              language={language}
+              setLanguage={(v) => {
+                setLanguage(v);
+                if (generated) setDirty(true);
+              }}
+              company={company}
+              setCompany={(v) => {
+                setCompany(v);
+                if (generated) setDirty(true);
+              }}
+              brands={brands}
+              brandId={brandId}
+              setBrandId={setBrandId}
+              onOpenTemplate={() => openTemplateEditor(template.id)}
+            />
+          )}
+
+          {/* Figma: source / language / company changes need a regeneration. */}
+          {generated && dirty && (tab === "sources" || tab === "details") && (
+            <div className="side-foot">
+              <Button onClick={cancelChanges} disabled={regenerating}>
+                Cancel
+              </Button>
+              {regenerating ? (
+                <Button disabled>
+                  <Spinner size={14} />
+                  Regenerating...
+                </Button>
+              ) : (
+                <Button variant="primary" onClick={regenerate}>
+                  Regenerate
+                </Button>
+              )}
+            </div>
+          )}
+        </aside>
+
+        <div className="editor-canvas-wrap">
+          <div className="editor-canvas">
+            <ReportCanvas
+              phase={regenerating ? "generating" : phase}
+              title={reportTitle}
+              template={template}
+              brand={brands.find((b) => b.id === brandId)}
+            />
+          </div>
+
+          {/* The template sheet sits over the page until the report is written. */}
+          {/* Figma: "Template preview is only available after audience selection." */}
+          {waiting && audienceKnown && (
+            <TemplatePreview
+              template={template}
+              activeParam={activeParam}
+              values={paramValues}
+              open={sheetOpen}
+              onToggle={() => setSheetOpen((o) => !o)}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ * Chat entries
+ * ------------------------------------------------------------------ */
+
+function ChatBubble({ entry, onToggle }: { entry: ChatEntry; onToggle: () => void }) {
+  /* Each thing lands with the same short rise; a rebuilt transcript skips it. */
+  const anim = entry.instant ? "" : " chat-in";
+
+  if (entry.kind === "ai") return <div className={`chat-ai${anim}`}>{entry.text}</div>;
+  if (entry.kind === "user")
+    return entry.pairs ? (
+      <div className={`chat-user answers${anim}`}>
+        {entry.pairs.map((pair, i) => (
+          <div className="qa" key={i}>
+            <b>{pair.q}</b>
+            {pair.a}
+          </div>
+        ))}
+      </div>
+    ) : entry.cards && entry.cards.length > 0 ? (
+      /* Figma `ContextCarousel`: what the entry point carried rides under the
+         opening message, scrolling sideways under a fade when it overflows. */
+      <div className={`chat-user-wrap${anim}`}>
+        <div className="chat-user">{entry.text}</div>
+        <div className={`chat-attach ${entry.cards.length > 2 ? "fade" : ""}`}>
+          {entry.cards.map((c) => (
+            <div className="ctx-card" key={c.title}>
+              <Icon name={c.icon} size={16} style={{ color: "var(--content-medium)" }} />
+              <div className="ctx-body">
+                <span className="ctx-title">{c.title}</span>
+                {c.source && (
+                  <span className="ctx-sub">
+                    <span className="ctx-src">{c.source}</span>
+                    {c.age && (
+                      <>
+                        <span className="ctx-dot">•</span>
+                        <span className="ctx-age">{c.age}</span>
+                      </>
+                    )}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    ) : (
+      <div className={`chat-user${anim}`}>{entry.text}</div>
+    );
+  const running = entry.state === "running";
+  const hasSteps = (entry.steps?.length ?? 0) > 0;
+  return (
+    <div className={`status-card${anim}`}>
+      <button className="status-head" onClick={onToggle} disabled={!hasSteps}>
+        {running && !entry.headDone ? (
+          <Spinner size={16} />
+        ) : (
+          <Icon name="check" size={16} style={{ color: "var(--content-bold)" }} />
+        )}
+        <span className="grow">{entry.text}</span>
+        {hasSteps && (
+          <Icon
+            name={entry.expanded ? "chevron-up" : "chevron-down"}
+            size={16}
+            style={{ color: "var(--content-medium)" }}
+          />
+        )}
+      </button>
+      {entry.expanded && hasSteps && (
+        <div className="status-steps">
+          {entry.steps?.map((s, i) => (
+            <div className={`status-step ${s.running ? "running" : ""}`} key={`${s.label}-${i}`}>
+              <div className="row" style={{ gap: 8, alignItems: "flex-start" }}>
+                {/* A step that is waiting on an answer keeps spinning. */}
+                {s.running ? (
+                  <span style={{ marginTop: 2, display: "inline-flex" }}>
+                    <Spinner size={15} />
+                  </span>
+                ) : (
+                  <Icon name="check" size={15} style={{ marginTop: 2 }} />
+                )}
+                <span>{s.label}</span>
+              </div>
+              {s.interval && (
+                <span className="interval-chip">
+                  <Icon name="calendar" size={13} />
+                  {s.interval.from} <span aria-hidden>→</span> {s.interval.to}
+                </span>
+              )}
+              {s.sources && (
+                <div className="found-sources">
+                  {s.sources.map((f) => (
+                    <div className="found-source" key={f.id}>
+                      <span className="fs-dot" style={{ background: f.hue }} />
+                      <span className="fs-title">{f.title}</span>
+                      <span className="fs-src">{f.source}</span>
+                      <span className="fs-age">• {f.age}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ * Elicitation card
+ * ------------------------------------------------------------------ */
+
+function ElicitationCard({
+  q,
+  index,
+  total,
+  onBack,
+  onNext,
+  pager = true,
+  still = false,
+  onSaveToTemplate,
+}: {
+  q: Question;
+  /**
+   * Legacy templates (Figma "Compatibility 2"): the answer can be used for this
+   * report only, or saved to the template as well.
+   */
+  onSaveToTemplate?: (v: string) => void;
+  /** Appear without the draw-in, when it follows another question. */
+  still?: boolean;
+  index: number;
+  /** How many questions the pager counts, for "1 of 3 questions". */
+  total: number;
+  onBack: () => void;
+  onNext: (v: string) => void;
+  /** A standalone question carries no counter and nothing to go back to. */
+  pager?: boolean;
+}) {
+  const [picked, setPicked] = useState<string[]>(q.ticked ?? []);
+  const [text, setText] = useState("");
+  /* Figma "Elicitation interactions": the Other row turns into an input, and
+     what is typed becomes a checked option of its own. */
+  const [otherOpen, setOtherOpen] = useState(false);
+  const [other, setOther] = useState("");
+  const [hovered, setHovered] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPicked(q.ticked ?? []);
+    setText("");
+    setOtherOpen(false);
+    setOther("");
+  }, [q.id]);
+
+  const multi = q.type === "options";
+  const single = q.type === "radio";
+  const chosen = [...picked, ...(other.trim() ? [other.trim()] : [])];
+  const value = multi || single ? chosen.join(", ") : text.trim();
+  const canContinue = q.required ? value.length > 0 : true;
+  const isQuestionLabel = q.label === "Question";
+
+  const toggle = (label: string, on: boolean) => {
+    if (single) {
+      setPicked(on ? [label] : []);
+      setOther("");
+      setOtherOpen(false);
+      return;
+    }
+    setPicked((p) => (on ? [...p, label] : p.filter((x) => x !== label)));
+  };
+
+  return (
+    <div className={`elicit in-chat ${still ? "still" : ""}`}>
+      <div className="elicit-head">
+        <div className="elicit-top">
+          <span
+            className={isQuestionLabel || q.green ? "elicit-tag question" : "elicit-tag"}
+            title={q.tagHelp}
+          >
+            {!isQuestionLabel && <Icon name={q.icon ?? "braces"} size={16} />}
+            {q.label}
+          </span>
+          {!q.noTag && <span className="elicit-req">{q.required ? "Required" : "Optional"}</span>}
+        </div>
+        <div className="elicit-label">
+          <div className="elicit-q">{q.title}</div>
+          {q.help && <div className="elicit-help">{q.help}</div>}
+        </div>
+      </div>
+
+      {multi || single ? (
+        <div className="elicit-opts">
+          {q.options?.map((o) => {
+            const values = TECH_STACK_VALUES[o.label];
+            return (
+              <div
+                className="opt-row"
+                key={o.label}
+                onMouseEnter={() => setHovered(o.label)}
+                onMouseLeave={() => setHovered((h) => (h === o.label ? null : h))}
+              >
+                <label className={`checkbox ${single ? "radio" : ""}`}>
+                  <input
+                    type={single ? "radio" : "checkbox"}
+                    name={`q-${q.id}`}
+                    checked={picked.includes(o.label)}
+                    onChange={(e) => toggle(o.label, e.target.checked)}
+                  />
+                  <span>{o.label}</span>
+                </label>
+                {o.suggested && (
+                  <span className="suggested" title={o.because}>
+                    Suggested
+                  </span>
+                )}
+                {/* Hovering an option shows the Org Profile entries behind it. */}
+                {hovered === o.label && values && (
+                  <div className="opt-card">
+                    <div className="t-body3 muted" style={{ marginBottom: 6 }}>
+                      Org Profile
+                    </div>
+                    <div className="t-body3" style={{ marginBottom: 8 }}>
+                      {values.join(", ")}
+                    </div>
+                    <Button size="sm">View List</Button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {q.allowOther === false ? null : otherOpen || other ? (
+            <div className="opt-row other">
+              <label className={`checkbox ${single ? "radio" : ""}`}>
+                <input
+                  type={single ? "radio" : "checkbox"}
+                  checked={Boolean(other.trim())}
+                  readOnly
+                />
+              </label>
+              <input
+                className="other-input"
+                autoFocus
+                placeholder="Typing in alternative"
+                value={other}
+                onChange={(e) => setOther(e.target.value)}
+                onBlur={() => !other.trim() && setOtherOpen(false)}
+              />
+            </div>
+          ) : (
+            <button
+              className={`opt-other ${single ? "radio" : ""}`}
+              onClick={() => setOtherOpen(true)}
+            >
+              <span className="opt-other-box" />
+              <span>{q.otherLabel ?? "Other (use @ to access Org Profile items)"}</span>
+            </button>
+          )}
+        </div>
+      ) : (
+        <textarea
+          className="textarea elicit-text"
+          rows={3}
+          placeholder={q.placeholder ?? "Write in your answer here"}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+        />
+      )}
+
+      {/* Figma "Elicitation 11": the counter and buttons are back inside the card. */}
+      <div className="elicit-foot">
+        {pager && total > 0 && (
+          <span className="elicit-count">
+            {index + 1} of {total} questions
+          </span>
+        )}
+        <div className="elicit-nav">
+          {pager && index > 0 && <Button onClick={onBack}>Back</Button>}
+          {onSaveToTemplate ? (
+            <>
+              <Button disabled={!canContinue} onClick={() => onNext(value)}>
+                Use for report
+              </Button>
+              <Button
+                variant="primary"
+                disabled={!canContinue}
+                onClick={() => onSaveToTemplate(value)}
+              >
+                Save to template
+              </Button>
+            </>
+          ) : (
+            <Button variant="primary" disabled={!canContinue} onClick={() => onNext(value)}>
+              Continue
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ * Sources
+ * ------------------------------------------------------------------ */
+
+function SourcesPanel({
+  sources,
+  setSources,
+  context,
+  attachedArticles,
+  insightLabel,
+}: {
+  sources: SourceItem[];
+  setSources: (s: SourceItem[]) => void;
+  context: CreateContext;
+  attachedArticles: { id: string; title: string; age: string }[];
+  insightLabel?: string;
+}) {
+  const addRef = useRef<HTMLButtonElement>(null);
+  const [menu, setMenu] = useState(false);
+
+  const attachments =
+    context.path === "articles"
+      ? attachedArticles.map((a) => ({ icon: "feed" as const, title: a.title, sub: `Selected article • ${a.age}` }))
+      : context.path === "insight" && insightLabel
+        ? [{ icon: "bug" as const, title: insightLabel, sub: "Insight card" }]
+        : context.path === "selection"
+          ? (context.cveIds ?? []).map((c) => ({ icon: "bug" as const, title: c, sub: "Selected in Intel Agent" }))
+        : context.path === "broad" && context.contextLabel
+          ? [{ icon: "bug" as const, title: context.contextLabel, sub: "Intel Agent" }]
+          : [];
+
+  return (
+    <div className="side-scroll">
+      <div className="field-label">Attachments</div>
+      <div className="field-help" style={{ marginBottom: 10 }}>
+        Add specific articles or PDFs to enrich the report with any specific sources.
+      </div>
+      {attachments.length > 0 && (
+        <div className="attach-list">
+          {attachments.map((a) => (
+            <div className="attach-row" key={a.title}>
+              <Icon name={a.icon} size={16} style={{ color: "var(--content-medium)" }} />
+              <span className="truncate" style={{ flex: 1, minWidth: 0 }}>
+                {a.title}
+              </span>
+              <span className="t-body3 light">{a.sub}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      <button ref={addRef} className="btn" onClick={() => setMenu(true)}>
+        <Icon name="plus" size={16} />
+        Add article link or PDF
+      </button>
+      {menu && (
+        <Popover anchorRef={addRef} onClose={() => setMenu(false)} width={210}>
+          <MenuItem icon="link" onClick={() => setMenu(false)}>
+            Paste an article link
+          </MenuItem>
+          <MenuItem icon="doc" onClick={() => setMenu(false)}>
+            Upload a PDF
+          </MenuItem>
+        </Popover>
+      )}
+
+      <div className="field-label" style={{ marginTop: 26 }}>
+        Threat Graph
+      </div>
+      <div className="field-help" style={{ marginBottom: 12 }}>
+        Based on your prompt and context, we've identified the most relevant sources in our Threat
+        Graph.
+      </div>
+      <div className="t-body3 muted" style={{ marginBottom: 4 }}>
+        {sources.length} Sources
+      </div>
+      {sources.map((s) => (
+        <div className="src-item" key={s.id}>
+          <input
+            type="checkbox"
+            className="src-check"
+            checked={s.checked}
+            onChange={() =>
+              setSources(sources.map((x) => (x.id === s.id ? { ...x, checked: !x.checked } : x)))
+            }
+          />
+          <div className="src-body">
+            <div className="src-title" title={s.title}>
+              {s.title}
+            </div>
+            <div className="src-meta">
+              {s.kind === "article" ? (
+                <>
+                  <span className="src-favicon" />
+                  <span>{s.source}</span>
+                  {s.age && <span>• {s.age}</span>}
+                </>
+              ) : (
+                <>
+                  {s.kind === "entity" && <Icon name="malware" size={14} />}
+                  <span>{s.tags?.join(" • ")}</span>
+                </>
+              )}
+            </div>
+            {s.kind === "article" && s.tags && (
+              <div className="src-meta">
+                <Icon name="star" size={13} />
+                {s.tags.join(", ")}
+              </div>
+            )}
+            {s.cvss && (
+              <div className="src-meta">
+                <Icon name="bug" size={13} />
+                <span className={s.cvssHigh ? "cvss high" : "cvss"}>{s.cvss}</span>
+                <span>• CWE-693 • Patch</span>
+                {s.exploit && <span className="exploit">• Exploit</span>}
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ * Details
+ * ------------------------------------------------------------------ */
+
+function DetailsPanel({
+  templateName,
+  answers,
+  questions,
+  language,
+  setLanguage,
+  company,
+  setCompany,
+  brands,
+  brandId,
+  setBrandId,
+  onOpenTemplate,
+}: {
+  templateName: string;
+  answers: Record<string, string>;
+  questions: Question[];
+  language: string;
+  setLanguage: (v: string) => void;
+  company: string;
+  setCompany: (v: string) => void;
+  brands: Brand[];
+  brandId?: string;
+  setBrandId: (id: string | undefined) => void;
+  onOpenTemplate: () => void;
+}) {
+  const answered = questions.filter((q) => answers[q.id]);
+
+  return (
+    <div className="side-scroll">
+      <div className="field-label">Template</div>
+      <div className="field-help" style={{ marginBottom: 8 }}>
+        The template used to create this report.
+      </div>
+      <div className="row" style={{ gap: 8 }}>
+        <div className="select block" style={{ flex: 1, color: "var(--content-light)" }}>
+          <span className="truncate">{templateName}</span>
+          <span className="chev">
+            <Icon name="chevron-down" size={16} />
+          </span>
+        </div>
+        <Button icon="arrow-up-right" title="Open template" onClick={onOpenTemplate} />
+      </div>
+
+      {/* Figma "Report Builder Editor 1": what the template handed this report —
+          its parameters and its brand — is boxed together, because both are the
+          template's contribution and both can still be changed here. */}
+      <div className="detail-card">
+        {answered.length > 0 && (
+          <>
+            <div className="field-label" style={{ marginBottom: 10 }}>
+              Parameters
+            </div>
+            {answered.map((q) => (
+              <div key={q.id} style={{ marginBottom: 14 }}>
+                <span className="elicit-tag" style={{ marginBottom: 4 }}>
+                  <Icon name="braces" size={14} />
+                  {q.label}
+                </span>
+                <div className="t-body2" style={{ marginTop: 4 }}>
+                  {answers[q.id]}
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+
+        <div className="field-label">Brand</div>
+        <div className="field-help" style={{ margin: "4px 0 8px" }}>
+          The brand style applied to your report. Brands are saved in the Org Profile.
+        </div>
+        <BrandPicker brands={brands} brandId={brandId} onPick={setBrandId} />
+      </div>
+
+      <div style={{ height: 1, background: "var(--border-lightest)", margin: "22px 0" }} />
+
+      <Field
+        label="Language"
+        help="The language this report was written on. Changing languages will require regeneration."
+      >
+        <Select block value={language} options={LANGUAGES} onChange={setLanguage} />
+      </Field>
+      <Field
+        label="Company Overview"
+        help="Your organization's details, sector and profile — used to assess your specific exposure. Changing the Company Overview will require regeneration."
+      >
+        <Select block value={company} options={COMPANIES} onChange={setCompany} />
+      </Field>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ * Report canvas
+ * ------------------------------------------------------------------ */
+
+function ReportCanvas({
+  phase,
+  title,
+  template,
+  brand,
+}: {
+  phase: Phase;
+  title: string;
+  template: Template;
+  brand?: Brand;
+}) {
+  const generated = phase === "done";
+  const generating = phase === "generating";
+  /* The bands are the template's, carried into every report it writes. Here
+     they are not editable — the report shows what the template set.
+
+     They arrive with the finished report rather than with the skeleton: a cover
+     banner and a wordmark over a page of grey bars reads as a broken document,
+     and the branding is part of the result, not part of the waiting. */
+  const header = generated ? (template.header ?? EMPTY_BAND) : EMPTY_BAND;
+  const footer = generated ? (template.footer ?? EMPTY_BAND) : EMPTY_BAND;
+
+  return (
+    /* Figma: the document sits in a page inset 32px from the canvas, and the
+       skeleton is there from the moment the editor opens. */
+    <div className="report-page" style={{ ...brandVars(brand), ...bandVars(header, footer, brand) }}>
+      <PageBandEditor kind="header" band={header} brand={brand} mode="plain" onChange={() => {}} />
+      {generated ? (
+        <ReportBody title={title} template={template} />
+      ) : (
+        /* Version D keeps the original loading skeleton (as in A and B) while the
+           questions are open, to compare against C's waiting card. */
+        <SkeletonReport streaming={generating} title={title} template={template} />
+      )}
+
+      <PageBandEditor kind="footer" band={footer} brand={brand} mode="plain" onChange={() => {}} />
+    </div>
+  );
+}
+
+/**
+ * The template as it will be filled in — Figma's `TemplatePreview`, 720 wide and
+ * centred over the page, with each block's prompt shown as written.
+ *
+ * It behaves as a sheet: it runs from near the top of the canvas to the bottom
+ * edge of the screen, and `Hide` drops it out of the way, leaving its header
+ * pinned to the bottom until `Show` pulls it back up.
+ */
+function TemplatePreview({
+  template,
+  activeParam,
+  values,
+  open,
+  onToggle,
+}: {
+  template: Template;
+  /** Marked out in the prompts, and scrolled to when it is asked about. */
+  activeParam?: string;
+  /** Answers so far, shown in place of the parameter they fill. */
+  values?: Record<string, string>;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  /* How far down the sheet drops when hidden: everything but its header. */
+  const headRef = useRef<HTMLDivElement>(null);
+  const [headH, setHeadH] = useState(57);
+  useEffect(() => {
+    if (headRef.current) setHeadH(headRef.current.offsetHeight);
+  }, [template.name, template.audience]);
+
+  /**
+   * When the whole template already fits, there is nothing to scroll and no way
+   * to tell the sheet would scroll if it had to. So a scroll gesture pulls the
+   * template down a little and it settles back into place.
+   */
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const [fits, setFits] = useState(true);
+  const [pull, setPull] = useState(0);
+  const settle = useRef<number | undefined>(undefined);
+
+  useEffect(() => {
+    const body = bodyRef.current;
+    const inner = innerRef.current;
+    if (!body || !inner) return;
+    const measure = () => setFits(inner.offsetHeight <= body.clientHeight + 1);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(body);
+    ro.observe(inner);
+    return () => ro.disconnect();
+  }, [template.id, open]);
+
+  useEffect(() => () => window.clearTimeout(settle.current), []);
+
+  /* Bring the parameter being asked about into view, if it is not already. */
+  useEffect(() => {
+    if (!activeParam || !open) return;
+    const body = bodyRef.current;
+    const chip = body?.querySelector<HTMLElement>(".param-chip.on");
+    if (!body || !chip) return;
+    const b = body.getBoundingClientRect();
+    const c = chip.getBoundingClientRect();
+    if (c.top >= b.top + 12 && c.bottom <= b.bottom - 12) return;
+    const delta = c.top - b.top - (b.height - c.height) / 2;
+    body.scrollTo({ top: body.scrollTop + delta, behavior: "smooth" });
+  }, [activeParam, open]);
+
+  const springBack = (delta: number) => {
+    if (!fits || delta <= 0) return;
+    setPull(28);
+    window.clearTimeout(settle.current);
+    settle.current = window.setTimeout(() => setPull(0), 260);
+  };
+
+  return (
+    <div
+      className={`template-preview ${open ? "open" : "hidden"}`}
+      style={{ "--tp-head": `${headH}px` } as CSSProperties}
+    >
+      {/* Figma "new template card" (3580:128974). The whole header is the
+          handle: click anywhere on it to raise or lower the sheet. The
+          Show / Hide template button stays as the visible cue. */}
+      <div
+        className="tp-head"
+        ref={headRef}
+        role="button"
+        tabIndex={0}
+        aria-expanded={open}
+        aria-label={`${open ? "Hide" : "Show"} template: ${template.name}`}
+        onClick={onToggle}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onToggle();
+          }
+        }}
+      >
+        <span className="tp-name">{template.name}</span>
+        {template.audience && <span className="badge">{template.audience}</span>}
+        <span className="spacer" />
+        <span className="tp-toggle" aria-hidden="true">
+          {open ? "Hide template" : "Show template"}
+        </span>
+      </div>
+      {/* Figma "TopBanner" (3580:128974): read-only notice under the header. */}
+      <div className="tp-banner">
+        <Icon name="info" size={24} />
+        <span>
+Templates cannot be edited during report creation.
+        </span>
+      </div>
+      <div
+        className="tp-body"
+        ref={bodyRef}
+        onWheel={(e) => springBack(e.deltaY)}
+        onTouchMove={() => springBack(1)}
+      >
+        <div
+          className="tp-inner"
+          ref={innerRef}
+          style={pull ? ({ transform: `translateY(${pull}px)` } as CSSProperties) : undefined}
+        >
+          <h1>Report title</h1>
+          {template.blocks.map((b) => (
+            <div className="tp-block" key={b.id}>
+              <h2>{b.heading}</h2>
+              {b.prompts.map((prompt, i) => (
+                <div className="tp-prompt" key={i}>
+                  <PromptText text={prompt} highlight={activeParam} values={values} />
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Widths (as a share of the 784-wide content column) taken from the Figma skeleton. */
+const SKELETON_GROUPS: { head: string; lines: string[] }[] = [
+  { head: "47%", lines: ["22%", "22%"] },
+  { head: "47%", lines: ["85%", "82%", "78%", "85%", "70%"] },
+  { head: "37%", lines: ["69%", "66%", "62%", "69%", "56%"] },
+  { head: "47%", lines: ["85%", "82%", "78%", "85%", "70%"] },
+  { head: "23%", lines: ["100%", "96%", "92%", "99%", "84%"] },
+  { head: "33%", lines: ["78%", "75%", "71%", "78%", "64%"] },
+  { head: "47%", lines: ["85%", "82%", "78%", "85%", "70%"] },
+];
+
+function SkeletonReport({
+  streaming,
+  still,
+  title,
+  template,
+}: {
+  streaming: boolean;
+  /** Version D: waiting on answers, not writing, so the bars don't shimmer. */
+  still?: boolean;
+  title: string;
+  template: Template;
+}) {
+  /* While the report is being written, the part that exists is real and the
+     rest is still skeleton — Figma's "Generating new report" frame. */
+  const written = streaming ? 2 : 0;
+  return (
+    <>
+      {streaming && (
+        <ReportBody title={title} template={template} sections={1} />
+      )}
+      <div className={`skeleton-doc ${still ? "still" : ""}`}>
+        {SKELETON_GROUPS.slice(written).map((g, i) => (
+          <div className="skeleton-group" key={i}>
+            <div className="skeleton head" style={{ width: g.head }} />
+            {g.lines.map((w, j) => (
+              <div className="skeleton" key={j} style={{ width: w }} />
+            ))}
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function ReportBody({
+  title,
+  template,
+  sections,
+}: {
+  title: string;
+  template: Template;
+  /** Render only the first n sections, while the rest is still being written. */
+  sections?: number;
+}) {
+  /* Fixed, exactly as the Figma frames carry it — the date does not follow the
+     clock and the distribution line does not follow the template. */
+  const meta = REPORT_META;
+
+  /* The Vulnerability Advisory is the worked example the Figma frames carry —
+     tables, steps and citations. Everything else renders its prose body
+     through the same document. */
+  const nodes = useMemo(() => {
+    const body = REPORT_BODIES[template.name];
+    const all = body ? proseDoc(body) : VULN_ADVISORY_DOC;
+    if (!sections) return all;
+    /* Cut at the nth heading, so a half-written report stops on a section. */
+    let seen = 0;
+    const out: DocNode[] = [];
+    for (const n of all) {
+      if (n.k === "h2") {
+        seen += 1;
+        if (seen > sections) break;
+      }
+      out.push(n);
+    }
+    return out;
+  }, [template.name, sections]);
+
+  return (
+    <div className="report-doc">
+      <ReportDocument
+        key={`${template.id}-${sections ?? "all"}`}
+        title={title}
+        meta={meta}
+        nodes={nodes}
+        editable={!sections}
+      />
+    </div>
+  );
+}

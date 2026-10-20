@@ -4461,3 +4461,270 @@ select {
   max-height: calc(100vh - 140px);
   overflow-y: auto;
 }
+
+/* =====================================================================
+   Waiting on answers (versions C and D): the report skeleton holds still
+   and a grey-scale skeleton of the elicitation card, laid out like Figma's
+   ElicitationComponent, plays out being answered on a loop. The shimmer is
+   kept for when the report is really being written.
+   One 4.2s cycle: idle, select an option, press Continue, check, reset.
+   ===================================================================== */
+.skeleton-doc.still .skeleton {
+  animation: none;
+  background-image: none;
+  /* Lighter than the writing skeleton, so it sits back behind the card. */
+  background-color: #f5f5f5;
+}
+/* The layer covers the page, and the card inside it sticks in the middle of
+   what shows above the template sheet's header. */
+.wait-overlay {
+  position: absolute;
+  inset: 0;
+  /* Above the still skeleton, but under the template sheet when it opens. */
+  z-index: 0;
+  pointer-events: none;
+}
+.wait-anim {
+  position: sticky;
+  top: 0;
+  height: calc(100vh - 56px - 64px - 72px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  animation: wait-anim-in 560ms cubic-bezier(0.16, 0.84, 0.24, 1) 240ms both;
+}
+/* A white halo, so the card and its line read clearly over the bars. */
+.wait-anim::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 600px;
+  height: 460px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(closest-side, var(--bg-lightest) 62%, transparent);
+  z-index: -1;
+}
+@keyframes wait-anim-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Figma `ElicitationComponent` (3865:248970): 368 wide, 12px radius, the
+   lightest shadow; header, inputs and footer 16px apart. */
+.wa-card {
+  width: 368px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-giant);
+  background: var(--bg-lightest);
+  box-shadow: var(--shadow-lightest);
+}
+.wa-bar {
+  display: block;
+  border-radius: 4px;
+  background: var(--skeleton-base);
+}
+/* A text line keeps its line height, so the bars sit where the words would. */
+.wa-line {
+  display: flex;
+  align-items: center;
+}
+.wa-line.l24 { height: 24px; }
+.wa-line.l20 { height: 20px; }
+.wa-line.l16 { height: 16px; }
+.wa-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 12px 0;
+}
+.wa-top {
+  display: flex;
+  align-items: center;
+  height: 24px;
+}
+/* The badge: one plain bar, like the rest of the card. */
+.wa-badge {
+  width: 56px;
+  height: 14px;
+  /* Tinted like the parameter badges on the real card. */
+  background: var(--info-medium);
+}
+.wa-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.wa-title {
+  width: 264px;
+  height: 12px;
+}
+.wa-help {
+  width: 196px;
+  height: 8px;
+}
+.wa-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 8px 12px;
+}
+.wa-opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* The single-choice control, as the app draws it: a 16px ring that fills in
+   to a thick border around a white centre once chosen. */
+.wa-radio {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 1px solid var(--border-light);
+  background: var(--bg-lightest);
+}
+.wa-opt-text {
+  height: 10px;
+}
+.wa-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 12px 12px;
+}
+/* Continue: 32 tall, 12px side padding, 6px radius. */
+.wa-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 32px;
+  padding: 2px 12px;
+  border-radius: var(--radius-complementary);
+  background: var(--bg-accent);
+}
+.wa-btn-label {
+  width: 62px;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.7);
+}
+.wa-btn-check {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 16px;
+  height: 16px;
+}
+.wa-btn-check path {
+  fill: none;
+  stroke: var(--bg-lightest);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.wa-msg {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--content-light);
+}
+
+/* The dots after the message come in one by one, then clear and start over.
+   They keep their space while hidden, so the line never shifts. */
+.wa-dots span {
+  opacity: 0;
+  animation: wa-dot 1.8s steps(1, end) infinite;
+}
+.wa-dots span:nth-child(2) {
+  animation-name: wa-dot-2;
+}
+.wa-dots span:nth-child(3) {
+  animation-name: wa-dot-3;
+}
+@keyframes wa-dot {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  85% { opacity: 0; }
+}
+@keyframes wa-dot-2 {
+  0% { opacity: 0; }
+  40% { opacity: 1; }
+  85% { opacity: 0; }
+}
+@keyframes wa-dot-3 {
+  0% { opacity: 0; }
+  60% { opacity: 1; }
+  85% { opacity: 0; }
+}
+
+/* The loop. Every part runs on the same cycle so the steps stay in step. */
+.wa-opt.pick .wa-radio {
+  animation: wa-radio 4.2s ease-in-out infinite;
+}
+.wa-opt.pick .wa-opt-text {
+  animation: wa-opt-text 4.2s ease-in-out infinite;
+}
+.wa-btn {
+  animation: wa-btn 4.2s ease-in-out infinite;
+}
+.wa-btn-label {
+  animation: wa-btn-label 4.2s ease-in-out infinite;
+}
+.wa-btn-check path {
+  stroke-dasharray: 14;
+  animation: wa-btn-check 4.2s ease-in-out infinite;
+}
+@keyframes wa-radio {
+  0%, 20% { border-width: 1px; border-color: var(--border-light); transform: scale(1); }
+  23% { border-width: 1px; border-color: var(--border-medium); transform: scale(0.85); }
+  28%, 86% { border-width: 5px; border-color: var(--border-medium); transform: scale(1); }
+  94%, 100% { border-width: 1px; border-color: var(--border-light); transform: scale(1); }
+}
+@keyframes wa-opt-text {
+  0%, 20% { background: var(--skeleton-base); }
+  27%, 86% { background: var(--bg-medium); }
+  94%, 100% { background: var(--skeleton-base); }
+}
+@keyframes wa-btn {
+  0%, 44% { background: var(--bg-accent); transform: scale(1); }
+  49% { background: var(--bg-accent-hover); transform: scale(0.92); }
+  55%, 100% { background: var(--bg-accent); transform: scale(1); }
+}
+@keyframes wa-btn-label {
+  0%, 50% { opacity: 1; }
+  55%, 88% { opacity: 0; }
+  96%, 100% { opacity: 1; }
+}
+@keyframes wa-btn-check {
+  0%, 54% { stroke-dashoffset: 14; opacity: 1; }
+  63%, 86% { stroke-dashoffset: 0; opacity: 1; }
+  92% { stroke-dashoffset: 0; opacity: 0; }
+  100% { stroke-dashoffset: 14; opacity: 0; }
+}
+/* Without motion, the card holds the answered moment. */
+@media (prefers-reduced-motion: reduce) {
+  .wa-dots span {
+    animation: none;
+    opacity: 1;
+  }
+  .wait-anim,
+  .wa-opt.pick .wa-radio,
+  .wa-opt.pick .wa-opt-text,
+  .wa-btn,
+  .wa-btn-label,
+  .wa-btn-check path {
+    animation: none;
+  }
+  .wa-opt.pick .wa-radio { border-width: 5px; border-color: var(--border-medium); }
+  .wa-btn-check path { stroke-dashoffset: 14; }
+}

@@ -20,7 +20,7 @@ reference their assets relatively, so the site works at
 `https://<user>.github.io/RB-Test/`. `.nojekyll` keeps Pages from running the
 files through Jekyll.
 
-## Three versions: A (locked), B and C
+## Four versions: A (locked), B, C and D
 
 The prototype runs as two parallel versions, switched from the org menu
 ("ACME North America", top left):
@@ -30,14 +30,22 @@ The prototype runs as two parallel versions, switched from the org menu
   is frozen, and the git tag `version-a-locked` marks the point it was frozen.
 - **Version B** is served from `b/`, built from `source-b/`: the revised
   create-report flow with audience picked before the template (audience
-  pre-selection) and parameters as one flat list (Option A).
+  pre-selection) and parameters as one flat list (Option A). The questions sit in the conversation, and the
+  message box only appears once the report is written, as in C.
 - **Version C** is served from `c/`, built from `source-c/`: the same flow with
   the audience asked during elicitation and topic parameters kept apart from
-  general ones (Option B).
+  general ones (Option B). While the questions are open, the report skeleton holds still
+  and a looping, grey-scale skeleton of the elicitation card being answered
+  fades in over it, above "Waiting for your answers...".
 
 Each build knows which version it is through the `VITE_VARIANT` environment
 variable, which the org menu uses to show the current version and link to the
 other one.
+
+- **Version D** is served from `d/`, built from `source-d/`: the same flow as
+  C, but while the questions are open the report page shows the original
+  shimmering loading skeleton (as in A and B) instead of C's waiting card, so
+  the two can be compared.
 
 ## Working on B or C (same steps in `source-c`, with `VITE_VARIANT=C` and `../c`)
 

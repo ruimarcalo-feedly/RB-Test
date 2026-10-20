@@ -19,6 +19,7 @@ import { audiencesFor, pairingFor } from "../../data/templateFamily";
 import { EMPTY_BAND, bandVars, brandVars, type Brand } from "../../data/brand";
 import { PageBandEditor } from "../editor/PageBandEditor";
 import { ReportDocument } from "./ReportDocument";
+import { WaitAnimation } from "./WaitAnimation";
 import { VULN_ADVISORY_DOC, proseDoc, type DocNode } from "../../data/reportDoc";
 import {
   ARTICLES,
@@ -1478,7 +1479,14 @@ function ReportCanvas({
       {generated ? (
         <ReportBody title={title} template={template} />
       ) : (
-        <SkeletonReport streaming={generating} title={title} template={template} />
+        generating ? (
+          <SkeletonReport streaming title={title} template={template} />
+        ) : (
+          /* Nothing is being written while the questions are open, so the
+             page stays empty apart from the card that shows what it is
+             waiting on. */
+          <WaitAnimation />
+        )
       )}
 
       <PageBandEditor kind="footer" band={footer} brand={brand} mode="plain" onChange={() => {}} />
@@ -1639,10 +1647,13 @@ const SKELETON_GROUPS: { head: string; lines: string[] }[] = [
 
 function SkeletonReport({
   streaming,
+  still,
   title,
   template,
 }: {
   streaming: boolean;
+  /** Waiting on answers, not writing, so the bars don't shimmer. */
+  still?: boolean;
   title: string;
   template: Template;
 }) {
@@ -1654,7 +1665,7 @@ function SkeletonReport({
       {streaming && (
         <ReportBody title={title} template={template} sections={1} />
       )}
-      <div className="skeleton-doc">
+      <div className={`skeleton-doc ${still ? "still" : ""}`}>
         {SKELETON_GROUPS.slice(written).map((g, i) => (
           <div className="skeleton-group" key={i}>
             <div className="skeleton head" style={{ width: g.head }} />
