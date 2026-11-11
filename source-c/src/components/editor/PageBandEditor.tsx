@@ -1,6 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Icon } from "../ui/Icon";
 import { Button, Modal, Popover, MenuItem } from "../ui/primitives";
+import { BackgroundPopover } from "./BandBackground";
+import { ImageSource } from "./ImageSource";
 import {
   BUILDING_BLOCKS,
   dragLabel,
@@ -69,11 +72,27 @@ export function PageBandEditor({
   active,
   onActivate,
   onChange,
+  objects,
+  tagLabel,
+  onTagMenu,
+  always,
 }: {
   kind: "header" | "footer";
   band: PageBand;
   brand?: Brand;
   mode: BandMode;
+  /**
+   * Version C: the band is a saved object of its own, edited on the report.
+   * Its toolbar is the Figma "Beginner's Flow" one (Background, Cover only),
+   * and its tag carries the object's name and a menu.
+   */
+  objects?: boolean;
+  /** The name on the tag while the band is selected (Version C). */
+  tagLabel?: string;
+  /** Opens the object's menu from the tag's "···" (Version C). */
+  onTagMenu?: (anchor: HTMLElement) => void;
+  /** Draw the band even when it only has a colour (thumbnails). */
+  always?: boolean;
   /** The band being worked on — outlined in accent and labelled to match. */
   active?: boolean;
   onActivate?: () => void;
@@ -99,12 +118,15 @@ export function PageBandEditor({
   };
   const scopeRef = useRef<HTMLButtonElement>(null);
   const bgRef = useRef<HTMLButtonElement>(null);
+  const [bgPanel, setBgPanel] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
 
   /* Deselecting a band takes its toolbar away, so its menus go with it. */
   useEffect(() => {
     if (!active) {
       setScopeOpen(false);
       setBgOpen(false);
+      setBgPanel(false);
     }
   }, [active]);
 
@@ -112,7 +134,7 @@ export function PageBandEditor({
   const filled = SLOTS.some((s) => band[s]);
   /* An empty band in the report is nothing at all — the slots and their dashed
      outlines are an editing affordance, not part of the document. */
-  if (mode === "plain" && !filled && !image) return null;
+  if (mode === "plain" && !filled && !image && !always) return null;
 
   const set = (patch: Partial<PageBand>) => onChange({ ...band, ...patch });
   const setSlot = (slot: SlotKey, el: BandElement | null) => onChange({ ...band, [slot]: el });
@@ -136,12 +158,25 @@ export function PageBandEditor({
 
   return (
     <div
-      className={`band-wrap ${kind} ${mode} ${active ? "active" : ""}`}
+      ref={wrapRef}
+      className={`band-wrap ${kind} ${mode} ${active ? "active" : ""} ${objects ? "objects" : ""}`}
       onClick={mode === "plain" ? undefined : onActivate}
     >
       {/* The toolbar belongs to the band you are editing, not to both at once,
           so it only appears once this band is selected. */}
-      {editable && active && (
+      {editable && active && objects && (
+        <ObjectsToolbar
+          bandRef={wrapRef}
+          kind={kind}
+          band={band}
+          hasImage={Boolean(image)}
+          scopeRef={scopeRef}
+          bgRef={bgRef}
+          onScope={() => setScopeOpen((o) => !o)}
+          onBackground={() => setBgPanel((o) => !o)}
+        />
+      )}
+      {editable && active && !objects && (
         <BandToolbar
           kind={kind}
           band={band}
@@ -282,11 +317,46 @@ export function PageBandEditor({
         )}
       </div>
 
+      {/* Version C: the band's inner edge (the bottom of a header, the top of
+          a footer) drags to resize it. */}
+      {editable && objects && (
+        <BandResizer
+          kind={kind}
+          wrapRef={wrapRef}
+          onResize={(h) => {
+            onActivate?.();
+            set({ height: h });
+          }}
+        />
+      )}
+
       {mode !== "plain" && (
         <span className="band-tag">
-          {kind === "header" ? "Header" : "Footer"}
+          {objects && active && tagLabel ? tagLabel : kind === "header" ? "Header" : "Footer"}
           {band.scope === "all" && <span className="bt-scope"> · All pages</span>}
+          {objects && active && onTagMenu && (
+            <button
+              className="bt-menu"
+              title="More"
+              onClick={(e) => {
+                e.stopPropagation();
+                onTagMenu(e.currentTarget);
+              }}
+            >
+              <Icon name="ellipsis" size={14} />
+            </button>
+          )}
         </span>
+      )}
+
+      {bgPanel && (
+        <BackgroundPopover
+          anchorRef={bgRef}
+          band={band}
+          brand={brand}
+          onClose={() => setBgPanel(false)}
+          onChange={(patch) => set(patch)}
+        />
       )}
 
       {/* ---------------- The slot's own menu ---------------- */}
@@ -456,6 +526,79 @@ function BandToolbar({
   );
 }
 
+/**
+ * Version C's toolbar (Figma "Beginner's Flow" 4–7): the band's background,
+ * colour or image, behind one button, and which pages the band runs on.
+ */
+function ObjectsToolbar({
+  bandRef,
+  kind,
+  band,
+  hasImage,
+  scopeRef,
+  bgRef,
+  onScope,
+  onBackground,
+}: {
+  bandRef: React.RefObject<HTMLDivElement | null>;
+  kind: "header" | "footer";
+  band: PageBand;
+  hasImage: boolean;
+  scopeRef: React.RefObject<HTMLButtonElement | null>;
+  bgRef: React.RefObject<HTMLButtonElement | null>;
+  onScope: () => void;
+  onBackground: () => void;
+}) {
+  /* It floats over everything, the editor's top bar included, so it is drawn
+     at the window's level and follows the band as the page scrolls: 4px
+     above the header, 4px below the footer. */
+  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+  useLayoutEffect(() => {
+    let raf = 0;
+    const place = () => {
+      const b = bandRef.current?.querySelector(".band")?.getBoundingClientRect();
+      const t = ref.current;
+      if (b && t) {
+        const left = b.left + b.width / 2 - t.offsetWidth / 2;
+        const top = kind === "header" ? b.top - t.offsetHeight - 4 : b.bottom + 4;
+        setPos((p) => (p && p.left === left && p.top === top ? p : { left, top }));
+      }
+      raf = requestAnimationFrame(place);
+    };
+    place();
+    return () => cancelAnimationFrame(raf);
+  }, [bandRef, kind]);
+
+  return createPortal(
+    <div
+      ref={ref}
+      className={`band-toolbar objects floating ${kind}`}
+      style={pos ? { left: pos.left, top: pos.top } : { visibility: "hidden" }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <button ref={bgRef} className="btb-btn label" onClick={onBackground}>
+        {hasImage ? (
+          <Icon name="image" size={16} />
+        ) : (
+          <span
+            className={`btb-swatch sm ${band.background === "transparent" ? "transparent" : ""}`}
+            style={band.background === "transparent" ? undefined : { background: band.background }}
+          />
+        )}
+        Background
+        <Icon name="chevron-down" size={14} />
+      </button>
+      <span className="btb-div" />
+      <button ref={scopeRef} className="btb-btn label" onClick={onScope}>
+        {band.scope === "cover" ? "Cover only" : "All pages"}
+        <Icon name="chevron-down" size={14} />
+      </button>
+    </div>,
+    document.body
+  );
+}
+
 /* ------------------------------------------------------------------ *
  * One element in a slot
  * ------------------------------------------------------------------ */
@@ -481,6 +624,9 @@ function BandElementView({
   const fileRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLSpanElement>(null);
   const tlpRef = useRef<HTMLButtonElement>(null);
+  /* Version C: an image slot picks from an upload or the brand's assets. */
+  const imgRef = useRef<HTMLButtonElement>(null);
+  const [imgPick, setImgPick] = useState(false);
   const [tlpMenu, setTlpMenu] = useState(false);
 
   /* A TLP badge is one of four ratings, so placing one asks which straight
@@ -524,8 +670,15 @@ function BandElementView({
         return el.src ? (
           <img className="be-image" src={el.src} alt="" />
         ) : (
-          <button className="be-placeholder as-button" onClick={() => fileRef.current?.click()}>
-            <Icon name="image" size={16} /> Upload image
+          <button
+            ref={imgRef}
+            className="be-placeholder as-button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setImgPick((o) => !o);
+            }}
+          >
+            <Icon name="image" size={16} /> Add image
           </button>
         );
 
@@ -608,6 +761,23 @@ function BandElementView({
           </div>
         </Popover>
       )}
+      {el.kind === "image" && imgPick && (
+        <Popover anchorRef={imgRef} onClose={() => setImgPick(false)} width={264} className="menu bgp">
+          <div className="bgp-body">
+            <ImageSource
+              brand={brand}
+              onFile={(src) => {
+                onChange({ ...el, src });
+                setImgPick(false);
+              }}
+              onAsset={(a) => {
+                onChange({ ...el, src: a.src });
+                setImgPick(false);
+              }}
+            />
+          </div>
+        </Popover>
+      )}
       {el.kind === "image" && (
         <input
           ref={fileRef}
@@ -657,19 +827,6 @@ function BackgroundDialog({
   /* An asset is applied by id, so the band follows the brand rather than
      keeping a copy of whichever image was current when it was chosen. */
   const [assetId, setAssetId] = useState<string | null>(null);
-  const [over, setOver] = useState(false);
-  const input = useRef<HTMLInputElement>(null);
-
-  const read = (f: File | undefined) => {
-    if (!f) return;
-    const r = new FileReader();
-    r.onload = () => {
-      setAssetId(null);
-      setSrc(String(r.result));
-    };
-    r.readAsDataURL(f);
-  };
-
   return (
     <Modal
       title="Upload background image"
@@ -688,54 +845,66 @@ function BackgroundDialog({
         </>
       }
     >
-      {src ? (
-        <img className="bg-preview" src={src} alt="" />
-      ) : (
-        <div
-          className={`dropzone ${over ? "over" : ""}`}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setOver(true);
-          }}
-          onDragLeave={() => setOver(false)}
-          onDrop={(e) => {
-            e.preventDefault();
-            setOver(false);
-            read(e.dataTransfer.files[0]);
-          }}
-        >
-          <Icon name="image" size={24} style={{ color: "var(--content-light)" }} />
-          <div className="t-body3 muted">Drag and drop or</div>
-          <Button onClick={() => input.current?.click()}>Upload Image</Button>
-          <input
-            ref={input}
-            type="file"
-            accept="image/png,image/jpeg,image/gif"
-            hidden
-            onChange={(e) => read(e.target.files?.[0])}
-          />
-        </div>
-      )}
+      {src && <img className="bg-preview" src={src} alt="" />}
+      {/* Version C: drag and drop or upload, then the brand's assets. */}
+      <ImageSource
+        brand={brand}
+        selectedAssetId={assetId ?? undefined}
+        onFile={(data) => {
+          setAssetId(null);
+          setSrc(data);
+        }}
+        onAsset={(a) => {
+          setAssetId(a.id);
+          setSrc(a.src);
+        }}
+      />
       <div className="field-help" style={{ marginTop: 8 }}>
         Use a 1200px width image for best results. Supported files PNG, JPG, GIF, 1 MB max.
       </div>
-      {/* The brand's own imagery is the usual answer, and picking it here keeps
-          the band tied to the brand rather than to this particular file. */}
-      {(brand?.assets ?? []).map((a) => (
-        <button
-          key={a.id}
-          className={`bg-preset ${assetId === a.id ? "on" : ""}`}
-          onClick={() => {
-            setAssetId(a.id);
-            setSrc(a.src);
-          }}
-        >
-          <img src={a.src} alt="" />
-          <span>
-            Use {brand?.name}&rsquo;s {a.name.toLowerCase()}
-          </span>
-        </button>
-      ))}
     </Modal>
+  );
+}
+
+/** The drag handle along a band's inner edge. */
+function BandResizer({
+  kind,
+  wrapRef,
+  onResize,
+}: {
+  kind: "header" | "footer";
+  wrapRef: React.RefObject<HTMLDivElement | null>;
+  onResize: (h: number) => void;
+}) {
+  const [dragging, setDragging] = useState(false);
+  return (
+    <div
+      className={`band-resize ${kind} ${dragging ? "dragging" : ""}`}
+      title="Drag to resize"
+      onClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => {
+        const bandEl = wrapRef.current?.querySelector(".band") as HTMLElement | null;
+        if (!bandEl) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const el = e.currentTarget;
+        el.setPointerCapture(e.pointerId);
+        const startY = e.clientY;
+        const startH = bandEl.getBoundingClientRect().height;
+        setDragging(true);
+        const move = (ev: PointerEvent) => {
+          const dy = ev.clientY - startY;
+          const h = kind === "header" ? startH + dy : startH - dy;
+          onResize(Math.round(Math.min(280, Math.max(40, h))));
+        };
+        const up = () => {
+          setDragging(false);
+          el.removeEventListener("pointermove", move);
+          el.removeEventListener("pointerup", up);
+        };
+        el.addEventListener("pointermove", move);
+        el.addEventListener("pointerup", up);
+      }}
+    />
   );
 }

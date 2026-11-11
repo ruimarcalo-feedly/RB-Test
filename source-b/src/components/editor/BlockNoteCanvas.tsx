@@ -72,7 +72,9 @@ export function toDocument(title: string, blocks: Block[]): TemplateBlock[] {
     { type: "heading", props: { level: 1 }, content: title },
   ];
   for (const b of blocks) {
-    doc.push({ type: "heading", props: { level: 2 }, content: b.heading });
+    /* A section without a heading sits straight under the title, as the
+       "Dates Covered" line does in the Periodic Threat Briefing. */
+    if (b.heading) doc.push({ type: "heading", props: { level: 2 }, content: b.heading });
     for (const p of b.prompts) {
       doc.push({ type: "prompt", content: promptToInline(p) });
     }

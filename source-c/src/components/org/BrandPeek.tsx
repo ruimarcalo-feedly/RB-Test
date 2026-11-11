@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { Icon } from "../ui/Icon";
 import { Button, Select, layerStack } from "../ui/primitives";
 import { ColorField } from "../ui/ColorField";
+import { BrandBandPreview } from "./BrandBands";
 import {
   BRAND_FONTS,
   MAX_ASSETS,
@@ -50,19 +51,66 @@ export function BrandPeek({
   brand,
   onClose,
   onSave,
+  creating,
+  autofill,
+  fresh,
 }: {
   brand: Brand;
   onClose: () => void;
   onSave: (b: Brand) => void;
+  /** A brand-new brand: the name is editable and saving creates it. */
+  creating?: boolean;
+  /**
+   * Prototype shortcut (Version C): clicking into a part of a new brand fills
+   * that part in from this brand, as if it were being set up by hand. The
+   * Common Imagery "Add item" adds its logo only.
+   */
+  autofill?: Brand;
+  /** Just created: open already filled in, so saving is available straight away. */
+  fresh?: boolean;
 }) {
   const [draft, setDraft] = useState<Brand>(brand);
+  /** Which parts have been filled in already, so each fills once. */
+  const filled = useRef<Set<string>>(new Set());
+  const fill = (part: "name" | "typography" | "structures" | "dataviz") => () => {
+    if (!autofill || filled.current.has(part)) return;
+    filled.current.add(part);
+    setDraft((d) =>
+      part === "name"
+        ? { ...d, name: autofill.name }
+        : part === "typography"
+          ? { ...d, font: autofill.font, fonts: { ...autofill.fonts }, colors: { ...autofill.colors }, tlp: { ...autofill.tlp } }
+          : part === "structures"
+            ? { ...d, structure: { ...autofill.structure } }
+            : { ...d, viz: [...autofill.viz] }
+    );
+  };
+  const addLogo = () => {
+    const logo = autofill?.assets.find((a) => a.id === "logo");
+    if (!logo) return false;
+    if (draft.assets.some((a) => a.id === "logo")) return false;
+    setDraft((d) => ({ ...d, assets: [...d.assets, { ...logo, uploaded: today() }] }));
+    return true;
+  };
   const [peeked, setPeeked] = useState<Peeked | null>(null);
+  /** The panel's sections, one tab each, with what only Report Builder uses
+      in a tab of its own. */
+  const [tab, setTab] = useState<"typography" | "assets" | "viz" | "rb">("typography");
   /* The font under the cursor in an open font menu, applied everywhere the
      committed one would be until it is chosen or the menu is left. */
   const [tryFont, setTryFont] = useState<{ key: TypeKey; font: string } | null>(null);
   const peekRef = useRef<HTMLDivElement>(null);
   const assetInput = useRef<HTMLInputElement>(null);
-  const dirty = JSON.stringify(draft) !== JSON.stringify(brand);
+  /* Header and footer styles save on their own, so they are not part of the
+     panel's draft. */
+  const styling = (b: Brand) => {
+    const { bands: _b, primary: _p, ...rest } = b;
+    void _b;
+    void _p;
+    return rest;
+  };
+  const dirty = JSON.stringify(styling(draft)) !== JSON.stringify(styling(brand));
+  const canSave = creating ? draft.name.trim().length > 0 : fresh || dirty;
 
   /* Escape closes it, like every other layer — but only when it is the
      top one, so a menu open inside it takes the key first. */
@@ -161,19 +209,55 @@ export function BrandPeek({
         <div className="peek-scroll" onScroll={follow}>
           <div className="peek-title">
             <div>
-              <div className="t-body3 muted">Brand</div>
-              <h2 className="t-h2" style={{ margin: "2px 0 0" }}>
-                {draft.name}
-              </h2>
+              <div className="t-body3 muted">{creating ? "New brand styles" : "Brand styles"}</div>
+              {creating ? (
+                <input
+                  className="brand-name-input t-h2"
+                  value={draft.name}
+                  placeholder="Brand name"
+                  autoFocus={!autofill}
+                  onPointerDown={fill("name")}
+                  onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
+                />
+              ) : (
+                <h2 className="t-h2" style={{ margin: "2px 0 0" }}>
+                  {draft.name}
+                </h2>
+              )}
             </div>
             <button className="btn ghost icon" title="More">
               <Icon name="ellipsis" size={18} />
             </button>
           </div>
 
+          <div className="tabs brand-tabs" role="tablist">
+            {(
+              [
+                ["typography", "Typography"],
+                ["assets", "Assets"],
+                ["viz", "Visualizations"],
+                ["rb", "Report Builder"],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                role="tab"
+                aria-selected={tab === id}
+                className={`tab ${tab === id ? "active" : ""}`}
+                onClick={() => {
+                  setPeeked(null);
+                  setTab(id);
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
           {/* ---------------- Typography ---------------- */}
+          {tab === "typography" && (
           <Section
-            title="Typography"
+            onFill={fill("typography")}
             blurb="Styles that will affect the typography of exported products, such as Automated Newsletters and Report Builder."
           >
             <SettingsTable
@@ -203,50 +287,12 @@ export function BrandPeek({
             />
           </Section>
 
-          {/* ---------------- Content structures ---------------- */}
-          <Section
-            title="Content structures"
-            blurb="Styles that affect layout structures on exported products such as Automated Newsletters and Report Builder."
-          >
-            <SettingsTable
-              cols={[
-                { key: "name", label: "Name", width: 793 },
-                { key: "color", label: "Color", width: 151 },
-              ]}
-              rows={
-                [
-                  {
-                    key: "dividers",
-                    label: "Divider",
-                    help: "The color of the line separating between paragraphs or other content blocks",
-                  },
-                  {
-                    key: "table",
-                    label: "Table",
-                    help: "The background and border color of tables",
-                  },
-                ] as const
-              }
-              sortValue={(r, key) => (key === "color" ? draft.structure[r.key] : r.label)}
-              rowKey={(r) => r.key}
-              onRowEnter={peek("structures")}
-              cells={(r) => [
-                <NameCell key="n" label={r.label} help={r.help} />,
-                <ColorField
-                  key="c"
-                  value={draft.structure[r.key]}
-                  onChange={(v) =>
-                    setDraft((d) => ({ ...d, structure: { ...d.structure, [r.key]: v } }))
-                  }
-                />,
-              ]}
-            />
-          </Section>
+          )}
 
-          {/* ---------------- Common Imagery ---------------- */}
+          {/* ---------------- Assets ---------------- */}
+          {tab === "assets" && (
           <Section
-            title="Common Imagery"
-            blurb={`Assets commonly used in your branded exported products. You can upload up to ${MAX_ASSETS} assets.`}
+            blurb={`Images commonly used in your branded exported products. You can upload up to ${MAX_ASSETS} images.`}
           >
             <SettingsTable
               cols={[
@@ -264,7 +310,9 @@ export function BrandPeek({
                     <button
                       className="add-row"
                       disabled={draft.assets.length >= MAX_ASSETS}
-                      onClick={() => assetInput.current?.click()}
+                      onClick={() => {
+                        if (!addLogo()) assetInput.current?.click();
+                      }}
                     >
                       <Icon name="plus" size={18} />
                       {draft.assets.length >= MAX_ASSETS
@@ -321,10 +369,13 @@ export function BrandPeek({
             />
           </Section>
 
-          {/* ---------------- Data visualizations ---------------- */}
+          )}
+
+          {/* ---------------- Visualizations ---------------- */}
+          {tab === "viz" && (
           <Section
-            title="Data visualizations"
-            blurb="Styles that affect layout structures on exported products such as Automated Newsletters and Report Builder."
+            onFill={fill("dataviz")}
+            blurb="Colors used in charts and other data visualizations in exported products, such as Automated Newsletters and Report Builder."
           >
             <SettingsTable
               cols={[
@@ -347,12 +398,62 @@ export function BrandPeek({
               ]}
             />
           </Section>
+          )}
+
+          {tab === "rb" && (
+            <>
+          {/* ---------------- Content structures ---------------- */}
+          <Section
+            onFill={fill("structures")}
+            title="Report structure"
+            blurb="Styles for the structures in a report: dividers and tables."
+          >
+            <SettingsTable
+              cols={[
+                { key: "name", label: "Name", width: 793 },
+                { key: "color", label: "Color", width: 151 },
+              ]}
+              rows={
+                [
+                  {
+                    key: "dividers",
+                    label: "Divider",
+                    help: "The color of the line separating between paragraphs or other content blocks",
+                  },
+                  {
+                    key: "table",
+                    label: "Table",
+                    help: "The background and border color of tables",
+                  },
+                ] as const
+              }
+              sortValue={(r, key) => (key === "color" ? draft.structure[r.key] : r.label)}
+              rowKey={(r) => r.key}
+              onRowEnter={peek("structures")}
+              cells={(r) => [
+                <NameCell key="n" label={r.label} help={r.help} />,
+                <ColorField
+                  key="c"
+                  value={draft.structure[r.key]}
+                  onChange={(v) =>
+                    setDraft((d) => ({ ...d, structure: { ...d.structure, [r.key]: v } }))
+                  }
+                />,
+              ]}
+            />
+          </Section>
+
+          {/* Version C: the header and footer styles saved in the brand. */}
+          {!creating && <BrandBandPreview brand={brand} kind="header" />}
+          {!creating && <BrandBandPreview brand={brand} kind="footer" />}
+            </>
+          )}
         </div>
 
         <div className="peek-foot">
           <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" disabled={!dirty} onClick={() => onSave(draft)}>
-            Save changes
+          <Button variant="primary" disabled={!canSave} onClick={() => onSave(styling(draft) as Brand)}>
+            {creating ? "Create brand" : "Save changes"}
           </Button>
         </div>
       </div>
@@ -372,13 +473,26 @@ export function BrandPeek({
  * Section and table
  * ------------------------------------------------------------------ */
 
-function Section({ title, blurb, children }: { title: string; blurb: string; children: ReactNode }) {
+function Section({
+  title,
+  blurb,
+  children,
+  onFill,
+}: {
+  /** Left out when the section is the whole tab, which already names it. */
+  title?: string;
+  blurb: string;
+  children: ReactNode;
+  onFill?: () => void;
+}) {
   return (
-    <section className="brand-section">
-      <h3 className="t-h3" style={{ margin: 0 }}>
-        {title}
-      </h3>
-      <p className="t-body3 muted" style={{ margin: "4px 0 12px" }}>
+    <section className="brand-section" onPointerDownCapture={onFill}>
+      {title && (
+        <h3 className="t-h3" style={{ margin: 0 }}>
+          {title}
+        </h3>
+      )}
+      <p className="t-body3 muted" style={{ margin: title ? "4px 0 12px" : "0 0 12px" }}>
         {blurb}
       </p>
       {children}

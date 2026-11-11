@@ -1,5 +1,11 @@
 import type { IconName } from "../ui/Icon";
-import { ARTICLES, INSIGHT_CARDS, type FetchedSource, type Template } from "../../data/mockData";
+import {
+  ARTICLES,
+  AUDIENCE_MENU_LABEL,
+  INSIGHT_CARDS,
+  type FetchedSource,
+  type Template,
+} from "../../data/mockData";
 
 /**
  * The Ask AI script for each create-report entry point.
@@ -95,23 +101,24 @@ export function contextCards(ctx: CreateContext): ContextCard[] {
 }
 
 /**
- * The CVEs to offer for a Vulnerability Advisory, from whatever the entry point
- * carried. None arrive ticked: the reader confirms them, even when they were
- * picked explicitly (rows selected in an agent, or the insight card open).
- * With no context there is nothing to suggest, so the CVE is typed in.
+ * The vulnerabilities to offer for a Vulnerability Advisory, from whatever the
+ * entry point carried (Figma "Elicitation Variants", Open context input type).
+ * An explicit pick, rows selected in an Intel Agent or the insight card that
+ * was open, arrives pre-selected; past four of them the card switches to a
+ * MultiSearchSelect. Suggestions inferred from articles or an agent's table
+ * are offered unticked, and with no context the answer is typed in.
  */
 export function cveSuggestions(
   ctx: CreateContext
 ): { options: string[]; ticked: string[] } | null {
   switch (ctx.path) {
     case "selection": {
-      /* Exactly the CVEs that were picked, up to five, offered unticked. */
-      const picked = (ctx.cveIds ?? []).slice(0, 5);
-      return { options: picked, ticked: [] };
+      const picked = ctx.cveIds ?? [];
+      return { options: picked, ticked: picked };
     }
     case "insight": {
       const card = INSIGHT_CARDS.find((c) => c.id === ctx.insightId) ?? INSIGHT_CARDS[0];
-      return { options: [card.cve], ticked: [] };
+      return { options: [card.cve], ticked: [card.cve] };
     }
     case "articles":
       /* Figma annotation: "CVE suggestions are pulled from the attached
@@ -132,28 +139,49 @@ export function cveSuggestions(
 /** "an Executive Memo", "an M&A Cyber Due Diligence", "a Flash Report". */
 const article = (name: string) => (/^[aeiou]/i.test(name) || /^m&a/i.test(name) ? "an" : "a");
 
-export function buildScript(ctx: CreateContext, template: Template, askAudience: boolean): Act[] {
+export function buildScript(
+  ctx: CreateContext,
+  template: Template,
+  askAudience: boolean,
+  /** No parameters to fill in: the flow only asks what the report is about. */
+  parameterless = false
+): Act[] {
   const cards = contextCards(ctx);
-  return [
+  /* Figma "Create Report Flow": the opening message names the template and,
+     when it has one, its audience, both in bold. What the entry point carried
+     follows in a message of its own. */
+  const audienceLabel = AUDIENCE_MENU_LABEL[template.audience] ?? template.audience;
+  const opening: Act[] = [
     {
       t: "user",
-      text: cards.length
-        ? `Create a report using the ${template.name} template and including the following:`
-        : `Create a report using the ${template.name} template.`,
-      cards,
+      text:
+        template.audience && !askAudience
+          ? `Create a report using the **${template.name}** template for **${audienceLabel}** Audience.`
+          : `Create a report using the **${template.name}** template.`,
     },
-    { t: "ai", text: `I can help putting together ${article(template.name)} ${template.name} report.` },
+    ...(cards.length ? ([{ t: "user", text: "Include the following:", cards }] as Act[]) : []),
+  ];
+  return [
+    ...opening,
     ...(askAudience
       ? ([
-          { t: "ai", text: "Let’s start by selecting an audience." },
+          { t: "ai", text: `I can help putting together ${article(template.name)} ${template.name} report.` },
+          { t: "ai", text: "Let\u2019s start by selecting an audience." },
           { t: "askAudience" },
         ] as Act[])
-      : ([
-          {
-            t: "ai",
-            text: `This template is set up for the ${template.audience} audience, and requires you to fill in a few details.`,
-          },
-        ] as Act[])),
+      : parameterless
+        ? ([
+            {
+              t: "ai",
+              text: "For this report, I first need to understand better what you\u2019re looking for this report to be about.",
+            },
+          ] as Act[])
+        : ([
+            {
+              t: "ai",
+              text: `I can help putting together ${article(template.name)} ${template.name} report. I just need to ask you a few questions.`,
+            },
+          ] as Act[])),
     { t: "ask" },
     { t: "generate" },
   ];
@@ -168,7 +196,7 @@ export function subjectQuestion() {
     id: "q-subject",
     label: "Question",
     title: "What is this report about?",
-    help: "Tell us as much as you can about what you're looking to report on, to make sure we make it as focused as possible.",
+    help: "Tell us as much as you can about what you\u2019re looking to report on, to make sure we make it as focused as possible.",
     type: "text" as const,
     required: true,
   };

@@ -2,6 +2,10 @@ import { useRef, useState } from "react";
 import { Icon } from "../components/ui/Icon";
 import { Button } from "../components/ui/primitives";
 import { CreateReportMenu } from "../components/report/CreateReportMenu";
+import { TemplateListMenu } from "../components/report/TemplateListMenu";
+import alertsIcon from "../assets/agent/alerts.svg";
+import apiIcon from "../assets/agent/api.svg";
+import shareIcon from "../assets/agent/share.svg";
 import { useStore } from "../state/store";
 import { AGENT, INSIGHT_CARDS, type InsightCard } from "../data/mockData";
 
@@ -18,13 +22,10 @@ export function AgentPage() {
   const btnRef = useRef<HTMLButtonElement>(null);
   const [menu, setMenu] = useState(false);
   const [open, setOpen] = useState<InsightCard | null>(null);
-  /* Figma "2 - Intel Agent selection path": ticking rows swaps the table's
-     header for a selection bar, and creating a report from it carries the
-     ticked CVEs. */
+  /* Figma V2 "With context": ticking rows puts a select-all box and
+     "(N items selected)" beside the table's title, and the header's Create
+     Report carries the ticked CVEs. */
   const [picked, setPicked] = useState<string[]>([]);
-  const selRef = useRef<HTMLButtonElement>(null);
-  const [selMenu, setSelMenu] = useState(false);
-  const total = INSIGHT_CARDS.length * 46;
   const togglePick = (cve: string) =>
     setPicked((p) => (p.includes(cve) ? p.filter((x) => x !== cve) : [...p, cve]));
 
@@ -39,46 +40,50 @@ export function AgentPage() {
           </span>
         </div>
         <span className="spacer" />
-        <div className="row" style={{ gap: 8 }}>
+        {/* Figma "PanelHeader" (4510:205274): alerts, API and share as quiet
+            icons, Create Report as a tertiary icon-only button, then Analyze,
+            Save changes (nothing to save yet) and more. */}
+        <div className="row agent-actions" style={{ gap: 8 }}>
+          <button className="btn ghost icon agent-ico" title="Alerts">
+            <img src={alertsIcon} alt="" width={20} height={20} />
+          </button>
+          <button className="btn ghost icon agent-ico" title="API">
+            <img src={apiIcon} alt="" width={20} height={20} />
+          </button>
+          <button className="btn ghost icon agent-ico" title="Share">
+            <img src={shareIcon} alt="" width={20} height={20} />
+          </button>
           <button
             ref={btnRef}
-            className="btn"
+            className={`btn ghost icon agent-ico ${menu ? "on" : ""}`}
             onClick={() => setMenu((m) => !m)}
-            title="Create a report from this agent"
+            title="Create Report"
+            aria-label="Create Report"
           >
-            <Icon name="wand" size={16} />
-            Create Report
-            <Icon name="chevron-down" size={14} style={{ color: "var(--content-medium)" }} />
+            <Icon name="wand" size={20} />
           </button>
           <Button icon="sparkle">Analyze</Button>
-          <Button variant="primary">Save Changes</Button>
+          <Button variant="primary" disabled>
+            Save changes
+          </Button>
           <Button icon="ellipsis" variant="ghost" title="More" />
         </div>
       </div>
 
-      {/* Select Template: the audience is asked for in the conversation. */}
+      {/* Audience first, then that audience's templates. */}
       {menu && (
-        <CreateReportMenu
+        <TemplateListMenu
           anchorRef={btnRef}
           onClose={() => setMenu(false)}
-          onPick={(id) =>
-            /* With rows ticked, the header button carries them too, the same
-               as the selection bar's "Create report". */
-            openReportEditor(
-              id,
-              picked.length
-                ? { path: "selection", cveIds: picked, askAudience: true }
-                : { path: "broad", contextKind: "agent", contextLabel: AGENT.view, askAudience: true }
-            )
-          }
-        />
-      )}
-      {selMenu && (
-        <CreateReportMenu
-          anchorRef={selRef}
-          onClose={() => setSelMenu(false)}
-          onPick={(id) =>
-            openReportEditor(id, { path: "selection", cveIds: picked, askAudience: true })
+          onPick={(id, askAudience) =>
+            /* With rows ticked, the report is about those rows. A template
+               written for several audiences asks which one in the report. */
+            openReportEditor(id, {
+              ...(picked.length
+                ? { path: "selection" as const, cveIds: picked }
+                : { path: "broad" as const, contextKind: "agent" as const, contextLabel: AGENT.view }),
+              askAudience,
+            })
           }
         />
       )}
@@ -105,46 +110,37 @@ export function AgentPage() {
         </div>
 
         <div className="section-head" style={{ marginTop: 26 }}>
-          <span className="section-title">Vulnerabilities ({total})</span>
+          <span className="row" style={{ gap: 8 }}>
+            {picked.length > 0 && (
+              <input
+                type="checkbox"
+                className={`src-check ${picked.length < INSIGHT_CARDS.length ? "mixed" : ""}`}
+                aria-label="Select all"
+                checked={picked.length === INSIGHT_CARDS.length}
+                ref={(el) => {
+                  if (el) el.indeterminate = picked.length > 0 && picked.length < INSIGHT_CARDS.length;
+                }}
+                onChange={() =>
+                  setPicked(
+                    picked.length === INSIGHT_CARDS.length ? [] : INSIGHT_CARDS.map((c) => c.cve)
+                  )
+                }
+              />
+            )}
+            <span className="section-title">Vulnerabilities</span>
+            {picked.length > 0 && (
+              <span className="t-body2 light">
+                ({picked.length} item{picked.length === 1 ? "" : "s"} selected)
+              </span>
+            )}
+          </span>
           <Button size="sm">Edit Columns</Button>
         </div>
-
-        {picked.length > 0 && (
-          <div className="sel-bar">
-            <span className="sel-count">
-              Selected {picked.length} of {total}
-            </span>
-            <Button size="sm" icon="export">
-              Export
-            </Button>
-            <button ref={selRef} className="btn sm" onClick={() => setSelMenu((m) => !m)}>
-              <Icon name="wand" size={14} />
-              Create report
-            </button>
-            <Button size="sm" icon="sparkle">
-              Analyse
-            </Button>
-            <span className="spacer" />
-            <button className="btn ghost sm" onClick={() => setPicked([])}>
-              Clear selection
-            </button>
-          </div>
-        )}
 
         <table className="rtable">
           <thead>
             <tr>
-              <th style={{ width: 36 }}>
-                <input
-                  type="checkbox"
-                  className="src-check"
-                  aria-label="Select all"
-                  checked={picked.length === INSIGHT_CARDS.length}
-                  onChange={(e) =>
-                    setPicked(e.target.checked ? INSIGHT_CARDS.map((c) => c.cve) : [])
-                  }
-                />
-              </th>
+              <th style={{ width: 36 }} />
               <th style={{ width: 90 }}>Status</th>
               <th style={{ width: 120 }}>Date Published</th>
               <th style={{ width: "24%" }}>CVE ID</th>
@@ -228,13 +224,13 @@ function InsightPanel({ card, onClose }: { card: InsightCard; onClose: () => voi
           </button>
           <span className="spacer" />
           <Button icon="ai" variant="ghost" title="Ask AI" />
-          <Button icon="star" variant="ghost" title="Prioritise" />
+          <Button icon="star" variant="ghost" title="Prioritize" />
           <button ref={btnRef} className="btn" onClick={() => setMenu((m) => !m)}>
             <Icon name="wand" size={16} />
             Create Report
           </button>
           <Button variant="primary" icon="sparkle">
-            Analyse
+            Analyze
           </Button>
         </div>
 
@@ -244,7 +240,7 @@ function InsightPanel({ card, onClose }: { card: InsightCard; onClose: () => voi
             onClose={() => setMenu(false)}
             onPick={(id) => {
               onClose();
-              openReportEditor(id, { path: "insight", insightId: card.id, askAudience: true });
+              openReportEditor(id, { path: "insight", insightId: card.id });
             }}
           />
         )}

@@ -5,8 +5,13 @@ import { TemplateCard } from "../components/templates/TemplateCard";
 import { TemplateLibrary } from "../components/templates/TemplateLibrary";
 import { useStore } from "../state/store";
 import { COMPANIES, LANGUAGES } from "../data/mockData";
+import { audiencesFor, templateFamilies } from "../data/templateFamily";
 
-type AudienceFilter = string; // "Last used" | audience name
+/** "All Audiences" | "Last used" | an audience name. */
+type AudienceFilter = string;
+/* From Version E: one card per template under All Audiences, with the
+   audience asked for once the report starts. */
+const ALL_AUDIENCES = "All Audiences";
 type TypeFilter = "All types" | "Feedly templates" | "Custom templates";
 
 export function ReportBuilderPage() {
@@ -23,7 +28,7 @@ export function ReportBuilderPage() {
     toast,
   } = useStore();
 
-  const [audienceFilter, setAudienceFilter] = useState<AudienceFilter>("CISO");
+  const [audienceFilter, setAudienceFilter] = useState<AudienceFilter>(ALL_AUDIENCES);
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("All types");
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -46,8 +51,11 @@ export function ReportBuilderPage() {
   const visibleTemplates = useMemo(() => {
     /* Legacy templates have to be upgraded before they can be used (version B),
        so they only live in the Template Library until then. */
-    let list = templates.filter((t) => !t.legacy);
-    if (audienceFilter !== "Last used") {
+    let list =
+      audienceFilter === ALL_AUDIENCES ? templateFamilies(templates) : templates.filter((t) => !t.legacy);
+    if (audienceFilter === ALL_AUDIENCES) {
+      /* already one card per template */
+    } else if (audienceFilter !== "Last used") {
       list = list.filter((t) => t.audience === audienceFilter);
     } else {
       list.sort((a, b) => (a.lastUsed < 0 ? -1 : a.lastUsed) - (b.lastUsed < 0 ? -1 : b.lastUsed));
@@ -109,7 +117,7 @@ export function ReportBuilderPage() {
         </h1>
         <div className="row" style={{ gap: 8 }}>
           <Button icon="gear" title="Report Builder settings" onClick={() => setSettingsOpen(true)} />
-          <Button icon="tradecraft" onClick={() => setLibraryOpen(true)}>
+          <Button onClick={() => setLibraryOpen(true)}>
             Manage templates
           </Button>
         </div>
@@ -141,6 +149,19 @@ export function ReportBuilderPage() {
 
       {audMenu && (
         <Popover anchorRef={audRef} onClose={() => setAudMenu(false)} width={200}>
+          <button
+            className="menu-item"
+            style={audienceFilter === ALL_AUDIENCES ? { background: "var(--bg-light)" } : undefined}
+            onClick={() => {
+              setAudienceFilter(ALL_AUDIENCES);
+              setAudMenu(false);
+            }}
+          >
+            <span className="mi-icon">
+              <Icon name="audience" size={18} />
+            </span>
+            All Audiences
+          </button>
           <button
             className="menu-item"
             onClick={() => {
@@ -199,11 +220,22 @@ export function ReportBuilderPage() {
           <TemplateCard
             key={t.id}
             template={t}
-            onOpen={() => openReportEditor(t.id, { path: "none" })}
+            showAudience={audienceFilter !== ALL_AUDIENCES}
+            audienceCount={audiencesFor(templates, t.name).length}
+            onOpen={() =>
+              openReportEditor(t.id, { path: "none", askAudience: audienceFilter === ALL_AUDIENCES })
+            }
             onCreateReport={() =>
-              openReportEditor(t.id, { path: "none" })
+              openReportEditor(t.id, { path: "none", askAudience: audienceFilter === ALL_AUDIENCES })
             }
             onEdit={() => openTemplateEditor(t.id)}
+            viewOptions={
+              audienceFilter === ALL_AUDIENCES
+                ? templates
+                    .filter((x) => x.name === t.name && !x.legacy)
+                    .map((x) => ({ id: x.id, audience: x.audience, onView: () => openTemplateEditor(x.id) }))
+                : undefined
+            }
             onDuplicate={() => {
               const copy = duplicateTemplate(t.id);
               toast(`${copy.name} created`);

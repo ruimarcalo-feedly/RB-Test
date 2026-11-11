@@ -3,6 +3,7 @@ import { Select, Tip } from "../ui/primitives";
 import { BrandPicker } from "../org/BrandPicker";
 import { ColorField } from "../ui/ColorField";
 import { allFonts, BRAND_FONTS, type Brand } from "../../data/brand";
+import { brandBands, primaryBand, type BandKind } from "../../data/bandObjects";
 import { BUILDING_BLOCKS, setAssetDrag, setBlockDrag } from "../../data/buildingBlocks";
 
 /**
@@ -22,6 +23,8 @@ export function DesignPanel({
   onPickBrand,
   onEditBrand,
   readOnly,
+  styleIds,
+  onPickStyle,
 }: {
   brands: Brand[];
   brandId?: string;
@@ -29,10 +32,11 @@ export function DesignPanel({
   /** Edits go back to the brand itself, not to a copy on the template. */
   onEditBrand: (patch: Partial<Brand>) => void;
   readOnly?: boolean;
+  /** Version C: the header and footer styles this template pins, from its brand. */
+  styleIds?: Partial<Record<BandKind, string>>;
+  onPickStyle?: (kind: BandKind, id: string | undefined) => void;
 }) {
   const brand = brands.find((b) => b.id === brandId);
-  const color = (k: keyof Brand["colors"]) => (v: string) =>
-    brand && onEditBrand({ colors: { ...brand.colors, [k]: v } });
 
   return (
     <>
@@ -42,6 +46,29 @@ export function DesignPanel({
           All brands are stored in the Org Profile and contain styles from your organization(s).
         </div>
         <BrandPicker brands={brands} brandId={brandId} onPick={onPickBrand} disabled={readOnly} />
+        {/* Version C: a template can use one of the brand's other header or
+            footer styles instead of its primary. */}
+        {brand &&
+          onPickStyle &&
+          (["header", "footer"] as BandKind[]).map((k) => {
+            const list = brandBands(brand, k);
+            const prim = primaryBand(brand, k);
+            const primLabel = prim ? `Default (${prim.name})` : "Default";
+            const pinned = list.find((b) => b.id === styleIds?.[k]);
+            return (
+              <div className="tpl-style-pick" key={k}>
+                <div className="field-label sm">{k === "header" ? "Header style" : "Footer style"}</div>
+                <Select
+                  block
+                  disabled={readOnly || list.length === 0}
+                  value={list.length === 0 ? undefined : pinned?.name ?? primLabel}
+                  placeholder={`No ${k} styles in ${brand.name}`}
+                  options={[primLabel, ...list.filter((b) => b.id !== prim?.id).map((b) => b.name)]}
+                  onChange={(v) => onPickStyle(k, list.find((b) => b.name === v && b.id !== prim?.id)?.id)}
+                />
+              </div>
+            );
+          })}
       </div>
 
       <div className="side-rule" />
@@ -102,62 +129,100 @@ export function DesignPanel({
           </div>
         </div>
       ) : (
-        <>
-          <div className="field">
-            <div className="field-label">Default font</div>
-            <Select
-              block
-              disabled={readOnly}
-              value={brand.font}
-              options={BRAND_FONTS}
-              onChange={(v) => onEditBrand({ font: v, fonts: allFonts(v) })}
-            />
-          </div>
+        <BrandStyleFields brand={brand} onEditBrand={onEditBrand} readOnly={readOnly} />
+      )}
+    </>
+  );
+}
 
-          <div className="field">
-            <div className="field-label" style={{ marginBottom: 10 }}>
-              Font colors
-            </div>
-            <div className="color-stack">
-              <ColorField label="Header 1" value={brand.colors.h1} onChange={color("h1")} disabled={readOnly} />
-              <ColorField label="Header 2" value={brand.colors.h2} onChange={color("h2")} disabled={readOnly} />
-              <ColorField label="Header 3" value={brand.colors.h3} onChange={color("h3")} disabled={readOnly} />
-              <ColorField label="Header 4" value={brand.colors.h4} onChange={color("h4")} disabled={readOnly} />
-              <ColorField
-                label="Paragraph"
-                value={brand.colors.paragraph}
-                onChange={color("paragraph")}
-                disabled={readOnly}
-              />
-              <ColorField
-                label="Caption"
-                value={brand.colors.caption}
-                onChange={color("caption")}
-                disabled={readOnly}
-              />
-            </div>
-          </div>
+/** The brand's document styles: typeface, text colors and structure colors. */
+export function BrandStyleFields({
+  brand,
+  onEditBrand,
+  readOnly,
+  charts,
+}: {
+  brand: Brand;
+  onEditBrand: (patch: Partial<Brand>) => void;
+  readOnly?: boolean;
+  /** Version C: the chart colors too, for the report's Design tab. */
+  charts?: boolean;
+}) {
+  const color = (k: keyof Brand["colors"]) => (v: string) =>
+    onEditBrand({ colors: { ...brand.colors, [k]: v } });
+  return (
+    <>
+      <div className="field">
+        <div className="field-label">Default font</div>
+        <Select
+          block
+          disabled={readOnly}
+          value={brand.font}
+          options={BRAND_FONTS}
+          onChange={(v) => onEditBrand({ font: v, fonts: allFonts(v) })}
+        />
+      </div>
 
-          <div className="field">
-            <div className="field-label" style={{ marginBottom: 10 }}>
-              Structure
-            </div>
-            <div className="color-stack">
-              <ColorField
-                label="Dividers"
-                value={brand.structure.dividers}
-                disabled={readOnly}
-                onChange={(v) => onEditBrand({ structure: { ...brand.structure, dividers: v } })}
-              />
-              <ColorField
-                label="Table"
-                value={brand.structure.table}
-                disabled={readOnly}
-                onChange={(v) => onEditBrand({ structure: { ...brand.structure, table: v } })}
-              />
-            </div>
+      <div className="field">
+        <div className="field-label" style={{ marginBottom: 10 }}>
+          Font colors
+        </div>
+        <div className="color-stack">
+          <ColorField label="Header 1" value={brand.colors.h1} onChange={color("h1")} disabled={readOnly} />
+          <ColorField label="Header 2" value={brand.colors.h2} onChange={color("h2")} disabled={readOnly} />
+          <ColorField label="Header 3" value={brand.colors.h3} onChange={color("h3")} disabled={readOnly} />
+          <ColorField label="Header 4" value={brand.colors.h4} onChange={color("h4")} disabled={readOnly} />
+          <ColorField
+            label="Paragraph"
+            value={brand.colors.paragraph}
+            onChange={color("paragraph")}
+            disabled={readOnly}
+          />
+          <ColorField
+            label="Caption"
+            value={brand.colors.caption}
+            onChange={color("caption")}
+            disabled={readOnly}
+          />
+        </div>
+      </div>
+
+      <div className="field">
+        <div className="field-label" style={{ marginBottom: 10 }}>
+          Structure
+        </div>
+        <div className="color-stack">
+          <ColorField
+            label="Dividers"
+            value={brand.structure.dividers}
+            disabled={readOnly}
+            onChange={(v) => onEditBrand({ structure: { ...brand.structure, dividers: v } })}
+          />
+          <ColorField
+            label="Table"
+            value={brand.structure.table}
+            disabled={readOnly}
+            onChange={(v) => onEditBrand({ structure: { ...brand.structure, table: v } })}
+          />
+        </div>
+      </div>
+      {charts && (
+        <div className="field">
+          <div className="field-label" style={{ marginBottom: 10 }}>
+            Chart colors
           </div>
-        </>
+          <div className="color-stack">
+            {brand.viz.map((v, i) => (
+              <ColorField
+                key={i}
+                label={`Chart color ${i + 1}`}
+                value={v}
+                disabled={readOnly}
+                onChange={(c) => onEditBrand({ viz: brand.viz.map((x, j) => (j === i ? c : x)) })}
+              />
+            ))}
+          </div>
+        </div>
       )}
     </>
   );

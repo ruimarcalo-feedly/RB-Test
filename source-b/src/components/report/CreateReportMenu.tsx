@@ -48,6 +48,8 @@ export function CreateReportMenu({
   onClose,
   onPick,
   showRecent = true,
+  showLegacy = true,
+  align = "end",
 }: {
   anchorRef: React.RefObject<HTMLElement | null>;
   onClose: () => void;
@@ -59,9 +61,15 @@ export function CreateReportMenu({
    * audiences, which is what those designs show.
    */
   showRecent?: boolean;
+  /** Figma V2 Ask AI entry: the menu lists audiences only, no legacy group. */
+  showLegacy?: boolean;
+  align?: "start" | "end";
 }) {
   const { templates, audiences, openTemplateEditor, toast } = useStore();
-  const legacy = useMemo(() => templates.filter((t) => t.legacy), [templates]);
+  const legacy = useMemo(
+    () => (showLegacy ? templates.filter((t) => t.legacy) : []),
+    [templates, showLegacy]
+  );
 
   const [level, setLevel] = useState<Level>({ kind: "audiences" });
   /** The pane on its way out, kept around just long enough to slide off. */
@@ -240,7 +248,7 @@ export function CreateReportMenu({
   };
 
   return (
-    <Popover anchorRef={anchorRef} onClose={onClose} align="end" width={280} className="crm">
+    <Popover anchorRef={anchorRef} onClose={onClose} align={align} width={280} className="crm">
       <div className="crm-view" style={{ height }}>
         {leaving && (
           <div className={`crm-pane out ${leaving.dir}`} aria-hidden>

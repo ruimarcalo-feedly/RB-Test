@@ -4455,3 +4455,993 @@ select {
 .elicit.in-chat.still {
   animation: none;
 }
+
+/* =====================================================================
+   V2 update (Figma "Templates V2 Release", Oct 2026)
+   ===================================================================== */
+
+/* Template sheet: "Template: <name>" */
+.tp-name {
+  color: var(--content-bold);
+}
+.tp-label {
+  color: var(--content-medium);
+}
+
+/* A field inside the elicitation card (MultiSearchSelect, date range). */
+.elicit-field {
+  padding: 0 12px;
+}
+
+/* ---------- MultiSearchSelect ---------- */
+.mss {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 8px 6px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-default);
+  background: var(--bg-lightest);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 20px;
+}
+.mss:hover {
+  border-color: var(--border-medium);
+}
+.mss.open {
+  border-color: var(--bg-accent);
+}
+.mss.compact {
+  min-height: 24px;
+  padding: 2px 6px 2px 8px;
+  font-size: 13px;
+  line-height: 18px;
+}
+.mss-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mss-placeholder {
+  color: var(--content-light);
+}
+.mss-summary {
+  color: var(--content-bold);
+}
+.mss-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.mss-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 4px 1px 6px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-default);
+  background: var(--bg-lightest);
+  color: var(--content-bold);
+  font-size: 14px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+.mss-chip button {
+  display: inline-flex;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--content-medium);
+  cursor: pointer;
+}
+.menu.mss-pop {
+  padding: 8px;
+}
+.mss-search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-height: 36px;
+  padding: 4px 8px;
+  border: 1px solid var(--bg-accent);
+  border-radius: var(--radius-default);
+}
+.mss-search input {
+  flex: 1;
+  min-width: 80px;
+  border: 0;
+  outline: 0;
+  /* The browser's own field fill (dark in dark mode) must not show. */
+  background: transparent;
+  color: var(--content-bold);
+  padding: 0;
+  font: inherit;
+  font-size: 14px;
+  line-height: 20px;
+}
+.mss-count {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 4px 4px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--content-light);
+}
+.mss-list {
+  max-height: 220px;
+  overflow-y: auto;
+}
+.mss-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 4px;
+  border: 0;
+  background: transparent;
+  border-radius: var(--radius-default);
+  font-size: 14px;
+  line-height: 20px;
+  text-align: left;
+  color: var(--content-bold);
+  cursor: pointer;
+}
+.mss-item:hover {
+  background: var(--bg-light);
+}
+.mss-box {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--border-medium);
+  border-radius: 2px;
+}
+.mss-empty {
+  padding: 8px 4px;
+  font-size: 14px;
+  color: var(--content-light);
+}
+/* The "Other item" row: a checkbox and a small MultiSearchSelect beside it. */
+.opt-row.other-item {
+  align-items: center;
+}
+.opt-row.other-item .mss {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---------- Date range ---------- */
+.date-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  height: 32px;
+  padding: 0 10px 0 12px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-default);
+  background: var(--bg-lightest);
+  color: var(--content-bold);
+  font-size: 14px;
+  line-height: 20px;
+  cursor: pointer;
+}
+.date-field:hover {
+  border-color: var(--border-medium);
+}
+.date-field .placeholder {
+  color: var(--content-light);
+}
+.menu.cal-pop {
+  padding: 0;
+}
+.cal-wrap {
+  display: flex;
+}
+.cal-rule {
+  width: 1px;
+  background: var(--border-lightest);
+}
+.cal-month {
+  flex: 1;
+  padding: 16px 16px 12px;
+}
+.cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.cal-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--content-medium);
+}
+.cal-nav,
+.cal-nav-space {
+  width: 24px;
+  height: 24px;
+}
+.cal-nav {
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  border-radius: var(--radius-default);
+  color: var(--content-light);
+  cursor: pointer;
+}
+.cal-nav:hover {
+  background: var(--bg-light);
+}
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  row-gap: 4px;
+  text-align: center;
+}
+.cal-dow {
+  font-size: 13px;
+  line-height: 28px;
+  color: var(--content-medium);
+}
+.cal-day {
+  height: 30px;
+  border: 0;
+  background: transparent;
+  border-radius: var(--radius-default);
+  font-size: 14px;
+  color: var(--content-bold);
+  cursor: pointer;
+}
+.cal-day:hover {
+  background: var(--bg-light);
+}
+.cal-day.out {
+  color: var(--content-light);
+}
+.cal-day.in {
+  background: var(--bg-accent-light);
+}
+.cal-day.edge {
+  background: var(--bg-accent);
+  color: var(--content-inverse);
+}
+
+/* ---------- Report Details tab ---------- */
+.details-rule {
+  height: 1px;
+  background: var(--border-lightest);
+  margin: 20px 0;
+}
+.details-param {
+  margin-bottom: 14px;
+}
+.details-param .textarea {
+  width: 100%;
+}
+
+/* ---------- V2 update: parameters ---------- */
+.param-chip-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 2px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--content-medium);
+  cursor: pointer;
+}
+.param-chip-x:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--content-bold);
+}
+.param-row {
+  cursor: default;
+}
+.param-row .param-badge {
+  cursor: pointer;
+}
+.param-row .row-act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--content-medium);
+  cursor: pointer;
+}
+.param-row .row-act:hover {
+  background: var(--bg-medium, rgba(0, 0, 0, 0.06));
+  color: var(--content-bold);
+}
+.param-chip.flash {
+  animation: chip-flash 1.2s ease;
+}
+@keyframes chip-flash {
+  0%, 60% { box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.45); }
+  100% { box-shadow: 0 0 0 0 rgba(33, 150, 243, 0); }
+}
+.check-2line {
+  align-items: flex-start;
+}
+.check-2line input {
+  margin-top: 2px;
+}
+.check-2line > span {
+  display: flex;
+  flex-direction: column;
+}
+.check-2line .check-sub {
+  color: var(--content-light);
+}
+.param-dialog .field-help.sm-dark {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--content-bold);
+  margin-top: 6px;
+}
+.type-opt {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  white-space: normal;
+}
+.type-opt-title {
+  color: var(--content-bold);
+}
+.type-opt-desc {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--content-light);
+}
+/* Figma V2 Intel Agent: the select-all box beside the table title shows a
+   dash while only some rows are ticked. */
+.src-check.mixed,
+.src-check:indeterminate {
+  background: #fff;
+  border-color: var(--bg-accent);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232bb24c' stroke-width='3.4' stroke-linecap='round'><path d='M6 12h12'/></svg>");
+  background-size: 12px;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* ---------- V2 update: Ask AI entry point (feed page) ---------- */
+.feed-split {
+  display: flex;
+  align-items: flex-start;
+  min-height: 100%;
+}
+.feed-split > .page {
+  flex: 1;
+  min-width: 0;
+}
+.ask-panel {
+  position: sticky;
+  top: 0;
+  flex: 0 0 400px;
+  width: 400px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border-light);
+  background: #fff;
+}
+.ask-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 56px;
+  padding: 0 12px 0 16px;
+  flex: 0 0 auto;
+}
+.ask-title {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--content-bold);
+}
+.ask-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 16px 16px;
+}
+.ask-body.chat {
+  gap: 16px;
+}
+.ask-foot {
+  padding: 8px 16px 16px;
+  flex: 0 0 auto;
+}
+.ask-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--border-medium);
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+.ask-foot .ask-composer {
+  margin-bottom: 0;
+}
+.ask-composer textarea {
+  background: transparent;
+  border: 0;
+  outline: none;
+  resize: none;
+  font: inherit;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--content-bold);
+  padding: 0;
+}
+.ask-composer-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.ask-send {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--bg-accent);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.ask-send:disabled {
+  background: var(--border-medium);
+  cursor: default;
+}
+.ask-ctx-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 130px;
+  height: 52px;
+  padding: 0 10px;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  font-size: 13px;
+  align-self: flex-start;
+}
+.ask-feed-dot,
+.ask-src-dot {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  border-radius: 50%;
+  background: #f15a24;
+  display: inline-block;
+}
+.ask-src-dot {
+  background: #2b2b2f;
+}
+.ask-src-dot.alt {
+  background: #4285f4;
+  margin-left: -8px;
+  border: 1.5px solid #fff;
+}
+.ask-sugg-title {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--content-medium);
+  margin-bottom: 2px;
+}
+.ask-sugg {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  background: #fff;
+  text-align: left;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--content-bold);
+  cursor: pointer;
+}
+.ask-sugg span {
+  flex: 1;
+}
+.ask-sugg:hover {
+  background: var(--bg-light);
+}
+.ask-ctx-row {
+  display: flex;
+  gap: 8px;
+  overflow: hidden;
+  padding-top: 8px;
+}
+.ask-ctx-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 132px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 16px;
+}
+.ask-ctx-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.ask-ctx-text .light {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--content-light);
+}
+.ask-user {
+  align-self: flex-end;
+  max-width: 80%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--bg-light);
+  font-size: 14px;
+  line-height: 20px;
+}
+.ask-ai {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--content-bold);
+}
+.ask-ai p {
+  margin: 0 0 14px;
+}
+.ask-ai h3 {
+  font-size: 18px;
+  line-height: 24px;
+  margin: 8px 0 10px;
+}
+.ask-ai ul {
+  margin: 0 0 14px;
+  padding-left: 18px;
+}
+.ask-ai li {
+  margin-bottom: 4px;
+}
+.ask-answer-foot {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.ask-sources {
+  gap: 6px;
+  margin-left: 6px;
+}
+.ask-typing {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px 0;
+}
+.ask-typing span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--content-light);
+  animation: ask-dot 1s infinite ease-in-out;
+}
+.ask-typing span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.ask-typing span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes ask-dot {
+  0%, 80%, 100% { opacity: 0.3; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-3px); }
+}
+.feed-split > .page {
+  --page-x: 36px;
+}
+/* Details tab: every section shares the panel's own gutter. */
+.side-scroll.details-panel > .field {
+  padding: 0;
+  margin: 0 0 20px;
+}
+.mss-search input::placeholder,
+.ask-composer textarea::placeholder {
+  color: var(--content-light);
+}
+
+/* Agent header, Figma "PanelHeader" (4510:205274). */
+.agent-ico.btn.ghost.icon {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  padding: 0;
+  border-radius: 4px;
+  color: var(--content-medium);
+}
+.agent-ico img {
+  display: block;
+}
+.agent-ico.on {
+  background: var(--bg-light, #f2f2f2);
+}
+
+/* The agent's Create Report menu: "TemplateList". */
+.menu.tl {
+  padding: 8px;
+  border-radius: 8px;
+}
+.tl-search {
+  width: 100%;
+  height: 34px;
+  margin-bottom: 4px;
+  padding: 0 10px;
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  background: var(--bg-lightest);
+  font: inherit;
+  font-size: 14px;
+  color: var(--content-bold);
+}
+.tl-search::placeholder {
+  color: var(--content-light, #9e9e9e);
+}
+.tl-search:focus {
+  outline: none;
+  border-color: var(--bg-accent);
+}
+.tl-sec {
+  display: flex;
+  flex-direction: column;
+  padding-top: 8px;
+}
+.tl-sec + .tl-sec {
+  padding-top: 12px;
+}
+.tl-label {
+  padding: 4px 6px 6px;
+  font-size: 13px;
+  line-height: 16px;
+  color: var(--content-light, #9e9e9e);
+}
+.tl-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.tl-item:hover,
+.tl-group:hover,
+.tl-back:hover {
+  background: var(--bg-light, #f7f7f7);
+}
+.tl-icon {
+  flex: 0 0 20px;
+  padding-top: 1px;
+  color: var(--content-medium);
+}
+.tl-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tl-name {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--content-bold);
+}
+.tl-sub {
+  font-size: 13px;
+  line-height: 16px;
+  color: var(--content-medium);
+}
+.tl-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  color: var(--content-bold);
+  text-align: left;
+  cursor: pointer;
+}
+.tl-group svg {
+  color: var(--content-medium);
+}
+.tl-back {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  color: var(--content-medium);
+  cursor: pointer;
+}
+.tl-scroll {
+  max-height: min(560px, 70vh);
+  overflow-y: auto;
+}
+.tl-empty {
+  padding: 10px 6px;
+  font-size: 13px;
+  color: var(--content-medium);
+}
+
+/* Template card menu: "View template" opens a second step to pick the audience. */
+.tc-mi-label {
+  flex: 1;
+}
+.tc-mi-chev {
+  color: var(--content-medium);
+}
+.menu-item.tc-back {
+  gap: 6px;
+  color: var(--content-medium);
+  cursor: pointer;
+}
+
+/* Version A: design style foot (Nov 4) */
+.side-foot.ds-foot {
+  align-items: center;
+  justify-content: space-between;
+}
+.ds-pick {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ds-pick > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+.ds-edited {
+  flex: none;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--content-medium, #757575);
+}
+.ds-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.ds-modes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ds-mode {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-light, #e6e6e6);
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 20px;
+  cursor: pointer;
+}
+.ds-mode.on {
+  border-color: var(--bg-accent, #2bb24c);
+}
+.ds-mode input {
+  margin-top: 3px;
+  accent-color: var(--bg-accent, #2bb24c);
+}
+.ds-mode-help {
+  display: block;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--content-medium, #757575);
+}
+
+/* ==== From C (Nov 4): Template Prompt ==== */
+/* ------------------------------------------------------------------ *
+ * Version C — the template editor's page: header, the Template Prompt
+ * between dashed lines, footer
+ * ------------------------------------------------------------------ */
+.tpl-page {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  /* The prompt runs straight from the header to the footer, no gap. */
+  padding: var(--header-h, 64px) 0 var(--footer-h, 64px);
+  min-height: 900px;
+}
+
+.tpl-prompt {
+  position: relative;
+  flex: 1;
+  /* Blends with the page: no lines or fill of its own until it is hovered
+     or selected, when a dashed outline and its badge appear. */
+  /* Always outlined in the template editor; the badge appears on hover. */
+  outline: 1px dashed var(--border-medium);
+  outline-offset: -1px;
+}
+
+.tpl-prompt-badge {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--content-medium, #757575);
+  color: #fff;
+  font-size: 12px;
+  line-height: 18px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: nowrap;
+  z-index: 3;
+  pointer-events: none;
+  transition: opacity 0.12s;
+}
+
+/* Always shown, except while the header is hovered or selected, so it never
+   competes with the header's own tag. */
+.tpl-page:has(.band-wrap.header:hover) .tpl-prompt-badge,
+.tpl-page:has(.band-wrap.header.active) .tpl-prompt-badge {
+  opacity: 0;
+}
+
+/* The Feedly notice runs edge to edge across the top of the prompt, with no
+   gap above it; the badge sits over it on hover. */
+.tpl-prompt .tpl-info {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  border-radius: 0;
+  padding-left: 32px;
+  padding-right: 32px;
+}
+
+/* A Feedly template's prompt is read-only, but stays white like the page. */
+.tpl-prompt.locked {
+  background: var(--bg-lightest);
+}
+
+/* 40px between the header (or the Feedly notice) and the title: this
+   padding plus the first block's own 12px. */
+.tpl-prompt .canvas-doc {
+  padding: 28px 0 40px;
+}
+
+/* Everything in the prompt is set in monospace: it is instructions, not the
+   finished report. */
+.tpl-prompt .canvas-doc,
+.tpl-prompt .canvas-doc .bn-container,
+.tpl-prompt .canvas-doc .bn-editor,
+.tpl-prompt .canvas-doc .bn-editor * {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
+}
+
+.tpl-prompt .canvas-doc .bn-editor {
+  background: transparent;
+}
+
+/* Version C: inside the Template Prompt the prompts are plain text, no grey
+   box of their own; they line up with the headings. */
+.tpl-prompt .prompt-box {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+}
+
+.tpl-prompt .prompt-box:focus {
+  box-shadow: none;
+}
+
+/* Version C: a Feedly template's prompt shows no grey box on hover; the
+   cursor says it can't be edited. */
+.tpl-prompt .canvas-doc.locked .bn-block-content:hover::before {
+  content: none;
+}
+
+.tpl-prompt .canvas-doc.locked,
+.tpl-prompt .canvas-doc.locked .bn-block-content,
+.tpl-prompt .canvas-doc.locked .bn-editor,
+.tpl-prompt .canvas-doc.locked .bn-editor * {
+  cursor: not-allowed !important;
+}
+
+/* Version C: the Template Prompt badge sits on top of the line, like the
+   footer's tag, rather than straddling it. */
+.tpl-prompt-badge {
+  top: auto;
+  bottom: 100%;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 6px 6px 0 0;
+}
+
+/* Version C: on a Feedly template the "cannot be edited" note follows the
+   cursor as a grey badge, instead of a label on each block. */
+.tpl-prompt .canvas-doc.locked .bn-block-content:hover::after {
+  content: none;
+}
+
+.cursor-badge {
+  position: fixed;
+  z-index: 160;
+  pointer-events: none;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--content-medium, #757575);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+/* Version C template editor: a header or footer that isn't selected shows no
+   border or tag (they come back on hover, and stay while it's selected). */
+.tpl-page .band-wrap.edit:not(.active):not(:hover) .band {
+  border-color: transparent;
+}
+
+.tpl-page .band-wrap.edit:not(.active):not(:hover) .band-tag {
+  opacity: 0;
+}
+
+.report-doc,
+.skeleton-doc,
+.canvas-doc,
+.tpl-page {
+  transition: padding 0.24s ease;
+}

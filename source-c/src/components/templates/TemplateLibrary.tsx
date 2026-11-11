@@ -62,7 +62,7 @@ export function TemplateLibrary({ onClose }: { onClose: () => void }) {
                 {LEGACY}
                 {/* Version B gates legacy templates behind an upgrade, so it
                     keeps count of what is left to do. */}
-                {VARIANT === "B" && (
+                {(VARIANT === "B" || VARIANT === "C") && (
                   <span className="legacy-count">{legacy.length} left to update</span>
                 )}
               </button>
@@ -88,7 +88,7 @@ export function TemplateLibrary({ onClose }: { onClose: () => void }) {
               <Icon name="close" size={16} />
             </button>
           </div>
-          {audience === LEGACY && VARIANT === "B" && (
+          {audience === LEGACY && (VARIANT === "B" || VARIANT === "C") && (
             <div className="param-warn library-warn">
               <Icon name="info" size={18} />
               Legacy templates were built on a previous templating system. To take advantage of

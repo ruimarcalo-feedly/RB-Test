@@ -3,6 +3,8 @@ import { Icon } from "../ui/Icon";
 import { MenuItem, Popover } from "../ui/primitives";
 import type { Template } from "../../data/mockData";
 
+const isCustomOf = (t: Template) => t.kind === "custom";
+
 export function TemplateCard({
   template,
   onOpen,
@@ -12,12 +14,19 @@ export function TemplateCard({
   onEdit,
   showAudience = true,
   audienceCount,
+  viewOptions,
 }: {
-  template: Template;
+  /**
+   * Under "All Audiences", a card stands for the template in every audience.
+   * "View template" then opens a second step to pick which audience's
+   * template to view.
+   */
+  viewOptions?: { id: string; audience: string; onView: () => void }[];
   /** Off under "All Audiences", where a card stands for every pairing at once. */
   showAudience?: boolean;
   /** How many audiences the template serves, shown when the card stands for all of them. */
   audienceCount?: number;
+  template: Template;
   onOpen?: () => void;
   onCreateReport?: () => void;
   onDuplicate?: () => void;
@@ -26,6 +35,8 @@ export function TemplateCard({
 }) {
   const moreRef = useRef<HTMLButtonElement>(null);
   const [menu, setMenu] = useState(false);
+  const [step, setStep] = useState<"main" | "audience">("main");
+  const pickAudience = !isCustomOf(template) && (viewOptions?.length ?? 0) > 1;
   const isCustom = template.kind === "custom";
 
   return (
@@ -45,6 +56,7 @@ export function TemplateCard({
           className={`tcard-more ${menu ? "open" : ""}`}
           onClick={(e) => {
             e.stopPropagation();
+            setStep("main");
             setMenu((m) => !m);
           }}
           title="More"
@@ -64,8 +76,6 @@ export function TemplateCard({
         </div>
       ) : (
       <div className="tcard-foot">
-          {/* Figma "Elicitation 4": under All Audiences a Feedly template's badge
-              counts the audiences it serves; a custom one still names its own. */}
           <span className="badge">
             <Icon name="audience" size={16} />
             {showAudience || isCustom || audienceCount === undefined
@@ -87,6 +97,26 @@ export function TemplateCard({
               clicks up this tree, so without this every menu item would also
               trigger the card's own "open" click. */}
           <div onClick={(e) => e.stopPropagation()}>
+            {step === "audience" && viewOptions ? (
+              <>
+                <button className="menu-item tc-back" onClick={() => setStep("main")}>
+                  <Icon name="chevron-left" size={18} />
+                  <span>Choose audience</span>
+                </button>
+                {viewOptions.map((o) => (
+                  <MenuItem
+                    key={o.id}
+                    onClick={() => {
+                      setMenu(false);
+                      o.onView();
+                    }}
+                  >
+                    {o.audience}
+                  </MenuItem>
+                ))}
+              </>
+            ) : (
+            <>
             <MenuItem
               icon="wand"
               onClick={() => {
@@ -96,6 +126,25 @@ export function TemplateCard({
             >
               Create Report
             </MenuItem>
+            {/* A Feedly template can't be edited, but it can be looked at: it
+                opens in the template editor, read-only. */}
+            {!isCustom && onEdit && (
+              <MenuItem
+                icon="doc"
+                onClick={() => {
+                  /* Several audiences: pick which one's template to view. */
+                  if (pickAudience) {
+                    setStep("audience");
+                    return;
+                  }
+                  setMenu(false);
+                  onEdit();
+                }}
+              >
+                <span className="tc-mi-label">View template</span>
+                {pickAudience && <Icon name="chevron-right" size={18} className="tc-mi-chev" />}
+              </MenuItem>
+            )}
             {isCustom && onEdit && (
               <MenuItem
                 icon="pencil"
@@ -127,6 +176,8 @@ export function TemplateCard({
               >
                 Delete template
               </MenuItem>
+            )}
+            </>
             )}
           </div>
         </Popover>

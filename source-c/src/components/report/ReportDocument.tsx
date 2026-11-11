@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef } from "react";
 import { BlockNoteView } from "@blocknote/mantine";
+import { AlignedSideMenu } from "../editor/AlignedSideMenu";
+import { BrandFilePanelController } from "../editor/BrandFilePanel";
 import { useCreateBlockNote } from "@blocknote/react";
 import { schema, type TemplateBlock } from "../editor/blockSchema";
+import { docBlocksFor, type DocInsert } from "../editor/BlockNoteCanvas";
 import type { DocNode } from "../../data/reportDoc";
 
 /**
@@ -49,11 +52,14 @@ export function ReportDocument({
   meta,
   nodes,
   editable,
+  insertRef,
 }: {
   title: string;
   meta: string[];
   nodes: DocNode[];
   editable: boolean;
+  /** Version C: building blocks dragged from the Design tab land where dropped. */
+  insertRef?: React.MutableRefObject<((what: DocInsert, clientY: number) => boolean) | null>;
 }) {
   const initialContent = useMemo(
     () => nodesToBlocks(title, meta, nodes),
@@ -73,7 +79,41 @@ export function ReportDocument({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodes, title]);
 
+  useEffect(() => {
+    if (!insertRef) return;
+    insertRef.current = (what, clientY) => {
+      if (!editable) return false;
+      const made =
+        typeof what === "string"
+          ? docBlocksFor(what)
+          : ([{ type: "image", props: { url: what.image, name: what.name, caption: "" } }] as TemplateBlock[]);
+      if (!made) return false;
+      const doc = editor.document as { id: string }[];
+      if (!doc.length) return false;
+      let ref = doc[doc.length - 1];
+      let placement: "before" | "after" = "after";
+      for (const b of doc) {
+        const el = document.querySelector(`.report-doc [data-id="${b.id}"]`);
+        if (!el) continue;
+        const r = el.getBoundingClientRect();
+        if (clientY < r.top + r.height / 2) {
+          ref = b;
+          placement = "before";
+          break;
+        }
+      }
+      editor.insertBlocks(made as never, ref, placement);
+      return true;
+    };
+    return () => {
+      insertRef.current = null;
+    };
+  }, [editor, insertRef, editable]);
+
   return (
-    <BlockNoteView editor={editor} editable={editable} theme="light" slashMenu={editable} />
+    <BlockNoteView editor={editor} editable={editable} theme="light" slashMenu={editable} sideMenu={false} filePanel={false}>
+      {editable && <AlignedSideMenu />}
+      {editable && <BrandFilePanelController />}
+    </BlockNoteView>
   );
 }

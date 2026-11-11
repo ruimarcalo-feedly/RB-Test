@@ -35,6 +35,36 @@ export const Parameter = createReactInlineContentSpec(
       <span className="param-chip" data-param={props.inlineContent.props.name}>
         <Icon name="braces" size={16} />
         {props.inlineContent.props.name}
+        {props.editor.isEditable && (
+          /* Figma V2 "ParameterBadge": the × takes this one chip out of the
+             template. The parameter itself stays in the Parameters tab; the
+             trash there is what removes it everywhere. */
+          <button
+            className="param-chip-x"
+            title="Remove from here"
+            contentEditable={false}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => {
+              const chip = (e.currentTarget as HTMLElement).closest(".param-chip");
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const view = (props.editor as any)._tiptapEditor?.view;
+              if (!chip || !view) return;
+              let at = -1;
+              let size = 1;
+              view.state.doc.descendants((node: { type: { name: string }; nodeSize: number }, pos: number) => {
+                if (at >= 0 || node.type.name !== "parameter") return;
+                const dom = view.nodeDOM(pos) as Node | null;
+                if (dom && (dom === chip || dom.contains(chip))) {
+                  at = pos;
+                  size = node.nodeSize;
+                }
+              });
+              if (at >= 0) view.dispatch(view.state.tr.delete(at, at + size));
+            }}
+          >
+            <Icon name="close" size={14} />
+          </button>
+        )}
       </span>
     ),
   }

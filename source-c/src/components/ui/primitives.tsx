@@ -253,14 +253,16 @@ export function MenuItem({
   icon,
   onClick,
   tone,
+  disabled,
 }: {
   children: ReactNode;
   icon?: IconName;
   onClick?: () => void;
   tone?: "danger" | "accent";
+  disabled?: boolean;
 }) {
   return (
-    <button className={`menu-item ${tone ?? ""}`} onClick={onClick}>
+    <button className={`menu-item ${tone ?? ""}`} onClick={onClick} disabled={disabled}>
       {icon && (
         <span className="mi-icon">
           <Icon name={icon} size={18} />

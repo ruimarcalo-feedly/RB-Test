@@ -4,15 +4,14 @@ import { Button, Modal, Popover, TagInput, Field } from "../components/ui/primit
 import { TemplateCard } from "../components/templates/TemplateCard";
 import { TemplateLibrary } from "../components/templates/TemplateLibrary";
 import { useStore } from "../state/store";
-import { audiencesFor, templateFamilies } from "../data/templateFamily";
 import { COMPANIES, LANGUAGES } from "../data/mockData";
+import { audiencesFor, templateFamilies } from "../data/templateFamily";
 
 /** "All Audiences" | "Last used" | an audience name. */
 type AudienceFilter = string;
+/* From Version E: one card per template under All Audiences, with the
+   audience asked for once the report starts. */
 const ALL_AUDIENCES = "All Audiences";
-/* Figma "Promoting legacy compatibility": legacy templates have a filter of
-   their own and can be used straight from it. */
-const LEGACY_FILTER = "Legacy templates";
 type TypeFilter = "All types" | "Feedly templates" | "Custom templates";
 
 export function ReportBuilderPage() {
@@ -26,8 +25,22 @@ export function ReportBuilderPage() {
     openReportEditor,
     settings,
     setSettings,
+    updateTemplate,
     toast,
   } = useStore();
+  /** Version C: a brand being taken out of settings while templates use it. */
+  const [unlinking, setUnlinking] = useState<string | null>(null);
+  const removeBrand = (name: string) => {
+    const b = brands.find((x) => x.name === name);
+    const using = b ? templates.filter((t) => t.brandId === b.id) : [];
+    if (using.length) {
+      setUnlinking(name);
+      return;
+    }
+    setSettings({ ...settings, brands: settings.brands.filter((x) => x !== name) });
+  };
+  const unlinkBrand = brands.find((x) => x.name === unlinking);
+  const unlinkTemplates = unlinkBrand ? templates.filter((t) => t.brandId === unlinkBrand.id) : [];
 
   const [audienceFilter, setAudienceFilter] = useState<AudienceFilter>(ALL_AUDIENCES);
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("All types");
@@ -50,19 +63,12 @@ export function ReportBuilderPage() {
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   const visibleTemplates = useMemo(() => {
-    /* Figma "3 - No context path": under All Audiences each template is one
-       card with no audience on it, and the audience is asked for once the
-       report starts. Filtered to an audience, the cards are that audience's
-       pairings and carry its badge, so nothing more needs asking. */
+    /* Legacy templates have to be upgraded before they can be used (version B),
+       so they only live in the Template Library until then. */
     let list =
-      audienceFilter === ALL_AUDIENCES
-        ? templateFamilies(templates)
-        : audienceFilter === LEGACY_FILTER
-          ? templates.filter((t) => t.legacy)
-          : /* A legacy template joins the rest once an audience is saved to it. */
-            templates.filter((t) => !t.legacy || t.audience);
-    if (audienceFilter === ALL_AUDIENCES || audienceFilter === LEGACY_FILTER) {
-      /* already the right set */
+      audienceFilter === ALL_AUDIENCES ? templateFamilies(templates) : templates.filter((t) => !t.legacy);
+    if (audienceFilter === ALL_AUDIENCES) {
+      /* already one card per template */
     } else if (audienceFilter !== "Last used") {
       list = list.filter((t) => t.audience === audienceFilter);
     } else {
@@ -125,7 +131,7 @@ export function ReportBuilderPage() {
         </h1>
         <div className="row" style={{ gap: 8 }}>
           <Button icon="gear" title="Report Builder settings" onClick={() => setSettingsOpen(true)} />
-          <Button icon="tradecraft" onClick={() => setLibraryOpen(true)}>
+          <Button onClick={() => setLibraryOpen(true)}>
             Manage templates
           </Button>
         </div>
@@ -182,19 +188,6 @@ export function ReportBuilderPage() {
             </span>
             Last used templates
           </button>
-          <button
-            className="menu-item"
-            style={audienceFilter === LEGACY_FILTER ? { background: "var(--bg-light)" } : undefined}
-            onClick={() => {
-              setAudienceFilter(LEGACY_FILTER);
-              setAudMenu(false);
-            }}
-          >
-            <span className="mi-icon">
-              <Icon name="history" size={18} />
-            </span>
-            Legacy templates
-          </button>
           <div className="menu-sep" />
           <div className="menu-label">Select audience</div>
           {audiences
@@ -244,18 +237,19 @@ export function ReportBuilderPage() {
             showAudience={audienceFilter !== ALL_AUDIENCES}
             audienceCount={audiencesFor(templates, t.name).length}
             onOpen={() =>
-              openReportEditor(t.id, {
-                path: "none",
-                askAudience: audienceFilter === ALL_AUDIENCES || Boolean(t.legacy),
-              })
+              openReportEditor(t.id, { path: "none", askAudience: audienceFilter === ALL_AUDIENCES })
             }
             onCreateReport={() =>
-              openReportEditor(t.id, {
-                path: "none",
-                askAudience: audienceFilter === ALL_AUDIENCES || Boolean(t.legacy),
-              })
+              openReportEditor(t.id, { path: "none", askAudience: audienceFilter === ALL_AUDIENCES })
             }
             onEdit={() => openTemplateEditor(t.id)}
+            viewOptions={
+              audienceFilter === ALL_AUDIENCES
+                ? templates
+                    .filter((x) => x.name === t.name && !x.legacy)
+                    .map((x) => ({ id: x.id, audience: x.audience, onView: () => openTemplateEditor(x.id) }))
+                : undefined
+            }
             onDuplicate={() => {
               const copy = duplicateTemplate(t.id);
               toast(`${copy.name} created`);
@@ -410,7 +404,7 @@ export function ReportBuilderPage() {
           <Field
             label="Brand"
             info="The brand styling a report is written in"
-            help="Select all Brands you regularly want to apply in your reports. We will ask which to use when generating a report."
+            help="The brands reports can use. New brands are added here automatically. With more than one, we will ask which to use when generating a report, unless the template sets one."
           >
             <TagInput
               icon="brand"
@@ -419,14 +413,56 @@ export function ReportBuilderPage() {
               options={brands.map((b) => b.name)}
               placeholder="No default set"
               onAdd={(t) => setSettings({ ...settings, brands: [...settings.brands, t] })}
-              onRemove={(t) =>
-                setSettings({
-                  ...settings,
-                  brands: settings.brands.filter((b) => b !== t),
-                })
-              }
+              onRemove={removeBrand}
             />
           </Field>
+        </Modal>
+      )}
+
+      {unlinking && (
+        <Modal
+          title="Remove brand"
+          width={460}
+          onClose={() => setUnlinking(null)}
+          footer={
+            <>
+              <Button onClick={() => setUnlinking(null)}>Cancel</Button>
+              <Button
+                variant="danger"
+                onClick={() => {
+                  unlinkTemplates.forEach((t) =>
+                    updateTemplate(t.id, {
+                      brandId: undefined,
+                      headerStyleId: undefined,
+                      footerStyleId: undefined,
+                    })
+                  );
+                  setSettings({ ...settings, brands: settings.brands.filter((x) => x !== unlinking) });
+                  toast(`${unlinking} removed from Report Builder`);
+                  setUnlinking(null);
+                }}
+              >
+                Remove brand
+              </Button>
+            </>
+          }
+        >
+          <p className="t-body2" style={{ margin: "0 0 12px" }}>
+            {unlinking} is set on {unlinkTemplates.length === 1 ? "this template" : "these templates"}:
+          </p>
+          <ul className="unlink-list">
+            {unlinkTemplates.map((t) => (
+              <li key={t.id}>
+                <Icon name={t.icon} size={16} />
+                {t.name}
+                {t.audience && <span className="muted"> &middot; {t.audience}</span>}
+              </li>
+            ))}
+          </ul>
+          <p className="t-body2" style={{ margin: "12px 0 0" }}>
+            Removing it takes it off {unlinkTemplates.length === 1 ? "that template" : "those templates"} as
+            well. The brand stays in the Org Profile.
+          </p>
         </Modal>
       )}
     </div>

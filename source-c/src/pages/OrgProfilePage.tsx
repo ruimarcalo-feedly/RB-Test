@@ -11,6 +11,9 @@ import { AUDIENCE_CONTENT, ORG_ITEM_TYPES, type OrgItem, type OrgItemType } from
 /**
  * Figma: Org Profile — Editing / Creating new / Tooltips.
  */
+/** Version C: a brand is listed as "Brand styles". */
+const typeLabel = (t: string) => (t === "Brand" ? "Brand styles" : t);
+
 export function OrgProfilePage() {
   const {
     orgItems,
@@ -100,7 +103,7 @@ export function OrgProfilePage() {
               <span className="mi-icon">
                 <Icon name={t.icon} size={18} />
               </span>
-              {t.type}
+              {typeLabel(t.type)}
             </button>
           ))}
         </Popover>
@@ -147,7 +150,7 @@ export function OrgProfilePage() {
                 </div>
               </td>
               <td>
-                <span className="badge">{it.type}</span>
+                <span className="badge">{typeLabel(it.type)}</span>
               </td>
               <td>
                 {it.referencedIn.length === 0 ? (

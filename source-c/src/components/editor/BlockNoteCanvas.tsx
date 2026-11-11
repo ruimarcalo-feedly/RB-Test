@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { BlockNoteView } from "@blocknote/mantine";
+import { AlignedSideMenu } from "./AlignedSideMenu";
+import { BrandFilePanelController } from "./BrandFilePanel";
 import {
   SuggestionMenuController,
   getDefaultReactSlashMenuItems,
@@ -72,7 +74,9 @@ export function toDocument(title: string, blocks: Block[]): TemplateBlock[] {
     { type: "heading", props: { level: 1 }, content: title },
   ];
   for (const b of blocks) {
-    doc.push({ type: "heading", props: { level: 2 }, content: b.heading });
+    /* A section without a heading sits straight under the title, as the
+       "Dates Covered" line does in the Periodic Threat Briefing. */
+    if (b.heading) doc.push({ type: "heading", props: { level: 2 }, content: b.heading });
     for (const p of b.prompts) {
       doc.push({ type: "prompt", content: promptToInline(p) });
     }
@@ -129,7 +133,7 @@ export function fromDocument(doc: DocBlock[]): { title: string; blocks: Block[] 
  * are absent on purpose: they belong to a band, so the document never accepts
  * one and this map is what says so.
  */
-function docBlocksFor(label: string): TemplateBlock[] | null {
+export function docBlocksFor(label: string): TemplateBlock[] | null {
   switch (label) {
     case "Heading 1":
       return [{ type: "heading", props: { level: 1 }, content: "Heading 1" }];
@@ -316,9 +320,13 @@ export function BlockNoteCanvas({
       editable={!readOnly}
       theme="light"
       slashMenu={false}
+      sideMenu={false}
+      filePanel={false}
       onChange={() => latest.current(fromDocument(editor.document as DocBlock[]))}
     >
       <SuggestionMenuController triggerCharacter="/" getItems={slashItems} />
+      <AlignedSideMenu />
+      {!readOnly && <BrandFilePanelController />}
     </BlockNoteView>
   );
 }

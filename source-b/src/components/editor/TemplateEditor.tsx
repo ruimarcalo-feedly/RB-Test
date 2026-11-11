@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "../ui/Icon";
-import { Button, Field, Popover, TagInput, MenuItem, layerStack } from "../ui/primitives";
+import { Button, Field, Modal, Popover, TagInput, MenuItem, layerStack } from "../ui/primitives";
 import { ParameterDialog } from "./ParameterDialog";
 import { AudienceDialog } from "./AudienceDialog";
 import { GenerateWithPromptDialog } from "./GenerateWithPromptDialog";
@@ -8,7 +8,7 @@ import { BlockNoteCanvas, type DocInsert } from "./BlockNoteCanvas";
 import { DesignPanel } from "./DesignPanel";
 import { PageBandEditor } from "./PageBandEditor";
 import { useStore } from "../../state/store";
-import { AUDIENCE_CONTENT, type Block, type Parameter } from "../../data/mockData";
+import { AUDIENCE_CONTENT, type Parameter } from "../../data/mockData";
 import { VARIANT } from "../../variant";
 
 /**
@@ -20,9 +20,6 @@ import { VARIANT } from "../../variant";
  */
 const GROUPED_PARAMS = VARIANT === "C";
 
-/** Whether a parameter's chip appears anywhere in the template. */
-const usesParam = (blocks: Block[], name: string) =>
-  blocks.some((b) => b.prompts.some((p) => p.includes(`{{${name}}}`)));
 import { EMPTY_BAND, bandVars, brandVars, type PageBand } from "../../data/brand";
 import {
   BUILDING_BLOCKS,
@@ -63,6 +60,20 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
   /* Which band is being worked on. Clicking one anywhere in the editor marks
      it and opens the Design tab; leaving that tab clears it. */
   const [activeBand, setActiveBand] = useState<"header" | "footer" | null>(null);
+  /* From version C (Nov 4): the Template Prompt's outline and badge show on
+     hover, or while it is selected (clicked into); clicking elsewhere lets go
+     of it. On a Feedly template, a badge follows the cursor over the prompt. */
+  const promptRef = useRef<HTMLDivElement>(null);
+  const [lockTip, setLockTip] = useState<{ x: number; y: number } | null>(null);
+  const [promptSel, setPromptSel] = useState(false);
+  useEffect(() => {
+    if (!promptSel) return;
+    const onDown = (e: PointerEvent) => {
+      if (!promptRef.current?.contains(e.target as Node)) setPromptSel(false);
+    };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [promptSel]);
   const goTab = (t: Tab) => {
     setTab(t);
     if (t !== "design") setActiveBand(null);
@@ -77,6 +88,10 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
   const [savedOnce, setSavedOnce] = useState(false);
   const [genOpen, setGenOpen] = useState(isNew);
   const [generating, setGenerating] = useState(false);
+  /* Bumped when the template's blocks change from outside the canvas (a
+     parameter deleted everywhere), so the canvas is rebuilt from them. */
+  const [canvasRev, setCanvasRev] = useState(0);
+  const [deleteParam, setDeleteParam] = useState<Parameter | null>(null);
   const [paramDialog, setParamDialog] = useState<
     | null
     | { mode: "add"; seedName?: string; topic?: boolean; insert?: (name: string) => void }
@@ -137,7 +152,8 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
   /* The Design tab is where the bands are built; the other tabs only let you
      find them. A built-in template is never editable, so its bands stay in the
      hover state wherever you are. */
-  const bandMode = tab === "design" && !readOnly ? "edit" : "hint";
+  /* Nov 4: on a Feedly template only the prompt is locked; the design is not. */
+  const bandMode = tab === "design" ? "edit" : "hint";
 
   const patch = (p: Parameters<typeof updateTemplate>[1]) => {
     updateTemplate(template.id, p);
@@ -156,11 +172,11 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
 
   /* The parameter rule for this version, shown in the Parameters tab and
      holding Save back until it is met. */
+  /* Figma V2: a template no longer needs a parameter (a parameter-less one
+     asks "What is this report about?" when it is used). Version C keeps its
+     topic-parameter rule. */
   const paramsMissing =
-    !readOnly &&
-    (GROUPED_PARAMS
-      ? !template.parameters.some((p) => p.topic)
-      : template.parameters.length === 0);
+    !readOnly && GROUPED_PARAMS && !template.parameters.some((p) => p.topic);
 
   const upgrade = () => {
     if (missingDescription || missingAudience || paramsMissing) {
@@ -181,18 +197,54 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
   };
 
   const save = () => {
+    /* Figma V2 "Template validation": a custom template saves only with its
+       description and audience in. Tradecrafts are not required. */
+    if (missingDescription || missingAudience) {
+      setShowErrors(true);
+      setTab("context");
+      return;
+    }
+    setShowErrors(false);
     setDirty(false);
     setSavedOnce(true);
     toast("Changes were successfully saved");
   };
 
+  /* Figma V2 "Delete parameter": deleting from the Parameters tab removes
+     every chip of it in the template, not just the parameter. */
   const removeParamEverywhere = (name: string) => {
+    const token = `{{${name}}}`;
     patch({
       parameters: template.parameters.filter((p) => p.name !== name),
       blocks: template.blocks.map((b) => ({
         ...b,
-        prompts: b.prompts.map((p) => p.replaceAll(`{{${name}}}`, name)),
+        prompts: b.prompts.map((p) =>
+          p
+            .split(token)
+            .join("")
+            .replace(/ {2,}/g, " ")
+            .replace(/ ([.,;:])/g, "$1")
+            .trim()
+        ),
       })),
+    });
+    setCanvasRev((r) => r + 1);
+  };
+
+  /* The target on a parameter's row shows where it is used. */
+  const locateParam = (name: string) => {
+    const chips = Array.from(
+      document.querySelectorAll<HTMLElement>(`.canvas-doc .param-chip[data-param="${CSS.escape(name)}"]`)
+    );
+    if (!chips.length) {
+      toast(`“${name}” isn’t used in the template yet`);
+      return;
+    }
+    chips[0].scrollIntoView({ behavior: "smooth", block: "center" });
+    chips.forEach((c) => {
+      c.classList.remove("flash");
+      void c.offsetWidth;
+      c.classList.add("flash");
     });
   };
 
@@ -346,7 +398,7 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
                   required={!relaxed}
                   help="What this template is about, what are the types of things the report should be focusing on."
                   error={
-                    upgrading && showErrors && missingDescription
+                    showErrors && missingDescription
                       ? "Please enter a description"
                       : undefined
                   }
@@ -366,7 +418,7 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
                   required={!relaxed}
                   help="Who the report is for (CISO, SOC/IR, Board…). Sets the depth, tone, and sections."
                   error={
-                    upgrading && showErrors && missingAudience ? "Please enter an Audience" : undefined
+                    showErrors && missingAudience ? "Please enter an Audience" : undefined
                   }
                 >
                   <button
@@ -389,7 +441,6 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
 
                 <Field
                   label="Tradecrafts"
-                  required={!relaxed}
                   help="The standards it's written to: ICD 203, Chicago style, and your writing rules."
                 >
                   <TagInput
@@ -411,12 +462,14 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
                 readOnly={readOnly}
                 onEdit={(p) => setParamDialog({ mode: "edit", param: p })}
                 onAdd={(topic) => setParamDialog({ mode: "add", topic })}
+                onDelete={(p) => setDeleteParam(p)}
+                onLocate={(p) => locateParam(p.name)}
               />
             ) : (
               <DesignPanel
                 brands={brands}
                 brandId={template.brandId}
-                readOnly={readOnly}
+                readOnly={false}
                 onPickBrand={(id) => patch({ brandId: id })}
                 onEditBrand={(p) => template.brandId && updateBrand(template.brandId, p)}
               />
@@ -426,21 +479,10 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
 
         {/* ---------------- Canvas ---------------- */}
         <div className="editor-canvas tpl-canvas">
-          {/* Figma: the banner scrolls with the body and sits 48px above the
-              page, rather than being pinned over the canvas. */}
-          {readOnly && (
-            <div className="info-bar">
-              <Icon name="info" size={24} style={{ color: "#2f6fd0" }} />
-              <span className="strong">Feedly templates cannot be edited.</span>
-              <span className="muted">
-                Duplicate it to turn it into a Custom Template you can freely change.
-              </span>
-            </div>
-          )}
           {/* A built-in template is a preview, so every section says so on
               hover rather than only the banner at the top of the page. */}
           <div
-            className="canvas-page"
+            className="canvas-page tpl-page"
             style={{ ...brandVars(brand), ...bandVars(header, footer, brand) }}
           >
             {/* Figma "Template editor - Heading" / "- Footer": the bands are
@@ -459,8 +501,27 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
             {/* The document takes a dragged building block and puts it where
                 it was dropped. Furniture blocks are not accepted here — they
                 go in a band, and the cursor says so while dragging. */}
+            {/* From version C: the template's own content is the prompt the
+                report is written from, between dashed lines. Feedly's is
+                read-only (grey, with the notice across its top); a custom
+                template's is editable (white). */}
+            <div
+              ref={promptRef}
+              className={`tpl-prompt ${readOnly ? "locked" : ""} ${promptSel ? "selected" : ""}`}
+              onPointerDown={() => setPromptSel(true)}
+            >
+              <span className="tpl-prompt-badge">Template Prompt</span>
+              {readOnly && (
+                <div className="info-bar tpl-info">
+                  <Icon name="info" size={24} style={{ color: "#2f6fd0" }} />
+                  <span className="strong">Feedly template prompts cannot be edited.</span>
+                  <span className="muted">Please duplicate it for full edit access.</span>
+                </div>
+              )}
             <div
               className={`canvas-doc ${readOnly ? "locked" : ""} ${docDrop ? "drop-over" : ""}`}
+              onPointerMove={readOnly ? (e) => setLockTip({ x: e.clientX, y: e.clientY }) : undefined}
+              onPointerLeave={readOnly ? () => setLockTip(null) : undefined}
               onDragOver={(e) => {
                 const label = dragLabel(e.dataTransfer);
                 if (readOnly || label === null) return;
@@ -493,30 +554,29 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
                 if (insertBlock.current?.(block.label, e.clientY)) setDirty(true);
               }}
             >
+              {readOnly && lockTip && (
+                <div className="cursor-badge" style={{ left: lockTip.x + 14, top: lockTip.y + 18 }}>
+                  Feedly template prompts cannot be edited
+                </div>
+              )}
               {generating ? (
                 <SkeletonDoc />
               ) : (
                 <BlockNoteCanvas
-                  key={template.id}
+                  key={`${template.id}:${canvasRev}`}
                   insertRef={insertBlock}
                   title={template.reportTitle ?? "Report title"}
                   blocks={template.blocks}
                   readOnly={readOnly}
                   parameters={template.parameters}
                   onChange={({ title, blocks }) => {
-                    /* Taking a parameter's chip out of the template takes the
-                       parameter with it, which is how the last one can go. */
-                    const kept = template.parameters.filter(
-                      (p) => !(usesParam(template.blocks, p.name) && !usesParam(blocks, p.name))
-                    );
-                    patch({
-                      reportTitle: title,
-                      blocks,
-                      ...(kept.length !== template.parameters.length ? { parameters: kept } : {}),
-                    });
+                    /* Figma V2: taking a chip out of the template leaves the
+                       parameter in place; only the trash deletes it. */
+                    patch({ reportTitle: title, blocks });
                   }}
                 />
               )}
+            </div>
             </div>
             <PageBandEditor
               kind="footer"
@@ -603,11 +663,6 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
           mode="edit"
           initial={paramDialog.param}
           onClose={() => setParamDialog(null)}
-          onDelete={() => {
-            removeParamEverywhere(paramDialog.param.name);
-            setParamDialog(null);
-            toast("Parameter deleted");
-          }}
           onSave={(p) => {
             patch({
               parameters: template.parameters.map((x) => (x.id === p.id ? p : x)),
@@ -621,6 +676,33 @@ export function TemplateEditor({ templateId, isNew }: { templateId: string; isNe
             setParamDialog(null);
           }}
         />
+      )}
+      {deleteParam && (
+        <Modal
+          title="Delete parameter"
+          width={480}
+          onClose={() => setDeleteParam(null)}
+          footer={
+            <>
+              <Button onClick={() => setDeleteParam(null)}>Close</Button>
+              <Button
+                variant="danger"
+                onClick={() => {
+                  removeParamEverywhere(deleteParam.name);
+                  setDeleteParam(null);
+                  toast(`Parameter “${deleteParam.name}” deleted`);
+                }}
+              >
+                Delete parameter
+              </Button>
+            </>
+          }
+        >
+          <p className="t-body2" style={{ margin: 0 }}>
+            Deleting this parameter will remove every instance of it in the template. Are you sure
+            you want to proceed?
+          </p>
+        </Modal>
       )}
       {audienceDialog && (
         <AudienceDialog
@@ -724,23 +806,36 @@ function ParametersPanel({
   readOnly,
   onEdit,
   onAdd,
+  onDelete,
+  onLocate,
 }: {
   parameters: Parameter[];
   readOnly: boolean;
   onEdit: (p: Parameter) => void;
+  onDelete: (p: Parameter) => void;
+  onLocate: (p: Parameter) => void;
   /** `topic` is set when adding from the Topic parameters group. */
   onAdd: (topic?: boolean) => void;
 }) {
+  /* Figma V2 "ParameterRow": badge (opens the parameter), "Required" only on
+     required ones, a target that shows it in the template, and a trash. */
   const row = (p: Parameter) => (
-    <button key={p.id} className="param-row" onClick={() => onEdit(p)}>
-      <span className="param-badge">
+    <div key={p.id} className="param-row">
+      <button className="param-badge" onClick={() => onEdit(p)} title="Edit parameter">
         <Icon name="braces" size={16} />
         {p.name}
-      </span>
-      <span className="popt">{p.optional ? "Optional" : "Required"}</span>
+      </button>
+      {!p.optional && <span className="popt">Required</span>}
       <span className="spacer" />
-      <Icon name="target" size={16} style={{ color: "var(--content-light)" }} />
-    </button>
+      <button className="row-act" title="Show in template" onClick={() => onLocate(p)}>
+        <Icon name="target" size={16} />
+      </button>
+      {!readOnly && (
+        <button className="row-act" title="Delete parameter" onClick={() => onDelete(p)}>
+          <Icon name="trash" size={16} />
+        </button>
+      )}
+    </div>
   );
   const warn = (text: string) => (
     <div className="param-warn">
@@ -789,10 +884,11 @@ function ParametersPanel({
         /* Option A: one list, all on the same level. */
         <>
           {parameters.map(row)}
-          {parameters.length === 0 && !readOnly && warn("Templates require at least one parameter")}
-          <Button icon="plus" onClick={() => onAdd()} style={{ marginTop: 8 }}>
-            Add parameter
-          </Button>
+          {!readOnly && (
+            <Button icon="plus" onClick={() => onAdd()} style={{ marginTop: 8 }}>
+              Add parameter
+            </Button>
+          )}
         </>
       )}
     </div>

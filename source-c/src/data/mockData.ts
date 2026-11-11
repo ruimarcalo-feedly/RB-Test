@@ -1,6 +1,5 @@
-import { VARIANT } from "../variant";
 import type { IconName } from "../components/ui/Icon";
-import { BRANDED_FOOTER, BRANDED_HEADER, FEEDLY_BRAND, type PageBand } from "./brand";
+import type { PageBand } from "./brand";
 
 /* ------------------------------------------------------------------ *
  * Types
@@ -38,6 +37,15 @@ export interface Template {
    * back to the app's own styling, which is what an unbranded one looks like.
    */
   brandId?: string;
+  /** Version C: a header or footer style of the template's brand, other than its primary. */
+  headerStyleId?: string;
+  footerStyleId?: string;
+  /**
+   * Version C (Oct 31): changes made to the brand's header or footer in this
+   * template, not yet applied back to the brand.
+   */
+  headerEdit?: PageBand;
+  footerEdit?: PageBand;
   header?: PageBand;
   footer?: PageBand;
   /**
@@ -52,8 +60,20 @@ export interface Parameter {
   id: string;
   name: string;
   description: string;
+  /**
+   * The input type (Figma "Parameters - Modal variants"): Free text is
+   * "Open context", Org Profile is "Org Profile items", Date is "Date range".
+   */
   type: "Org Profile" | "Free text" | "Date";
   optional: boolean;
+  /** Org Profile items only: which kind of Org Profile item it takes. */
+  itemType?: string;
+  /** "Show input suggestions": offer AI suggestions from the context. */
+  suggestions?: boolean;
+  /** Date range only: the range the report starts on. */
+  dateDefault?: string;
+  /** How the create-report flow asks for it, when it isn't generic. */
+  question?: string;
   /**
    * A topic parameter collects what the report is about (its CVE, its threat
    * actor…). Version C keeps these in a group of their own, and a template
@@ -200,97 +220,14 @@ export const AUDIENCE_CONTENT: Record<string, string> = {
 3/ Keep the executive framing to two sentences maximum.`,
 };
 
+import { bodyFor } from "./builtInTemplates";
+
 const LOREM_PROMPT =
   "Describe what this section should contain. Say what to cover, how long it should be, and what to leave out. Nothing you write here appears in the report itself, only the content it produces.";
 
-const VULN_BLOCKS: Block[] = [
-  {
-    id: "b1",
-    heading: "Executive Summary",
-    prompts: [
-      'The BLUF opening. Tells the reader the bottom-line answer to "what is this vulnerability or vulnerabilities, when was the disclosure made, how severe, what should I do, when the patches (if any) were released" in 2–4 sentences. Do not include any CVE numbers and version numbers in this section.',
-    ],
-  },
-  {
-    id: "b2",
-    heading: "CVE Analysis",
-    prompts: [
-      "The structured detail table on the {{CVE ID}} itself. Identifier, severity scores, affected products with version ranges, exploitation status, exploit maturity (including any public PoC or weaponized exploit detail), patch availability, zero-day window.",
-      "Every CVE requires a patch urgency tier label based on a specific four-tier structured decision matrix (Critical, High, Medium, Low) unless overridden by an organizational profile.",
-    ],
-  },
-  {
-    id: "b3",
-    heading: "Technical Details",
-    prompts: [
-      "Plain-language explanation of how the vulnerability works at a technical level — attack vector, exploitation mechanism, privileges required, user interaction required, references to MITRE ATT&CK techniques where the vulnerability appears in attack chains. Every critical patch entry must be written with at least one immediate, actionable interim mitigation.",
-    ],
-  },
-  {
-    id: "b4",
-    heading: "Impact Assessment",
-    prompts: [
-      "What this CVE could mean for the organization receiving the report. Potential operational consequences, regulatory framing where applicable, asset exposure where applicable.",
-      "Impact Assessment is potential exposure based on CVE detail and the tech stack relationship — not confirmed exposure. Identify which asset classes are affected by the CVE and reference {{Tech stack}} when there is a direct relationship.",
-    ],
-  },
-  {
-    id: "b5",
-    heading: "Recommendations",
-    prompts: [
-      "Extract all recommendations (and their handoff owner) from the articles. For each, give the action, the owner, and the deadline implied by the patch urgency tier.",
-    ],
-  },
-];
-
-const memoBlocks = (topic: string): Block[] => [
-  {
-    id: "b1",
-    heading: "Executive Summary",
-    prompts: [
-      `A three-sentence bottom line for a non-technical reader covering ${topic}. No jargon, no vendor names, no CVE identifiers.`,
-    ],
-  },
-  {
-    id: "b2",
-    heading: "What Happened",
-    prompts: [
-      "A factual narrative of the event in chronological order. Keep to one paragraph and cite the source articles inline.",
-    ],
-  },
-  {
-    id: "b3",
-    heading: "Business Impact",
-    prompts: [
-      "Frame the exposure in terms of revenue, reputation, regulatory posture and operational continuity. Reference {{Tech stack}} only where a direct relationship exists.",
-    ],
-  },
-  {
-    id: "b4",
-    heading: "Recommended Decisions",
-    prompts: [
-      "A structured list of decisions leadership needs to make, each with an owner. Strategic only — no remediation steps.",
-    ],
-  },
-];
-
-export const TECH_STACK_PARAM: Parameter = {
-  id: "p-tech",
-  name: "Tech stack",
-  description:
-    "Set of technologies used to build and run a specific application or platform",
-  type: "Org Profile",
-  optional: true,
-};
-
-export const CVE_PARAM: Parameter = {
-  id: "p-cve",
-  name: "CVE ID",
-  description: "The CVE identifier, or list of coordinated CVEs, the report covers",
-  type: "Free text",
-  optional: false,
-  topic: true,
-};
+/* The built-in templates' sections, prompts, tradecraft and parameters come
+   from Notion ("Built in Templates per audience"); see builtInTemplates.ts. */
+export { TECH_STACK_PARAM, CVE_PARAM, PERIOD_PARAM } from "./builtInTemplates";
 
 /* ------------------------------------------------------------------ *
  * Templates
@@ -312,9 +249,6 @@ interface BuiltIn {
   description: string;
   icon: IconName;
   contextDescription: string;
-  tradecrafts: string[];
-  parameters: Parameter[];
-  blocks: Block[];
   audiences: string[];
 }
 
@@ -326,9 +260,6 @@ const BUILT_INS: BuiltIn[] = [
     icon: "user-sparkles",
     contextDescription:
       "An Executive Memo translates a macro threat development into enterprise risk terms. The unit of analysis is the decision the board needs to make, not the threat itself.",
-    tradecrafts: ["ICD 203", "Writing Style Rules"],
-    parameters: [TECH_STACK_PARAM],
-    blocks: memoBlocks("a macro threat development"),
     audiences: ["CISO", "Executive Leadership"],
   },
   {
@@ -338,9 +269,6 @@ const BUILT_INS: BuiltIn[] = [
     icon: "bug",
     contextDescription:
       "A Vulnerability Advisory is a focused report communicating a specific vulnerability (or set of related vulnerabilities) and what to do about it. The unit of analysis is the CVE (or grouped CVEs in a coordinated disclosure).",
-    tradecrafts: ["ICD 203", "Chicago Manual Style", "Writing Style Rules"],
-    parameters: [CVE_PARAM, TECH_STACK_PARAM],
-    blocks: VULN_BLOCKS,
     audiences: [
       "CISO",
       "Detection Engineering",
@@ -356,9 +284,6 @@ const BUILT_INS: BuiltIn[] = [
     icon: "flash",
     contextDescription:
       "A Flash Report covers a single external cyber event affecting a peer organization or our sector. The unit of analysis is our own exposure to the same event.",
-    tradecrafts: ["ICD 203"],
-    parameters: [TECH_STACK_PARAM],
-    blocks: memoBlocks("an external cyber event affecting a peer organization"),
     audiences: ["CISO", "Detection Engineering", "Red Team", "SOC/IR"],
   },
   {
@@ -368,9 +293,6 @@ const BUILT_INS: BuiltIn[] = [
     icon: "calendar",
     contextDescription:
       "A recurring digest of notable threat activity from the period covered. The unit of analysis is the period, not any single event.",
-    tradecrafts: ["ICD 203", "Chicago Manual Style"],
-    parameters: [],
-    blocks: memoBlocks("notable threat activity in the period"),
     audiences: [
       "CISO",
       "Risk Management",
@@ -387,9 +309,6 @@ const BUILT_INS: BuiltIn[] = [
     icon: "shield-lightning",
     contextDescription:
       "Covers a compromised dependency in our stack. The unit of analysis is the contamination scope across our estate.",
-    tradecrafts: ["ICD 203"],
-    parameters: [TECH_STACK_PARAM],
-    blocks: memoBlocks("a compromised dependency in our stack"),
     audiences: ["CISO", "IT Operations", "SOC/IR", "Vuln Management"],
   },
   {
@@ -399,9 +318,6 @@ const BUILT_INS: BuiltIn[] = [
     icon: "shield-doc",
     contextDescription:
       "Covers a breach involving a vendor we use. The unit of analysis is our indirect exposure through the vendor relationship.",
-    tradecrafts: ["ICD 203", "ICD 206"],
-    parameters: [TECH_STACK_PARAM],
-    blocks: memoBlocks("a breach at a third-party vendor"),
     audiences: ["CISO", "TPRM"],
   },
   {
@@ -410,9 +326,6 @@ const BUILT_INS: BuiltIn[] = [
     icon: "swords",
     contextDescription:
       "Ready-to-execute hunt hypotheses. The unit of analysis is the hypothesis, each with a data source and a query.",
-    tradecrafts: ["ICD 206", "Analytic Tools"],
-    parameters: [],
-    blocks: memoBlocks("adversary presence in our environment"),
     audiences: ["SOC/IR", "Threat Hunting"],
   },
   {
@@ -422,9 +335,6 @@ const BUILT_INS: BuiltIn[] = [
     icon: "mask",
     contextDescription:
       "A procedure-level emulation package. The unit of analysis is the ATT&CK procedure, mapped to a detection.",
-    tradecrafts: ["ICD 206"],
-    parameters: [],
-    blocks: memoBlocks("a threat actor's tradecraft"),
     audiences: ["Detection Engineering", "Red Team"],
   },
   {
@@ -433,9 +343,6 @@ const BUILT_INS: BuiltIn[] = [
     icon: "broken-shield",
     contextDescription:
       "Assesses the security posture of an acquisition target. The unit of analysis is the transaction risk.",
-    tradecrafts: ["ICD 203"],
-    parameters: [],
-    blocks: memoBlocks("the security posture of an acquisition target"),
     audiences: ["M&A"],
   },
 ];
@@ -461,7 +368,9 @@ export const BUILT_IN_ORDER = [
 const BUILT_IN_TEMPLATES: Template[] = [...BUILT_INS]
   .sort((a, b) => BUILT_IN_ORDER.indexOf(a.name) - BUILT_IN_ORDER.indexOf(b.name))
   .flatMap((b) =>
-  b.audiences.map((audience) => ({
+  b.audiences.map((audience) => {
+    const body = bodyFor(b.name, audience);
+    return {
     id: `t-${slug(b.name)}-${slug(audience)}`,
     name: b.name,
     description: b.description,
@@ -469,12 +378,13 @@ const BUILT_IN_TEMPLATES: Template[] = [...BUILT_INS]
     kind: "feedly" as const,
     audience,
     lastUsed: order++,
-    tradecrafts: [...b.tradecrafts],
+    tradecrafts: [...body.tradecrafts],
     contextDescription: b.contextDescription,
     builtinNote: b.contextDescription,
-    parameters: b.parameters.map((p) => ({ ...p })),
-    blocks: b.blocks.map((x) => ({ ...x, prompts: [...x.prompts] })),
-  }))
+    parameters: body.parameters.map((p) => ({ ...p })),
+    blocks: body.blocks.map((x) => ({ ...x, prompts: [...x.prompts] })),
+  };
+  })
 );
 
 
@@ -492,8 +402,8 @@ const CUSTOM_TEMPLATES: Template[] = [
     tradecrafts: ["ICD 203", "Chicago Manual Style", "Writing Style Rules"],
     contextDescription:
       "Matt's variant of the Executive Memo. Same structure, tighter word budget, always closes on a single recommended decision.",
-    parameters: [TECH_STACK_PARAM],
-    blocks: memoBlocks("a macro threat development"),
+    parameters: bodyFor("Executive Memo", "CISO").parameters.map((p) => ({ ...p })),
+    blocks: bodyFor("Executive Memo", "CISO").blocks.map((b) => ({ ...b, prompts: [...b.prompts] })),
   },
   {
     id: "t-vuln-matt",
@@ -507,8 +417,8 @@ const CUSTOM_TEMPLATES: Template[] = [
     tradecrafts: ["ICD 203", "Chicago Manual Style", "Writing Style Rules"],
     contextDescription:
       "Matt's Vulnerability Advisory — adds a patch-urgency matrix and always references the tech stack.",
-    parameters: [CVE_PARAM, TECH_STACK_PARAM],
-    blocks: VULN_BLOCKS.map((b) => ({ ...b, prompts: [...b.prompts] })),
+    parameters: bodyFor("Vulnerability Advisory", "Vuln Management").parameters.map((p) => ({ ...p })),
+    blocks: bodyFor("Vulnerability Advisory", "Vuln Management").blocks.map((b) => ({ ...b, prompts: [...b.prompts] })),
   },
 ];
 
@@ -562,10 +472,10 @@ const LEGACY_TEMPLATES: Template[] = LEGACY_NAMES.map((name, i) => ({
   lastUsed: 100 + i,
   tradecrafts: [],
   contextDescription: "",
-  /* Version C adds the Topic parameter automatically, so the template works
-     in the new flow without anyone touching it. */
+  /* The Topic parameter is added automatically, so the template already
+     carries what the new flow needs (Figma "Legacy Templates - Updating"). */
   parameters:
-    VARIANT === "C"
+    true
       ? [
           {
             id: `p-topic-legacy-${i}`,
@@ -582,7 +492,7 @@ const LEGACY_TEMPLATES: Template[] = LEGACY_NAMES.map((name, i) => ({
       id: "lg1",
       heading: "Executive Summary",
       prompts: [
-        ...(VARIANT === "C" ? ["This report should focus on {{Topic}}."] : []),
+        "This report should focus on {{Topic}}.",
         "Summarize the most important developments in two or three sentences, and say what the reader should do about them.",
       ],
     },
@@ -609,9 +519,12 @@ export const TEMPLATES: Template[] = [
   ...LEGACY_TEMPLATES,
 ].map((t) => ({
   ...t,
-  brandId: FEEDLY_BRAND.id,
-  header: BRANDED_HEADER,
-  footer: BRANDED_FOOTER,
+  /* Version C: a template carries neither a brand nor a header or footer.
+     The report starts plain; its brand, header and footer are picked or built
+     on the report itself (Figma "Beginner's Flow"). */
+  brandId: undefined,
+  header: undefined,
+  footer: undefined,
 }));
 
 export const BLANK_BLOCKS: Block[] = [
@@ -756,6 +669,16 @@ export const REPORTS: Report[] = [
  * ------------------------------------------------------------------ */
 
 export const ORG_ITEMS: OrgItem[] = [
+  {
+    /* Version C: the placeholder brand every template starts in. */
+    id: "o-brand-default",
+    name: "Default brand",
+    type: "Brand",
+    icon: "brand",
+    referencedIn: [],
+    createdBy: "Feedly",
+    createdOn: "Oct 31, 2026",
+  },
   {
     /* The brand the Feedly templates are written in — the one Org Profile item
        that carries styling rather than words. */
@@ -1138,6 +1061,15 @@ export const TECH_STACK_OPTIONS = [
   "Containers & Orchestration",
   "CI/CD & Developer Tooling",
   "Application & Runtime Stack",
+];
+
+/** Every Org Profile list item a tech-stack answer can draw on, for searching. */
+export const ORG_PROFILE_LIST_ITEMS = [
+  ...TECH_STACK_OPTIONS,
+  "Identity & Access",
+  "Endpoint & Devices",
+  "Network & Edge",
+  "Data & Analytics",
 ];
 
 export const LANGUAGES = [

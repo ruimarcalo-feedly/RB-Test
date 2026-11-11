@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Icon } from "../components/ui/Icon";
 import { Button } from "../components/ui/primitives";
 import { CreateReportMenu } from "../components/report/CreateReportMenu";
+import { AskAIPanel } from "../components/report/AskAIPanel";
 import { useStore } from "../state/store";
 import { ARTICLES, FEED_NAME } from "../data/mockData";
 
@@ -13,12 +14,20 @@ export function ArticleFeedPage() {
   const { selectedArticles, toggleArticle, openReportEditor } = useStore();
   const btnRef = useRef<HTMLButtonElement>(null);
   const [menu, setMenu] = useState(false);
+  /* Figma V2 "ASK AI Entry points": Analyze opens the Ask AI panel. */
+  const [ask, setAsk] = useState(false);
 
   /* Nothing selected means the report covers the feed itself rather than a
      hand-picked set — the "broad context" path in the Source Collection Logic. */
   const anySelected = selectedArticles.length > 0;
 
+  const contextFor = () =>
+    anySelected
+      ? ({ path: "articles", articleIds: selectedArticles } as const)
+      : ({ path: "broad", contextLabel: FEED_NAME, contextKind: "feed" } as const);
+
   return (
+    <div className={ask ? "feed-split" : undefined}>
     <div className="page" style={{ paddingTop: 28 }}>
       <div className="page-head" style={{ alignItems: "flex-start", marginBottom: 20 }}>
         <div>
@@ -35,13 +44,15 @@ export function ArticleFeedPage() {
         </div>
         <div className="row" style={{ gap: 6 }}>
           <Button icon="check" title="Mark all as read" variant="ghost" />
-          <Button icon="star" title="Prioritise" variant="ghost" />
-          <Button icon="wand" title="Summarise" variant="ghost" />
+          <Button icon="star" title="Prioritize" variant="ghost" />
+          <Button icon="wand" title="Summarize" variant="ghost" />
           <button ref={btnRef} className="btn" onClick={() => setMenu((m) => !m)}>
             <Icon name="wand" size={16} />
             Create Report
           </button>
-          <Button icon="sparkle">Analyse</Button>
+          <Button icon="sparkle" active={ask} onClick={() => setAsk((a) => !a)}>
+            Analyze
+          </Button>
           <Button icon="ellipsis" variant="ghost" title="More" />
         </div>
       </div>
@@ -50,14 +61,7 @@ export function ArticleFeedPage() {
         <CreateReportMenu
           anchorRef={btnRef}
           onClose={() => setMenu(false)}
-          onPick={(id) =>
-            openReportEditor(
-              id,
-              anySelected
-                ? { path: "articles", articleIds: selectedArticles, askAudience: true }
-                : { path: "broad", contextLabel: FEED_NAME, contextKind: "feed", askAudience: true }
-            )
-          }
+          onPick={(id) => openReportEditor(id, contextFor())}
         />
       )}
 
@@ -118,14 +122,25 @@ export function ArticleFeedPage() {
             </div>
             <div className="row" style={{ gap: 2, alignSelf: "flex-start" }}>
               <Button icon="bookmark" variant="ghost" size="sm" title="Read later" />
-              <Button icon="star" variant="ghost" size="sm" title="Prioritise" />
+              <Button icon="star" variant="ghost" size="sm" title="Prioritize" />
               <Button icon="arrow-down" variant="ghost" size="sm" title="Mute" />
               <Button icon="check" variant="ghost" size="sm" title="Mark as read" />
-              <Button icon="wand" variant="ghost" size="sm" title="Summarise" />
+              <Button icon="wand" variant="ghost" size="sm" title="Summarize" />
             </div>
           </div>
         );
       })}
+    </div>
+    {ask && (
+      <AskAIPanel
+        articleIds={selectedArticles}
+        onClose={() => setAsk(false)}
+        onPick={(id) => {
+          setAsk(false);
+          openReportEditor(id, contextFor());
+        }}
+      />
+    )}
     </div>
   );
 }

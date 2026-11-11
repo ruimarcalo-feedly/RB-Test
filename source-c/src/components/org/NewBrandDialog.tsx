@@ -13,8 +13,11 @@ import { Button, Field, Modal } from "../ui/primitives";
 export function NewBrandDialog({
   onClose,
   onCreate,
+  autofillName,
 }: {
   onClose: () => void;
+  /** Prototype shortcut: clicking the empty name field types this in. */
+  autofillName?: string;
   /** `extracted` is true when a PDF was supplied, so the brand comes back filled. */
   onCreate: (name: string, extracted: boolean) => void;
 }) {
@@ -25,7 +28,7 @@ export function NewBrandDialog({
 
   return (
     <Modal
-      title="New Brand"
+      title="New brand styles"
       width={480}
       onClose={onClose}
       footer={
@@ -44,8 +47,9 @@ export function NewBrandDialog({
       <Field label="Name" required>
         <input
           className="input"
-          autoFocus
+          autoFocus={!autofillName}
           value={name}
+          onPointerDown={() => autofillName && !name && setName(autofillName)}
           placeholder="Feedly"
           onChange={(e) => setName(e.target.value)}
         />

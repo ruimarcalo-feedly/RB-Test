@@ -21,7 +21,15 @@ import {
   type Template,
 } from "../data/mockData";
 import type { CreateContext } from "../components/report/script";
-import { ACME_BRAND, EMPTY_BAND, FEEDLY_BRAND, type Brand } from "../data/brand";
+import {
+  ACME_BRAND,
+  BRANDED_FOOTER,
+  BRANDED_HEADER,
+  DEFAULT_BRAND,
+  EMPTY_BAND,
+  type Brand,
+} from "../data/brand";
+import type { BandKind, SavedBand } from "../data/bandObjects";
 
 /* ------------------------------------------------------------------ */
 
@@ -86,6 +94,12 @@ interface Store {
   addBrand: (b: Brand) => void;
   updateBrand: (id: string, patch: Partial<Brand>) => void;
 
+  /** Version C: header and footer styles saved inside a brand. */
+  addBrandBand: (brandId: string, b: Omit<SavedBand, "id">) => SavedBand;
+  updateBrandBand: (brandId: string, id: string, patch: Partial<SavedBand>) => void;
+  deleteBrandBand: (brandId: string, id: string) => void;
+  setPrimaryBand: (brandId: string, kind: BandKind, id: string) => void;
+
   audiences: string[];
   addAudience: (name: string) => void;
   audienceContent: Record<string, string>;
@@ -115,10 +129,23 @@ export const nextId = (prefix = "id") => `${prefix}-${++uid}`;
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [view, setView] = useState<View>("reportBuilder");
   const [overlay, setOverlay] = useState<Overlay>({ kind: "none" });
-  const [templates, setTemplates] = useState<Template[]>(TEMPLATES);
+  /* Every template starts in the placeholder Default brand. */
+  const [templates, setTemplates] = useState<Template[]>(() =>
+    TEMPLATES.map((t) => ({ ...t, brandId: t.brandId ?? DEFAULT_BRAND.id }))
+  );
   const [reports, setReports] = useState<Report[]>(REPORTS);
-  const [orgItems, setOrgItems] = useState<OrgItem[]>(ORG_ITEMS);
-  const [brands, setBrands] = useState<Brand[]>([FEEDLY_BRAND, ACME_BRAND]);
+  const [orgItems, setOrgItems] = useState<OrgItem[]>(
+    /* Version C starts without the Feedly brand; it is created in the flow. */
+    ORG_ITEMS.filter((o) => o.id !== "o-brand-feedly")
+  );
+  /* Version C: the Feedly brand is not saved yet; it is created from the
+     report's Design tab as part of the flow. */
+  /* Oct 31: the greyscale Default brand is there from the start, beside Acme
+     Inc. Each brand has one header and one footer. */
+  const [brands, setBrands] = useState<Brand[]>([
+    DEFAULT_BRAND,
+    { ...ACME_BRAND, header: BRANDED_HEADER, footer: BRANDED_FOOTER },
+  ]);
   const [audiences, setAudiences] = useState<string[]>(AUDIENCES);
   const [audienceContent, setAudienceContentMap] =
     useState<Record<string, string>>(AUDIENCE_CONTENT);
@@ -130,10 +157,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
      rule for all three is the same: the step appears only when the setting
      leaves a choice open. Add a second language, Company Overview or brand in
      Report Builder settings to see those questions appear. */
+  /* Version C: no brand is turned on for reports to begin with (Acme Inc is
+     in the Org Profile but not in Report Builder settings), so a report
+     starts unbranded. A brand created from then on is added automatically. */
   const [settings, setSettings] = useState<Settings>({
     languages: ["English (US)"],
     companies: ["Feedly"],
-    brands: ["Feedly"],
+    brands: [DEFAULT_BRAND.name],
   });
   const [toasts, setToasts] = useState<ToastMsg[]>([]);
   const toastSeq = useRef(0);
@@ -210,7 +240,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           blocks: BLANK_BLOCKS.map((b) => ({ ...b, prompts: [...b.prompts] })),
           /* A new template is a custom one, so it starts on the organisation's
              brand like every other custom template — with empty bands. */
-          brandId: FEEDLY_BRAND.id,
+          brandId: DEFAULT_BRAND.id,
           header: EMPTY_BAND,
           footer: EMPTY_BAND,
         };
@@ -227,9 +257,69 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setOrgItems((is) => is.map((i) => (i.id === id ? { ...i, ...patch } : i))),
 
       brands,
-      addBrand: (b) => setBrands((bs) => [...bs, b]),
+      addBrand: (b) => {
+        setBrands((bs) => [...bs, b]);
+        /* A new brand is available to reports straight away; it can be
+           taken off again in Report Builder settings. */
+        setSettings((s) => (s.brands.includes(b.name) ? s : { ...s, brands: [...s.brands, b.name] }));
+      },
       updateBrand: (id, patch) =>
         setBrands((bs) => bs.map((b) => (b.id === id ? { ...b, ...patch } : b))),
+
+      addBrandBand: (brandId, b) => {
+        const made: SavedBand = { ...b, id: nextId("band") };
+        setBrands((bs) =>
+          bs.map((x) => {
+            if (x.id !== brandId) return x;
+            const had = (x.bands ?? []).some((y) => y.kind === b.kind);
+            /* The first style of a kind becomes the brand's primary. */
+            return {
+              ...x,
+              bands: [...(x.bands ?? []), made],
+              primary: had ? x.primary : { ...x.primary, [b.kind]: made.id },
+            };
+          })
+        );
+        return made;
+      },
+      updateBrandBand: (brandId, id, patch) =>
+        setBrands((bs) =>
+          bs.map((x) =>
+            x.id !== brandId
+              ? x
+              : { ...x, bands: (x.bands ?? []).map((y) => (y.id === id ? { ...y, ...patch } : y)) }
+          )
+        ),
+      deleteBrandBand: (brandId, id) => {
+        setBrands((bs) =>
+          bs.map((x) => {
+            if (x.id !== brandId) return x;
+            const gone = (x.bands ?? []).find((y) => y.id === id);
+            const bands = (x.bands ?? []).filter((y) => y.id !== id);
+            const primary = { ...x.primary };
+            /* Deleting the primary hands the role to the next one saved. */
+            if (gone && primary[gone.kind] === id)
+              primary[gone.kind] = bands.find((y) => y.kind === gone.kind)?.id;
+            return { ...x, bands, primary };
+          })
+        );
+        /* A template that pinned it falls back to the brand's primary. */
+        setTemplates((ts) =>
+          ts.map((t) =>
+            t.headerStyleId === id || t.footerStyleId === id
+              ? {
+                  ...t,
+                  headerStyleId: t.headerStyleId === id ? undefined : t.headerStyleId,
+                  footerStyleId: t.footerStyleId === id ? undefined : t.footerStyleId,
+                }
+              : t
+          )
+        );
+      },
+      setPrimaryBand: (brandId, kind, id) =>
+        setBrands((bs) =>
+          bs.map((x) => (x.id === brandId ? { ...x, primary: { ...x.primary, [kind]: id } } : x))
+        ),
 
       audiences,
       addAudience: (name) =>

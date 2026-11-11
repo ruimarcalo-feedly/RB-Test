@@ -1,4 +1,5 @@
 import type { IconName } from "../components/ui/Icon";
+import type { BandKind, SavedBand } from "./bandObjects";
 
 /**
  * Branding — Figma "[2.2] Branding & Customization".
@@ -65,6 +66,34 @@ export interface Brand {
   viz: string[];
   /** "Common Imagery" — up to five images the brand reuses. */
   assets: BrandAsset[];
+  /** Version C: the header and footer styles saved into this brand. */
+  bands?: SavedBand[];
+  /** Version C: which saved style of each kind a report gets by default. */
+  primary?: Partial<Record<BandKind, string>>;
+  /**
+   * Version C (Oct 31): a brand has one header and one footer. They are
+   * changed in a template and applied back to the brand from there.
+   */
+  header?: PageBand;
+  footer?: PageBand;
+  /**
+   * Version C (Nov 2): the brand's saved colors. Typography only picks from
+   * these. Left out, it is the colors the typography already uses.
+   */
+  palette?: string[];
+}
+
+/** The brand's saved colors. */
+export function brandPalette(brand: Brand | undefined): string[] {
+  if (!brand) return [];
+  if (brand.palette) return brand.palette;
+  const c = brand.colors;
+  return [...new Set([c.h1, c.h2, c.h3, c.h4, c.paragraph, c.caption].map((x) => x.toUpperCase()))];
+}
+
+/** The brand's header or footer, or an empty band when it has none. */
+export function brandBand(brand: Brand | undefined, kind: BandKind): PageBand {
+  return brand?.[kind] ?? EMPTY_BAND;
 }
 
 /** One font for every style, which is where a brand starts. */
@@ -204,7 +233,7 @@ export function blankBrand(name: string, id: string): Brand {
  * filled in rather than blank, so this is the filled-in answer.
  */
 export function extractedBrand(name: string, id: string): Brand {
-  return { ...FEEDLY_BRAND, id, name };
+  return { ...FEEDLY_BRAND, id, name, header: BRANDED_HEADER, footer: BRANDED_FOOTER };
 }
 
 /* ------------------------------------------------------------------ *
@@ -265,6 +294,13 @@ export interface PageBand {
    * swaps the artwork with it.
    */
   imageAsset?: string;
+  /** Version C: the band's height, set by dragging its inner edge. */
+  height?: number;
+}
+
+/** The band's height: the one dragged to, or the default for its content. */
+export function bandHeight(band: PageBand, brand?: Brand): number {
+  return band.height ?? (bandImage(band, brand) ? 120 : 64);
 }
 
 /** The band's background image, wherever it comes from. */
@@ -278,7 +314,8 @@ export const EMPTY_BAND: PageBand = {
   middle: null,
   right: null,
   scope: "cover",
-  background: "#FFFFFF",
+  /* Version C: a band has no fill until one is picked. */
+  background: "transparent",
   image: null,
 };
 
@@ -378,8 +415,8 @@ export function bandVars(
   brand?: Brand
 ): Record<string, string> {
   return {
-    "--header-h": bandImage(header, brand) ? "120px" : "64px",
-    "--footer-h": bandImage(footer, brand) ? "120px" : "64px",
+    "--header-h": `${bandHeight(header, brand)}px`,
+    "--footer-h": `${bandHeight(footer, brand)}px`,
   };
 }
 
@@ -409,3 +446,59 @@ export function brandVars(brand: Brand | undefined): Record<string, string> {
     "--b-table": brand.structure.table,
   };
 }
+
+/* ------------------------------------------------------------------ *
+ * Version C (Oct 31): the default brand, a greyscale placeholder
+ * ------------------------------------------------------------------ */
+
+/** A grey "Logo" box, standing in for the organization's own logo. */
+const PLACEHOLDER_LOGO =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="240" height="80" viewBox="0 0 240 80">' +
+      '<rect width="240" height="80" rx="10" fill="#5E5E5E"/>' +
+      '<text x="120" y="52" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="34" font-weight="700" fill="#FFFFFF">Logo</text>' +
+      "</svg>"
+  );
+
+/**
+ * What every template starts in: no real branding yet, just a stand-in. One
+ * header (a greyscale gradient strip with a "Logo" placeholder on the left)
+ * and one footer (a TLP badge in the middle, the page number on the right).
+ */
+export const DEFAULT_BRAND: Brand = {
+  id: "brand-default",
+  name: "Default brand",
+  font: "Helvetica",
+  fonts: allFonts("Helvetica"),
+  colors: {
+    h1: "#1F1F1F",
+    h2: "#555555",
+    h3: "#6E6E6E",
+    h4: "#555555",
+    paragraph: "#333333",
+    caption: "#8A8A8A",
+    tlp: "#333333",
+  },
+  structure: { dividers: "#E6E6E6", table: "#F2F2F2" },
+  tlp: { clear: "#F2F2F2", green: "#D5F0DB", amber: "#FFEACC", red: "#FCC7C3" },
+  viz: ["#3D3D3D", "#6B6B6B", "#8F8F8F", "#B0B0B0", "#CCCCCC", "#E0E0E0"],
+  assets: [{ id: "logo", name: "Logo", src: PLACEHOLDER_LOGO, uploaded: "31 Oct 2026" }],
+  header: {
+    left: { kind: "asset", assetId: "logo" },
+    middle: null,
+    right: null,
+    scope: "cover",
+    background: "linear-gradient(90deg, #A6A6A6 0%, #EEEEEE 100%)",
+    image: null,
+    height: 80,
+  },
+  footer: {
+    left: null,
+    middle: { kind: "tlp", text: "TLP: AMBER" },
+    right: { kind: "pageCount" },
+    scope: "all",
+    background: "transparent",
+    image: null,
+  },
+};

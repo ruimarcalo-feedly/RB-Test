@@ -19,6 +19,7 @@ import { audiencesFor, pairingFor } from "../../data/templateFamily";
 import { EMPTY_BAND, bandVars, brandVars, type Brand } from "../../data/brand";
 import { PageBandEditor } from "../editor/PageBandEditor";
 import { ReportDocument } from "./ReportDocument";
+import { DateRangeField, MultiSearchSelect } from "./ElicitInputs";
 import { VULN_ADVISORY_DOC, proseDoc, type DocNode } from "../../data/reportDoc";
 import {
   ARTICLES,
@@ -29,6 +30,7 @@ import {
   GENERATED_TITLE,
   INSIGHT_CARDS,
   LANGUAGES,
+  ORG_PROFILE_LIST_ITEMS,
   REPORT_BODIES,
   TECH_STACK_VALUES,
   THREAT_GRAPH_SOURCES,
@@ -69,8 +71,17 @@ interface Question {
   tagHelp?: string;
   title: string;
   help?: string;
-  /** options = multi-select, radio = single-select (the extra steps), text = free. */
-  type: "options" | "radio" | "text";
+  /**
+   * options = multi-select, radio = single-select (the extra steps), text =
+   * free, mss = a MultiSearchSelect field, date = a date range field.
+   */
+  type: "options" | "radio" | "text" | "mss" | "date";
+  /** The Other row is a MultiSearchSelect over these items (Org Profile items). */
+  otherItems?: string[];
+  /** A many-picks field shows them as one summary line. */
+  summary?: boolean;
+  /** What a date range field starts on, when a suggestion is shown. */
+  dateDefault?: string;
   options?: SuggestedOption[];
   /** The "Other (use @ …)" row — the language step doesn't offer one. */
   allowOther?: boolean;
@@ -228,6 +239,8 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
    * says what the report is about), any of the extra steps the settings leave
    * open, and the further-details question, which always comes last.
    */
+  /** A template with no parameters only asks what the report is about. */
+  const parameterless = template.parameters.length === 0;
   const questions = useMemo<Question[]>(() => {
     const qs: Question[] = [];
     /* Templates without a subject parameter of their own still need to be
@@ -238,40 +251,64 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
       ...template.parameters.filter((p) => p.topic),
       ...template.parameters.filter((p) => !p.topic),
     ];
+    /* Suggestions need something to come from: with no context there is
+       nothing to offer, whatever the parameter allows. */
+    const hasContext = context.path !== "none";
     for (const p of ordered) {
-      if (p.name === "CVE ID") {
-        const sug = cveSuggestions(context);
+      const suggest = p.suggestions !== false && hasContext;
+      /* Figma "Elicitation Variants": the parameter cards carry the badge only,
+         no Required / Optional note. */
+      const base = { id: p.id, label: p.id === "p-tech" ? "Tech stacks" : p.name, tagHelp: p.description, noTag: true, required: !p.optional };
+      if (p.name === "Vulnerability") {
+        const sug = p.suggestions === false ? null : cveSuggestions(context);
         qs.push({
-          id: p.id,
-          label: "CVE ID",
-          tagHelp: p.description,
-          title: "What vulnerability/vulnerabilities should this report be about?",
-          /* Figma: "With no context, we can't offer suggestions to pick from." */
-          help: sug ? "Suggestions are based on your attached context" : undefined,
-          type: sug ? "options" : "text",
+          ...base,
+          title: "What vulnerabilities should be mentioned in this report?",
+          help: "Suggestions are taken from your context",
+          /* More than four picks from an agent make for a long list, so they
+             move into a MultiSearchSelect, already selected. */
+          type: sug ? (sug.options.length > 4 ? "mss" : "options") : "text",
           options: sug?.options.map((label) => ({ label, suggested: false })),
+          summary: true,
           ticked: sug?.ticked,
           otherLabel: "Other",
-          placeholder: "Type in a CVE-ID or vulnerability name",
-          required: !p.optional,
+          placeholder: "Write in your answer here",
         });
         continue;
       }
-      const options = p.type === "Org Profile" ? suggestOptions(p.name, signals) : undefined;
+      if (p.type === "Org Profile") {
+        const options = suggest ? suggestOptions(p.name, signals) : undefined;
+        const labels = new Set(options?.map((o) => o.label));
+        qs.push({
+          ...base,
+          title: p.id === "p-tech" ? "What\u2019s in your tech stack?" : `Which ${p.name} should this report use?`,
+          help: options ? "Suggestions are taken from the Org Profile" : undefined,
+          type: options ? "options" : "mss",
+          options: options ?? ORG_PROFILE_LIST_ITEMS.map((label) => ({ label, suggested: false })),
+          otherItems: ORG_PROFILE_LIST_ITEMS.filter((o) => !labels.has(o)),
+          placeholder: "Search Org Profile",
+        });
+        continue;
+      }
+      if (p.type === "Date") {
+        qs.push({
+          ...base,
+          title: "What date range should this report cover?",
+          type: "date",
+          /* "A suggestion will simply pick the best option for the situation." */
+          dateDefault: suggest ? "Last 7 days" : undefined,
+        });
+        continue;
+      }
       qs.push({
-        id: p.id,
-        label: p.name === "Tech stack" ? "Tech Stacks" : p.name,
-        tagHelp: p.description,
+        ...base,
         title:
-          p.name === "Tech stack"
-            ? "What’s in your tech stack?"
-            : p.name === "Topic"
-              ? "What should this report focus on?"
-              : `What should we use for ${p.name}?`,
-        help: options ? "Suggestions are taken from the Org Profile" : undefined,
-        type: p.type === "Org Profile" ? ("options" as const) : ("text" as const),
-        options,
-        required: !p.optional,
+          p.name === "Topic"
+            ? "What should this report focus on?"
+            : p.question ?? `What should we use for ${p.name}?`,
+        help: p.description,
+        type: "text",
+        placeholder: "Write in your answer here",
       });
     }
     /* Figma "Create Report Flow - EXTRA steps": "If present, either of these
@@ -283,7 +320,9 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
         label: "Language",
         icon: "text",
         title: "What language should this report be in?",
-        help: "Options are coming from your Report Builder settings",
+        help: "Options are coming from template",
+        noTag: true,
+        green: true,
         type: "radio",
         allowOther: false,
         options: [...settings.languages, "Something else"].map((l) => ({
@@ -298,10 +337,11 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
         label: "Company Overview",
         icon: "building",
         title: "What company is this report for?",
-        help: settings.companies.length
-          ? "Options are coming from your Report Builder settings"
-          : "Suggestions are coming from your Org Profile",
+        help: "Suggestions are taken from your Intel Agent",
+        noTag: true,
+        green: true,
         type: "radio",
+        otherLabel: "Other",
         options: (settings.companies.length ? settings.companies : COMPANIES).map((c) => ({
           label: c,
           suggested: false,
@@ -315,12 +355,15 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
         icon: "brand",
         title: "Which brand should this report use?",
         help: "Options are coming from your Report Builder settings",
+        noTag: true,
+        green: true,
         type: "radio",
         allowOther: false,
         options: settings.brands.map((b) => ({ label: b, suggested: false })),
       });
     }
-    qs.push(furtherDetailsQuestion());
+    /* A parameter-less template only needs to know what the report is about. */
+    if (template.parameters.length > 0) qs.push({ ...furtherDetailsQuestion(), noTag: true });
     return qs;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -355,7 +398,7 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
   /* Built once, from the template as it was picked: the audience answer
      changes which pairing is in hand, not what was said at the start. */
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const script = useMemo(() => buildScript(context, template, askAudience), []);
+  const script = useMemo(() => buildScript(context, template, askAudience, parameterless), []);
   const cursor = useRef(0);
   const [awaitingAudience, setAwaitingAudience] = useState(false);
 
@@ -688,18 +731,14 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
               </Popover>
             )}
           </>
-        ) : phase === "generating" ? (
+        ) : (
+          /* Figma "Create Report Flow": until the report is written the header
+             only offers a new report, and Export waits for something to export. */
           <>
-            <Button icon="history" title="Version history" />
+            <Button icon="plus" variant="ghost" title="New report" />
             <Button icon="export" disabled>
               Export
             </Button>
-          </>
-        ) : (
-          <>
-            <span className="t-body3 light">Edited just now</span>
-            <Button icon="ellipsis" title="More" />
-            <Button variant="primary">Save</Button>
           </>
         )}
       </div>
@@ -759,6 +798,9 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
                       q={current}
                       index={qIndex}
                       total={questions.length}
+                      /* A single question needs no counter (Figma "Parameters -
+                         Empty"). */
+                      pager={questions.length > 1}
                       /* Only the first question draws in; the ones after it
                          swap in place. */
                       still={qIndex > 0 || questions[0]?.id in answers}
@@ -826,6 +868,11 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
               templateName={`${template.name} - ${template.audience}`}
               answers={answers}
               questions={questions}
+              parameters={template.parameters}
+              setAnswer={(id, v) => {
+                setAnswers((a) => ({ ...a, [id]: v }));
+                if (generated) setDirty(true);
+              }}
               language={language}
               setLanguage={(v) => {
                 setLanguage(v);
@@ -894,11 +941,19 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
  * Chat entries
  * ------------------------------------------------------------------ */
 
+/** `**bold**` in a scripted message, as the Figma messages set the names. */
+function rich(text?: string) {
+  if (!text) return text;
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
+    /^\*\*[^*]+\*\*$/.test(part) ? <b key={i}>{part.slice(2, -2)}</b> : part
+  );
+}
+
 function ChatBubble({ entry, onToggle }: { entry: ChatEntry; onToggle: () => void }) {
   /* Each thing lands with the same short rise; a rebuilt transcript skips it. */
   const anim = entry.instant ? "" : " chat-in";
 
-  if (entry.kind === "ai") return <div className={`chat-ai${anim}`}>{entry.text}</div>;
+  if (entry.kind === "ai") return <div className={`chat-ai${anim}`}>{rich(entry.text)}</div>;
   if (entry.kind === "user")
     return entry.pairs ? (
       <div className={`chat-user answers${anim}`}>
@@ -913,7 +968,7 @@ function ChatBubble({ entry, onToggle }: { entry: ChatEntry; onToggle: () => voi
       /* Figma `ContextCarousel`: what the entry point carried rides under the
          opening message, scrolling sideways under a fade when it overflows. */
       <div className={`chat-user-wrap${anim}`}>
-        <div className="chat-user">{entry.text}</div>
+        <div className="chat-user">{rich(entry.text)}</div>
         <div className={`chat-attach ${entry.cards.length > 2 ? "fade" : ""}`}>
           {entry.cards.map((c) => (
             <div className="ctx-card" key={c.title}>
@@ -937,7 +992,7 @@ function ChatBubble({ entry, onToggle }: { entry: ChatEntry; onToggle: () => voi
         </div>
       </div>
     ) : (
-      <div className={`chat-user${anim}`}>{entry.text}</div>
+      <div className={`chat-user${anim}`}>{rich(entry.text)}</div>
     );
   const running = entry.state === "running";
   const hasSteps = (entry.steps?.length ?? 0) > 0;
@@ -1024,7 +1079,10 @@ function ElicitationCard({
   still?: boolean;
 }) {
   const [picked, setPicked] = useState<string[]>(q.ticked ?? []);
-  const [text, setText] = useState("");
+  const [text, setText] = useState(q.dateDefault ?? "");
+  /* The "Other item" row: further Org Profile items picked from a
+     MultiSearchSelect beside the checkbox. */
+  const [otherItems, setOtherItems] = useState<string[]>([]);
   /* Figma "Elicitation interactions": the Other row turns into an input, and
      what is typed becomes a checked option of its own. */
   const [otherOpen, setOtherOpen] = useState(false);
@@ -1033,15 +1091,17 @@ function ElicitationCard({
 
   useEffect(() => {
     setPicked(q.ticked ?? []);
-    setText("");
+    setText(q.dateDefault ?? "");
     setOtherOpen(false);
     setOther("");
+    setOtherItems([]);
   }, [q.id]);
 
   const multi = q.type === "options";
   const single = q.type === "radio";
-  const chosen = [...picked, ...(other.trim() ? [other.trim()] : [])];
-  const value = multi || single ? chosen.join(", ") : text.trim();
+  const chosen = [...picked, ...otherItems, ...(other.trim() ? [other.trim()] : [])];
+  const value =
+    multi || single || q.type === "mss" ? chosen.join(", ") : text.trim();
   const canContinue = q.required ? value.length > 0 : true;
   const isQuestionLabel = q.label === "Question";
 
@@ -1115,7 +1175,22 @@ function ElicitationCard({
             );
           })}
 
-          {q.allowOther === false ? null : otherOpen || other ? (
+          {q.allowOther === false ? null : q.otherItems ? (
+            /* Figma: "When dealing with Org Profile items, the Other Item
+               option appears as a MultiSearchSelect." */
+            <div className="opt-row other-item">
+              <label className="checkbox">
+                <input type="checkbox" checked={otherItems.length > 0} readOnly />
+              </label>
+              <MultiSearchSelect
+                compact
+                value={otherItems}
+                options={q.otherItems}
+                onChange={setOtherItems}
+                placeholder="Other item"
+              />
+            </div>
+          ) : otherOpen || other ? (
             <div className="opt-row other">
               <label className={`checkbox ${single ? "radio" : ""}`}>
                 <input
@@ -1142,6 +1217,20 @@ function ElicitationCard({
               <span>{q.otherLabel ?? "Other (use @ to access Org Profile items)"}</span>
             </button>
           )}
+        </div>
+      ) : q.type === "mss" ? (
+        <div className="elicit-field">
+          <MultiSearchSelect
+            value={picked}
+            options={(q.options ?? []).map((o) => o.label)}
+            onChange={setPicked}
+            placeholder={q.placeholder ?? "Search"}
+            summary={q.summary}
+          />
+        </div>
+      ) : q.type === "date" ? (
+        <div className="elicit-field">
+          <DateRangeField value={text} onChange={setText} />
         </div>
       ) : (
         <textarea
@@ -1302,6 +1391,8 @@ function DetailsPanel({
   templateName,
   answers,
   questions,
+  parameters,
+  setAnswer,
   language,
   setLanguage,
   company,
@@ -1314,6 +1405,8 @@ function DetailsPanel({
   templateName: string;
   answers: Record<string, string>;
   questions: Question[];
+  parameters: Template["parameters"];
+  setAnswer: (id: string, v: string) => void;
   language: string;
   setLanguage: (v: string) => void;
   company: string;
@@ -1323,10 +1416,15 @@ function DetailsPanel({
   setBrandId: (id: string | undefined) => void;
   onOpenTemplate: () => void;
 }) {
-  const answered = questions.filter((q) => answers[q.id]);
+  const split = (v?: string) =>
+    (v ?? "")
+      .split(/,\s*/)
+      .map((x) => x.trim())
+      .filter((x) => x && x !== "Skipped");
+  const label = (id: string) => questions.find((q) => q.id === id)?.label;
 
   return (
-    <div className="side-scroll">
+    <div className="side-scroll details-panel">
       <div className="field-label">Template</div>
       <div className="field-help" style={{ marginBottom: 8 }}>
         The template used to create this report.
@@ -1341,49 +1439,66 @@ function DetailsPanel({
         <Button icon="arrow-up-right" title="Open template" onClick={onOpenTemplate} />
       </div>
 
-      {/* Figma "Report Builder Editor 1": what the template handed this report —
-          its parameters and its brand — is boxed together, because both are the
-          template's contribution and both can still be changed here. */}
-      <div className="detail-card">
-        {answered.length > 0 && (
-          <>
-            <div className="field-label" style={{ marginBottom: 10 }}>
-              Parameters
+      {/* Figma "Report Builder - Details": every parameter the report was
+          written with, each in the control its input type uses, so it can be
+          changed and the report regenerated. */}
+      {parameters.length > 0 && (
+        <>
+          <div className="details-rule" />
+          <div className="field-label">Parameters</div>
+          <div className="field-help" style={{ marginBottom: 10 }}>
+            Prompt variables included in templates. To change the content of any parameter you need
+            to regenerate the report.
+          </div>
+          {parameters.map((p) => (
+            <div key={p.id} className="details-param">
+              <span className="elicit-tag" style={{ marginBottom: 6 }}>
+                <Icon name="braces" size={14} />
+                {label(p.id) ?? p.name}
+              </span>
+              {p.type === "Org Profile" ? (
+                <MultiSearchSelect
+                  summary
+                  editable
+                  value={split(answers[p.id])}
+                  options={ORG_PROFILE_LIST_ITEMS}
+                  onChange={(v) => setAnswer(p.id, v.join(", "))}
+                  placeholder="Search Org Profile"
+                />
+              ) : p.type === "Date" ? (
+                <DateRangeField value={answers[p.id] ?? ""} onChange={(v) => setAnswer(p.id, v)} />
+              ) : (
+                <textarea
+                  className="textarea"
+                  rows={2}
+                  value={answers[p.id] ?? ""}
+                  onChange={(e) => setAnswer(p.id, e.target.value)}
+                />
+              )}
             </div>
-            {answered.map((q) => (
-              <div key={q.id} style={{ marginBottom: 14 }}>
-                <span className="elicit-tag" style={{ marginBottom: 4 }}>
-                  <Icon name="braces" size={14} />
-                  {q.label}
-                </span>
-                <div className="t-body2" style={{ marginTop: 4 }}>
-                  {answers[q.id]}
-                </div>
-              </div>
-            ))}
-          </>
-        )}
+          ))}
+        </>
+      )}
 
-        <div className="field-label">Brand</div>
-        <div className="field-help" style={{ margin: "4px 0 8px" }}>
-          The brand style applied to your report. Brands are saved in the Org Profile.
-        </div>
-        <BrandPicker brands={brands} brandId={brandId} onPick={setBrandId} />
-      </div>
-
-      <div style={{ height: 1, background: "var(--border-lightest)", margin: "22px 0" }} />
+      <div className="details-rule" />
 
       <Field
         label="Language"
-        help="The language this report was written on. Changing languages will require regeneration."
+        help="The language this report was written on. To change the language you need to regenerate the report."
       >
         <Select block value={language} options={LANGUAGES} onChange={setLanguage} />
       </Field>
       <Field
         label="Company Overview"
-        help="Your organization's details, sector and profile — used to assess your specific exposure. Changing the Company Overview will require regeneration."
+        help={"Your organization\u2019s details, sector and profile, used to assess your specific exposure. Changing Company Overview will require regeneration."}
       >
         <Select block value={company} options={COMPANIES} onChange={setCompany} />
+      </Field>
+      <Field
+        label="Brand"
+        help="The brand style applied to your report. Brands are saved in the Org Profile."
+      >
+        <BrandPicker brands={brands} brandId={brandId} onPick={setBrandId} />
       </Field>
     </div>
   );
@@ -1529,7 +1644,9 @@ function TemplatePreview({
           }
         }}
       >
-        <span className="tp-name">{template.name}</span>
+        <span className="tp-name">
+          <span className="tp-label">Template:</span> {template.name}
+        </span>
         {template.audience && <span className="badge">{template.audience}</span>}
         <span className="spacer" />
         <span className="tp-toggle" aria-hidden="true">
@@ -1557,7 +1674,7 @@ Templates cannot be edited during report creation.
           <h1>Report title</h1>
           {template.blocks.map((b) => (
             <div className="tp-block" key={b.id}>
-              <h2>{b.heading}</h2>
+              {b.heading && <h2>{b.heading}</h2>}
               {b.prompts.map((prompt, i) => (
                 <div className="tp-prompt" key={i}>
                   <PromptText text={prompt} highlight={activeParam} values={values} />

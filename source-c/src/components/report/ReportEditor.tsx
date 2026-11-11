@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Icon, Spinner, type IconName } from "../ui/Icon";
-import { BrandPicker } from "../org/BrandPicker";
-import { Button, Field, Select, Popover, MenuItem } from "../ui/primitives";
+import { Button, Popover, MenuItem, layerStack } from "../ui/primitives";
 import { useStore, nextId } from "../../state/store";
 import { PromptText } from "../editor/PromptText";
 import {
@@ -16,10 +15,24 @@ import {
 } from "./script";
 import { suggestOptions, type Signals, type SuggestedOption } from "../../data/suggestions";
 import { audiencesFor, pairingFor } from "../../data/templateFamily";
-import { EMPTY_BAND, bandVars, brandVars, type Brand } from "../../data/brand";
+import { DEFAULT_BRAND, EMPTY_BAND, bandVars, brandVars, type Brand } from "../../data/brand";
 import { PageBandEditor } from "../editor/PageBandEditor";
+import { primaryBand } from "../../data/bandObjects";
+import { BrandContext } from "../editor/ImageSource";
 import { ReportDocument } from "./ReportDocument";
-import { WaitAnimation } from "./WaitAnimation";
+import type { DocInsert } from "../editor/BlockNoteCanvas";
+import {
+  BandLibraryModal,
+  BandMenu,
+  RenameBandDialog,
+  elementRef,
+  useReportBand,
+  type ReportBand,
+} from "./BandObjects";
+import { ContextPanel, ReportDesignPanel } from "./ReportPanelsC";
+import type { BandKind } from "../../data/bandObjects";
+import { dragLabel, isAssetLabel, readAssetDrag, readBlockDrag, BUILDING_BLOCKS } from "../../data/buildingBlocks";
+import { DateRangeField, MultiSearchSelect } from "./ElicitInputs";
 import { VULN_ADVISORY_DOC, proseDoc, type DocNode } from "../../data/reportDoc";
 import {
   ARTICLES,
@@ -29,7 +42,7 @@ import {
   FETCHED_SOURCES,
   GENERATED_TITLE,
   INSIGHT_CARDS,
-  LANGUAGES,
+  ORG_PROFILE_LIST_ITEMS,
   REPORT_BODIES,
   TECH_STACK_VALUES,
   THREAT_GRAPH_SOURCES,
@@ -38,7 +51,12 @@ import {
   type Template,
 } from "../../data/mockData";
 
-type Tab = "ask" | "sources" | "details";
+/* Version C (Figma "Beginner's Flow"): Sources and Details are one Context
+   tab, and the new Design tab holds the brand, header and footer. */
+type Tab = "ask" | "context" | "design";
+
+/** Blocks the document takes when dragged from the Design tab. */
+const DOC_DROPPABLE = new Set(BUILDING_BLOCKS.filter((b) => b.doc).map((b) => b.label.toLowerCase()));
 
 /** script → questions → generating → done, matching steps 1–4 in the Figma flows. */
 type Phase = "script" | "questions" | "generating" | "done";
@@ -70,8 +88,17 @@ interface Question {
   tagHelp?: string;
   title: string;
   help?: string;
-  /** options = multi-select, radio = single-select (the extra steps), text = free. */
-  type: "options" | "radio" | "text";
+  /**
+   * options = multi-select, radio = single-select (the extra steps), text =
+   * free, mss = a MultiSearchSelect field, date = a date range field.
+   */
+  type: "options" | "radio" | "text" | "mss" | "date";
+  /** The Other row is a MultiSearchSelect over these items (Org Profile items). */
+  otherItems?: string[];
+  /** A many-picks field shows them as one summary line. */
+  summary?: boolean;
+  /** What a date range field starts on, when a suggestion is shown. */
+  dateDefault?: string;
   options?: SuggestedOption[];
   /** The "Other (use @ …)" row — the language step doesn't offer one. */
   allowOther?: boolean;
@@ -86,21 +113,15 @@ interface Question {
   /** No Required / Optional note beside the tag. */
   noTag?: boolean;
   required?: boolean;
+  /** Version C: a checkbox in the card's bottom-left corner (the brand question's "use for the template"). */
+  footCheck?: string;
 }
 
 export function ReportEditor({ context, templateId }: { context: CreateContext; templateId: string }) {
-  const {
-    templates,
-    reports,
-    closeOverlay,
-    addReport,
-    toast,
-    settings,
-    openTemplateEditor,
-    brands,
-    audiences,
-    updateTemplate,
-  } = useStore();
+  const { templates, reports, closeOverlay, addReport, toast, settings, brands, updateTemplate } =
+    useStore();
+  /** Version C: the brands Report Builder settings make available to reports. */
+  const enabledBrands = brands.filter((b) => settings.brands.includes(b.name));
 
   /**
    * Set when the editor was opened from the "View previous reports" table.
@@ -117,22 +138,14 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
   const [activeId, setActiveId] = useState(templateId);
   const template =
     templates.find((t) => t.id === activeId) ?? templates.find((t) => t.id === templateId)!;
-  /* Figma "Promoting legacy compatibility": a legacy template has no audience
-     of its own, so the flow asks for one from every audience in the Org
-     Profile, and the answer can be kept on the template. */
-  const legacyAudience = !saved && Boolean(template.legacy) && !template.audience;
   const audienceOptions = useMemo(
-    () =>
-      legacyAudience
-        ? audiences.filter((a) => a !== "Custom audience")
-        : audiencesFor(templates, template.name),
-    [templates, template.name, legacyAudience, audiences]
+    () => audiencesFor(templates, template.name),
+    [templates, template.name]
   );
   /* Figma STEP 1, "Gather audience (which will select the correct template)".
      Skipped when the entry point already carried an audience (a Report Builder
      card under an audience filter) or the template only serves one. */
-  const askAudience =
-    legacyAudience || (!saved && Boolean(context.askAudience) && audienceOptions.length > 1);
+  const askAudience = !saved && Boolean(context.askAudience) && audienceOptions.length > 1;
   const [audience, setAudience] = useState<string | null>(askAudience ? null : template.audience);
   const audienceKnown = audience !== null;
 
@@ -154,7 +167,17 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
   /* The report inherits the template's brand and can be moved onto another one
      here without going back to the template — the styling is a property of
      this report from the moment it is written. */
-  const [brandId, setBrandId] = useState<string | undefined>(template.brandId);
+  /* Version C: the template's brand if it has one; otherwise the only brand
+     turned on in settings. With several, the conversation asks. */
+  /* Oct 31: every report, reopened ones included, starts in the template's
+     brand, which is the Default brand unless the template picked another. */
+  const [brandId, setBrandId] = useState<string | undefined>(
+    () => template.brandId ?? (enabledBrands.length === 1 ? enabledBrands[0].id : DEFAULT_BRAND.id)
+  );
+  const brand = brands.find((b) => b.id === brandId);
+  /** Saving a header before any brand exists starts a brand first. */
+  const [createBrandReq, setCreateBrandReq] = useState(0);
+  const [pendingSave, setPendingSave] = useState<BandKind | null>(null);
   /** Sources / Details edits that need a regeneration before they take effect. */
   const [dirty, setDirty] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
@@ -166,6 +189,45 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
    * at, not something that lands in the way of the conversation.
    */
   const [sheetOpen, setSheetOpen] = useState(false);
+
+  /* ---------------- Version C: header and footer objects ---------------- */
+  const headerRB = useReportBand("header", brand, template, "report");
+  const footerRB = useReportBand("footer", brand, template, "report");
+  const askSave = (k: BandKind) => {
+    if (brand) setNameDialog({ kind: k, saving: true });
+    else {
+      setPendingSave(k);
+      setCreateBrandReq((n) => n + 1);
+    }
+  };
+  const bandOf = (k: BandKind) => (k === "header" ? headerRB : footerRB);
+  /** The band being edited on the page. */
+  const [activeBand, setActiveBand] = useState<BandKind | null>(null);
+  /** Naming a header: saving a new one, or renaming a saved one. */
+  const [nameDialog, setNameDialog] = useState<{ kind: BandKind; saving: boolean } | null>(null);
+  const [libraryFor, setLibraryFor] = useState<BandKind | null>(null);
+  const [tagMenu, setTagMenu] = useState<{ kind: BandKind; el: HTMLElement } | null>(null);
+  const insertBlock = useRef<((what: DocInsert, clientY: number) => boolean) | null>(null);
+  const selectBand = (k: BandKind) => {
+    setTab("design");
+    setActiveBand(k);
+    document
+      .querySelector(`.editor-canvas .band-wrap.${k}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  };
+  /* Clicking anywhere off the band (and off its menus) lets go of it. */
+  useEffect(() => {
+    if (!activeBand) return;
+    const onDown = (e: PointerEvent) => {
+      if (layerStack.count > 0) return;
+      const t = e.target as Element | null;
+      if (!t?.closest) return;
+      if (t.closest(".band-wrap, .band-toolbar, .bobj-card, .menu, .scrim")) return;
+      setActiveBand(null);
+    };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [activeBand]);
   const exportRef = useRef<HTMLButtonElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const timers = useRef<number[]>([]);
@@ -247,6 +309,8 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
    * says what the report is about), any of the extra steps the settings leave
    * open, and the further-details question, which always comes last.
    */
+  /** A template with no parameters only asks what the report is about. */
+  const parameterless = template.parameters.length === 0;
   const questions = useMemo<Question[]>(() => {
     const qs: Question[] = [];
     /* Templates without a subject parameter of their own still need to be
@@ -257,40 +321,64 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
       ...template.parameters.filter((p) => p.topic),
       ...template.parameters.filter((p) => !p.topic),
     ];
+    /* Suggestions need something to come from: with no context there is
+       nothing to offer, whatever the parameter allows. */
+    const hasContext = context.path !== "none";
     for (const p of ordered) {
-      if (p.name === "CVE ID") {
-        const sug = cveSuggestions(context);
+      const suggest = p.suggestions !== false && hasContext;
+      /* Figma "Elicitation Variants": the parameter cards carry the badge only,
+         no Required / Optional note. */
+      const base = { id: p.id, label: p.id === "p-tech" ? "Tech stacks" : p.name, tagHelp: p.description, noTag: true, required: !p.optional };
+      if (p.name === "Vulnerability") {
+        const sug = p.suggestions === false ? null : cveSuggestions(context);
         qs.push({
-          id: p.id,
-          label: "CVE ID",
-          tagHelp: p.description,
-          title: "What vulnerability/vulnerabilities should this report be about?",
-          /* Figma: "With no context, we can't offer suggestions to pick from." */
-          help: sug ? "Suggestions are based on your attached context" : undefined,
-          type: sug ? "options" : "text",
+          ...base,
+          title: "What vulnerabilities should be mentioned in this report?",
+          help: "Suggestions are taken from your context",
+          /* More than four picks from an agent make for a long list, so they
+             move into a MultiSearchSelect, already selected. */
+          type: sug ? (sug.options.length > 4 ? "mss" : "options") : "text",
           options: sug?.options.map((label) => ({ label, suggested: false })),
+          summary: true,
           ticked: sug?.ticked,
           otherLabel: "Other",
-          placeholder: "Type in a CVE-ID or vulnerability name",
-          required: !p.optional,
+          placeholder: "Write in your answer here",
         });
         continue;
       }
-      const options = p.type === "Org Profile" ? suggestOptions(p.name, signals) : undefined;
+      if (p.type === "Org Profile") {
+        const options = suggest ? suggestOptions(p.name, signals) : undefined;
+        const labels = new Set(options?.map((o) => o.label));
+        qs.push({
+          ...base,
+          title: p.id === "p-tech" ? "What\u2019s in your tech stack?" : `Which ${p.name} should this report use?`,
+          help: options ? "Suggestions are taken from the Org Profile" : undefined,
+          type: options ? "options" : "mss",
+          options: options ?? ORG_PROFILE_LIST_ITEMS.map((label) => ({ label, suggested: false })),
+          otherItems: ORG_PROFILE_LIST_ITEMS.filter((o) => !labels.has(o)),
+          placeholder: "Search Org Profile",
+        });
+        continue;
+      }
+      if (p.type === "Date") {
+        qs.push({
+          ...base,
+          title: "What date range should this report cover?",
+          type: "date",
+          /* "A suggestion will simply pick the best option for the situation." */
+          dateDefault: suggest ? "Last 7 days" : undefined,
+        });
+        continue;
+      }
       qs.push({
-        id: p.id,
-        label: p.name === "Tech stack" ? "Tech Stacks" : p.name,
-        tagHelp: p.description,
+        ...base,
         title:
-          p.name === "Tech stack"
-            ? "What’s in your tech stack?"
-            : p.name === "Topic"
-              ? "What should this report focus on?"
-              : `What should we use for ${p.name}?`,
-        help: options ? "Suggestions are taken from the Org Profile" : undefined,
-        type: p.type === "Org Profile" ? ("options" as const) : ("text" as const),
-        options,
-        required: !p.optional,
+          p.name === "Topic"
+            ? "What should this report focus on?"
+            : p.question ?? `What should we use for ${p.name}?`,
+        help: p.description,
+        type: "text",
+        placeholder: "Write in your answer here",
       });
     }
     /* Figma "Create Report Flow - EXTRA steps": "If present, either of these
@@ -302,7 +390,9 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
         label: "Language",
         icon: "text",
         title: "What language should this report be in?",
-        help: "Options are coming from your Report Builder settings",
+        help: "Options are coming from template",
+        noTag: true,
+        green: true,
         type: "radio",
         allowOther: false,
         options: [...settings.languages, "Something else"].map((l) => ({
@@ -317,29 +407,37 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
         label: "Company Overview",
         icon: "building",
         title: "What company is this report for?",
-        help: settings.companies.length
-          ? "Options are coming from your Report Builder settings"
-          : "Suggestions are coming from your Org Profile",
+        help: "Suggestions are taken from your Intel Agent",
+        noTag: true,
+        green: true,
         type: "radio",
+        otherLabel: "Other",
         options: (settings.companies.length ? settings.companies : COMPANIES).map((c) => ({
           label: c,
           suggested: false,
         })),
       });
     }
-    if (settings.brands.length > 1) {
+    /* A parameter-less template only needs to know what the report is about. */
+    if (template.parameters.length > 0) qs.push({ ...furtherDetailsQuestion(), noTag: true });
+    /* Version C: the brand is asked last, and only when it is open: several
+       brands turned on in settings and none set on the template. */
+    if (enabledBrands.length > 1 && !template.brandId) {
       qs.push({
         id: "q-brand",
         label: "Brand",
         icon: "brand",
         title: "Which brand should this report use?",
-        help: "Options are coming from your Report Builder settings",
+        help: "Brands are stored in the Org Profile and turned on in Report Builder settings",
+        noTag: true,
+        green: true,
         type: "radio",
         allowOther: false,
-        options: settings.brands.map((b) => ({ label: b, suggested: false })),
+        required: true,
+        options: enabledBrands.map((b) => ({ label: b.name, suggested: false })),
+        footCheck: "Always use for this template",
       });
     }
-    qs.push(furtherDetailsQuestion());
     return qs;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -349,6 +447,7 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
     settings.languages,
     settings.companies,
     settings.brands,
+    brands.length,
   ]);
 
   /** The audience question, with only the audiences this template serves. */
@@ -374,7 +473,7 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
   /* Built once, from the template as it was picked: the audience answer
      changes which pairing is in hand, not what was said at the start. */
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const script = useMemo(() => buildScript(context, template, askAudience), []);
+  const script = useMemo(() => buildScript(context, template, askAudience, parameterless), []);
   const cursor = useRef(0);
   const [awaitingAudience, setAwaitingAudience] = useState(false);
 
@@ -474,7 +573,7 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
     const pairing = pairingFor(templates, template.name, picked);
     if (pairing) {
       setActiveId(pairing.id);
-      setBrandId(pairing.brandId);
+      if (pairing.brandId) setBrandId(pairing.brandId);
     }
     setAudience(picked);
     setAwaitingAudience(false);
@@ -489,14 +588,6 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
         after(BEAT);
       }, BEAT)
     );
-  };
-
-  /** "Save to template": the answer is kept on the legacy template for next time. */
-  const saveAudienceToTemplate = (label: string) => {
-    const picked = audienceOptions.find((a) => (AUDIENCE_MENU_LABEL[a] ?? a) === label) ?? label;
-    updateTemplate(template.id, { audience: picked });
-    toast(`${picked} saved as the audience of ${template.name}`);
-    answerAudience(label);
   };
 
   const current = questions[qIndex];
@@ -517,7 +608,7 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
     ? template.parameters.find((p) => p.id === current.id)?.name
     : undefined;
 
-  const answerCurrent = (value: string) => {
+  const answerCurrent = (value: string, check?: boolean) => {
     const q = questions[qIndex];
     setAnswers((a) => ({ ...a, [q.id]: value }));
     if (q.id === "q-subject") setSubject(value);
@@ -528,6 +619,12 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
     if (q.id === "q-brand" && value) {
       const picked = brands.find((b) => b.name === value);
       if (picked) setBrandId(picked.id);
+      /* "Always use this brand for this template": the template takes the
+         brand, so the question is not asked for it again. */
+      if (picked && check) {
+        updateTemplate(template.id, { brandId: picked.id });
+        toast(`\u201c${template.name}\u201d will always use ${picked.name}`);
+      }
     }
     /* Between questions the card stays where it is and simply moves on to the
        next one; only the last answer hands back to the conversation. */
@@ -715,18 +812,14 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
               </Popover>
             )}
           </>
-        ) : phase === "generating" ? (
+        ) : (
+          /* Figma "Create Report Flow": until the report is written the header
+             only offers a new report, and Export waits for something to export. */
           <>
-            <Button icon="history" title="Version history" />
+            <Button icon="plus" variant="ghost" title="New report" />
             <Button icon="export" disabled>
               Export
             </Button>
-          </>
-        ) : (
-          <>
-            <span className="t-body3 light">Edited just now</span>
-            <Button icon="ellipsis" title="More" />
-            <Button variant="primary">Save</Button>
           </>
         )}
       </div>
@@ -735,27 +828,24 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
         <aside className="editor-side wide">
           <div className="tabs left">
             <button className={`tab ${tab === "ask" ? "active" : ""}`} onClick={() => setTab("ask")}>
-              <Icon name="sparkle" size={16} />
               Ask AI
             </button>
             {/* Nothing to look at in either until the report exists. */}
             <button
-              className={`tab ${tab === "sources" ? "active" : ""}`}
-              onClick={() => setTab("sources")}
+              className={`tab ${tab === "context" ? "active" : ""}`}
+              onClick={() => setTab("context")}
               disabled={!generated}
               title={generated ? undefined : "Available once the report is written"}
             >
-              <Icon name="link" size={16} />
-              Sources
+              Context
             </button>
             <button
-              className={`tab ${tab === "details" ? "active" : ""}`}
-              onClick={() => setTab("details")}
+              className={`tab ${tab === "design" ? "active" : ""}`}
+              onClick={() => setTab("design")}
               disabled={!generated}
               title={generated ? undefined : "Available once the report is written"}
             >
-              <Icon name="details" size={16} />
-              Details
+              Design
             </button>
           </div>
 
@@ -766,10 +856,8 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
                   {chat.map((e) => (
                     <ChatBubble key={e.id} entry={e} onToggle={() => toggleStatus(e.id)} />
                   ))}
-                  {/* Version C (Figma "Elicitation 10"): the question is part of
-                      the conversation, under the message that asked it, and the
-                      message box stays at the bottom, disabled until the flow
-                      is done with it. */}
+                  {/* The question is part of the conversation, under the message
+                      that asked it (Figma "Elicitation 10"). */}
                   {showAudience ? (
                     /* The audience is a step of its own: no counter, nothing to
                        go back to. */
@@ -781,7 +869,6 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
                       pager={false}
                       onBack={() => {}}
                       onNext={answerAudience}
-                      onSaveToTemplate={legacyAudience ? saveAudienceToTemplate : undefined}
                     />
                   ) : showQuestion ? (
                     <ElicitationCard
@@ -789,6 +876,9 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
                       q={current}
                       index={qIndex}
                       total={questions.length}
+                      /* A single question needs no counter (Figma "Parameters -
+                         Empty"). */
+                      pager={questions.length > 1}
                       /* Only the first question draws in; the ones after it
                          swap in place. */
                       still={qIndex > 0 || questions[0]?.id in answers}
@@ -805,11 +895,7 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
               <div className="composer-slot">
                   <div className={`composer ${generated ? "" : "busy"}`}>
                     <textarea
-                      placeholder={
-                        generated || phase === "generating"
-                          ? "Write here any changes you\u2019d like to make"
-                          : "What can I do for you?"
-                      }
+                      placeholder={"Write here any changes you\u2019d like to make"}
                       value={composer}
                       disabled={!generated}
                       onChange={(e) => setComposer(e.target.value)}
@@ -842,24 +928,22 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
             </>
           )}
 
-          {tab === "sources" && (
-            <SourcesPanel
+          {tab === "context" && (
+            <ContextPanel
+              parameters={template.parameters}
+              labelFor={(id) => questions.find((q) => q.id === id)?.label}
+              answers={answers}
+              setAnswer={(id, v) => {
+                setAnswers((a) => ({ ...a, [id]: v }));
+                if (generated) setDirty(true);
+              }}
               sources={sources}
               setSources={(next) => {
                 setSources(next);
                 if (generated) setDirty(true);
               }}
-              context={context}
-              attachedArticles={attachedArticles}
-              insightLabel={insight?.cve}
-            />
-          )}
-
-          {tab === "details" && (
-            <DetailsPanel
-              templateName={`${template.name} - ${template.audience}`}
-              answers={answers}
-              questions={questions}
+              /* What the entry point carried is already at the top of the list. */
+              attachments={[]}
               language={language}
               setLanguage={(v) => {
                 setLanguage(v);
@@ -870,15 +954,63 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
                 setCompany(v);
                 if (generated) setDirty(true);
               }}
-              brands={brands}
+            />
+          )}
+
+          {tab === "design" && (
+            <ReportDesignPanel
+              brands={brands.filter((b) => enabledBrands.includes(b) || b.id === brandId)}
               brandId={brandId}
               setBrandId={setBrandId}
-              onOpenTemplate={() => openTemplateEditor(template.id)}
+              createRequest={createBrandReq}
+              onBrandCreated={() => {
+                if (pendingSave) setNameDialog({ kind: pendingSave, saving: true });
+                setPendingSave(null);
+              }}
+              header={headerRB}
+              footer={footerRB}
+              activeBand={activeBand}
+              onSelectBand={selectBand}
+              onSave={askSave}
+              /* Nov 2: a report shows the brand; it is changed in the template. */
+              readOnly
+              /* Version C: the brand box can put this brand, with the header
+                 and footer styles in use, on the template the report came from. */
+              applyToTemplate={(() => {
+                if (!brand) return undefined;
+                const pin = (k: BandKind) => {
+                  const id = bandOf(k).saved?.id;
+                  return id && id !== primaryBand(brand, k)?.id ? id : undefined;
+                };
+                const applied =
+                  template.brandId === brand.id &&
+                  template.headerStyleId === pin("header") &&
+                  template.footerStyleId === pin("footer");
+                return {
+                  templateName: template.name,
+                  applied,
+                  onToggle: (on: boolean) => {
+                    updateTemplate(
+                      template.id,
+                      on
+                        ? { brandId: brand.id, headerStyleId: pin("header"), footerStyleId: pin("footer") }
+                        : { brandId: undefined, headerStyleId: undefined, footerStyleId: undefined }
+                    );
+                    toast(
+                      on
+                        ? `${brand.name} is now \u201c${template.name}\u201d\u2019s default brand`
+                        : `\u201c${template.name}\u201d no longer has a default brand`
+                    );
+                  },
+                };
+              })()}
+              onRename={(k) => setNameDialog({ kind: k, saving: false })}
+              onChangeBand={setLibraryFor}
             />
           )}
 
           {/* Figma: source / language / company changes need a regeneration. */}
-          {generated && dirty && (tab === "sources" || tab === "details") && (
+          {generated && dirty && tab === "context" && (
             <div className="side-foot">
               <Button onClick={cancelChanges} disabled={regenerating}>
                 Cancel
@@ -903,7 +1035,15 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
               phase={regenerating ? "generating" : phase}
               title={reportTitle}
               template={template}
-              brand={brands.find((b) => b.id === brandId)}
+              brand={brand}
+              header={headerRB}
+              footer={footerRB}
+              /* Oct 31: the header and footer are changed in the template only. */
+              bandMode="plain"
+              activeBand={activeBand}
+              onActivate={selectBand}
+              onTagMenu={(kind, el) => setTagMenu({ kind, el })}
+              insertRef={insertBlock}
             />
           </div>
 
@@ -920,6 +1060,45 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
           )}
         </div>
       </div>
+
+      {/* ---------------- Version C: header / footer dialogs ---------------- */}
+      {tagMenu && (
+        <BandMenu
+          rb={bandOf(tagMenu.kind)}
+          anchorRef={elementRef(tagMenu.el)}
+          onClose={() => setTagMenu(null)}
+          onSave={() => askSave(tagMenu.kind)}
+          onRename={() => setNameDialog({ kind: tagMenu.kind, saving: false })}
+          onChange={() => setLibraryFor(tagMenu.kind)}
+        />
+      )}
+      {nameDialog && (
+        <RenameBandDialog
+          kind={nameDialog.kind}
+          saving={nameDialog.saving}
+          brandName={brand?.name}
+          name={
+            nameDialog.saving
+              ? bandOf(nameDialog.kind).suggestedName
+              : bandOf(nameDialog.kind).name ?? ""
+          }
+          onClose={() => setNameDialog(null)}
+          onSave={(n) => {
+            const rb = bandOf(nameDialog.kind);
+            if (nameDialog.saving) rb.saveNew(n);
+            else rb.rename(n);
+            setNameDialog(null);
+          }}
+        />
+      )}
+      {libraryFor && (
+        <BandLibraryModal
+          rb={bandOf(libraryFor)}
+          brand={brand}
+          onClose={() => setLibraryFor(null)}
+          onScratch={() => selectBand(libraryFor)}
+        />
+      )}
     </div>
   );
 }
@@ -928,11 +1107,19 @@ export function ReportEditor({ context, templateId }: { context: CreateContext; 
  * Chat entries
  * ------------------------------------------------------------------ */
 
+/** `**bold**` in a scripted message, as the Figma messages set the names. */
+function rich(text?: string) {
+  if (!text) return text;
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
+    /^\*\*[^*]+\*\*$/.test(part) ? <b key={i}>{part.slice(2, -2)}</b> : part
+  );
+}
+
 function ChatBubble({ entry, onToggle }: { entry: ChatEntry; onToggle: () => void }) {
   /* Each thing lands with the same short rise; a rebuilt transcript skips it. */
   const anim = entry.instant ? "" : " chat-in";
 
-  if (entry.kind === "ai") return <div className={`chat-ai${anim}`}>{entry.text}</div>;
+  if (entry.kind === "ai") return <div className={`chat-ai${anim}`}>{rich(entry.text)}</div>;
   if (entry.kind === "user")
     return entry.pairs ? (
       <div className={`chat-user answers${anim}`}>
@@ -947,7 +1134,7 @@ function ChatBubble({ entry, onToggle }: { entry: ChatEntry; onToggle: () => voi
       /* Figma `ContextCarousel`: what the entry point carried rides under the
          opening message, scrolling sideways under a fade when it overflows. */
       <div className={`chat-user-wrap${anim}`}>
-        <div className="chat-user">{entry.text}</div>
+        <div className="chat-user">{rich(entry.text)}</div>
         <div className={`chat-attach ${entry.cards.length > 2 ? "fade" : ""}`}>
           {entry.cards.map((c) => (
             <div className="ctx-card" key={c.title}>
@@ -971,7 +1158,7 @@ function ChatBubble({ entry, onToggle }: { entry: ChatEntry; onToggle: () => voi
         </div>
       </div>
     ) : (
-      <div className={`chat-user${anim}`}>{entry.text}</div>
+      <div className={`chat-user${anim}`}>{rich(entry.text)}</div>
     );
   const running = entry.state === "running";
   const hasSteps = (entry.steps?.length ?? 0) > 0;
@@ -1045,43 +1232,43 @@ function ElicitationCard({
   onNext,
   pager = true,
   still = false,
-  onSaveToTemplate,
 }: {
   q: Question;
-  /**
-   * Legacy templates (Figma "Compatibility 2"): the answer can be used for this
-   * report only, or saved to the template as well.
-   */
-  onSaveToTemplate?: (v: string) => void;
-  /** Appear without the draw-in, when it follows another question. */
-  still?: boolean;
   index: number;
   /** How many questions the pager counts, for "1 of 3 questions". */
   total: number;
   onBack: () => void;
-  onNext: (v: string) => void;
+  onNext: (v: string, check?: boolean) => void;
   /** A standalone question carries no counter and nothing to go back to. */
   pager?: boolean;
+  /** Appear without the draw-in, when it follows another question. */
+  still?: boolean;
 }) {
   const [picked, setPicked] = useState<string[]>(q.ticked ?? []);
-  const [text, setText] = useState("");
+  const [text, setText] = useState(q.dateDefault ?? "");
+  /* The "Other item" row: further Org Profile items picked from a
+     MultiSearchSelect beside the checkbox. */
+  const [otherItems, setOtherItems] = useState<string[]>([]);
   /* Figma "Elicitation interactions": the Other row turns into an input, and
      what is typed becomes a checked option of its own. */
   const [otherOpen, setOtherOpen] = useState(false);
   const [other, setOther] = useState("");
   const [hovered, setHovered] = useState<string | null>(null);
+  const [check, setCheck] = useState(false);
 
   useEffect(() => {
     setPicked(q.ticked ?? []);
-    setText("");
+    setText(q.dateDefault ?? "");
     setOtherOpen(false);
     setOther("");
+    setOtherItems([]);
   }, [q.id]);
 
   const multi = q.type === "options";
   const single = q.type === "radio";
-  const chosen = [...picked, ...(other.trim() ? [other.trim()] : [])];
-  const value = multi || single ? chosen.join(", ") : text.trim();
+  const chosen = [...picked, ...otherItems, ...(other.trim() ? [other.trim()] : [])];
+  const value =
+    multi || single || q.type === "mss" ? chosen.join(", ") : text.trim();
   const canContinue = q.required ? value.length > 0 : true;
   const isQuestionLabel = q.label === "Question";
 
@@ -1155,7 +1342,22 @@ function ElicitationCard({
             );
           })}
 
-          {q.allowOther === false ? null : otherOpen || other ? (
+          {q.allowOther === false ? null : q.otherItems ? (
+            /* Figma: "When dealing with Org Profile items, the Other Item
+               option appears as a MultiSearchSelect." */
+            <div className="opt-row other-item">
+              <label className="checkbox">
+                <input type="checkbox" checked={otherItems.length > 0} readOnly />
+              </label>
+              <MultiSearchSelect
+                compact
+                value={otherItems}
+                options={q.otherItems}
+                onChange={setOtherItems}
+                placeholder="Other item"
+              />
+            </div>
+          ) : otherOpen || other ? (
             <div className="opt-row other">
               <label className={`checkbox ${single ? "radio" : ""}`}>
                 <input
@@ -1183,6 +1385,20 @@ function ElicitationCard({
             </button>
           )}
         </div>
+      ) : q.type === "mss" ? (
+        <div className="elicit-field">
+          <MultiSearchSelect
+            value={picked}
+            options={(q.options ?? []).map((o) => o.label)}
+            onChange={setPicked}
+            placeholder={q.placeholder ?? "Search"}
+            summary={q.summary}
+          />
+        </div>
+      ) : q.type === "date" ? (
+        <div className="elicit-field">
+          <DateRangeField value={text} onChange={setText} />
+        </div>
       ) : (
         <textarea
           className="textarea elicit-text"
@@ -1193,254 +1409,24 @@ function ElicitationCard({
         />
       )}
 
-      {/* Figma "Elicitation 11": the counter and buttons are back inside the card. */}
       <div className="elicit-foot">
-        {pager && total > 0 && (
+        {q.footCheck ? (
+          <label className="checkbox elicit-check">
+            <input type="checkbox" checked={check} onChange={(e) => setCheck(e.target.checked)} />
+            <span>{q.footCheck}</span>
+          </label>
+        ) : pager && total > 0 && (
           <span className="elicit-count">
             {index + 1} of {total} questions
           </span>
         )}
         <div className="elicit-nav">
           {pager && index > 0 && <Button onClick={onBack}>Back</Button>}
-          {onSaveToTemplate ? (
-            <>
-              <Button disabled={!canContinue} onClick={() => onNext(value)}>
-                Use for report
-              </Button>
-              <Button
-                variant="primary"
-                disabled={!canContinue}
-                onClick={() => onSaveToTemplate(value)}
-              >
-                Save to template
-              </Button>
-            </>
-          ) : (
-            <Button variant="primary" disabled={!canContinue} onClick={() => onNext(value)}>
-              Continue
-            </Button>
-          )}
+          <Button variant="primary" disabled={!canContinue} onClick={() => onNext(value, check)}>
+            Continue
+          </Button>
         </div>
       </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ *
- * Sources
- * ------------------------------------------------------------------ */
-
-function SourcesPanel({
-  sources,
-  setSources,
-  context,
-  attachedArticles,
-  insightLabel,
-}: {
-  sources: SourceItem[];
-  setSources: (s: SourceItem[]) => void;
-  context: CreateContext;
-  attachedArticles: { id: string; title: string; age: string }[];
-  insightLabel?: string;
-}) {
-  const addRef = useRef<HTMLButtonElement>(null);
-  const [menu, setMenu] = useState(false);
-
-  const attachments =
-    context.path === "articles"
-      ? attachedArticles.map((a) => ({ icon: "feed" as const, title: a.title, sub: `Selected article • ${a.age}` }))
-      : context.path === "insight" && insightLabel
-        ? [{ icon: "bug" as const, title: insightLabel, sub: "Insight card" }]
-        : context.path === "selection"
-          ? (context.cveIds ?? []).map((c) => ({ icon: "bug" as const, title: c, sub: "Selected in Intel Agent" }))
-        : context.path === "broad" && context.contextLabel
-          ? [{ icon: "bug" as const, title: context.contextLabel, sub: "Intel Agent" }]
-          : [];
-
-  return (
-    <div className="side-scroll">
-      <div className="field-label">Attachments</div>
-      <div className="field-help" style={{ marginBottom: 10 }}>
-        Add specific articles or PDFs to enrich the report with any specific sources.
-      </div>
-      {attachments.length > 0 && (
-        <div className="attach-list">
-          {attachments.map((a) => (
-            <div className="attach-row" key={a.title}>
-              <Icon name={a.icon} size={16} style={{ color: "var(--content-medium)" }} />
-              <span className="truncate" style={{ flex: 1, minWidth: 0 }}>
-                {a.title}
-              </span>
-              <span className="t-body3 light">{a.sub}</span>
-            </div>
-          ))}
-        </div>
-      )}
-      <button ref={addRef} className="btn" onClick={() => setMenu(true)}>
-        <Icon name="plus" size={16} />
-        Add article link or PDF
-      </button>
-      {menu && (
-        <Popover anchorRef={addRef} onClose={() => setMenu(false)} width={210}>
-          <MenuItem icon="link" onClick={() => setMenu(false)}>
-            Paste an article link
-          </MenuItem>
-          <MenuItem icon="doc" onClick={() => setMenu(false)}>
-            Upload a PDF
-          </MenuItem>
-        </Popover>
-      )}
-
-      <div className="field-label" style={{ marginTop: 26 }}>
-        Threat Graph
-      </div>
-      <div className="field-help" style={{ marginBottom: 12 }}>
-        Based on your prompt and context, we've identified the most relevant sources in our Threat
-        Graph.
-      </div>
-      <div className="t-body3 muted" style={{ marginBottom: 4 }}>
-        {sources.length} Sources
-      </div>
-      {sources.map((s) => (
-        <div className="src-item" key={s.id}>
-          <input
-            type="checkbox"
-            className="src-check"
-            checked={s.checked}
-            onChange={() =>
-              setSources(sources.map((x) => (x.id === s.id ? { ...x, checked: !x.checked } : x)))
-            }
-          />
-          <div className="src-body">
-            <div className="src-title" title={s.title}>
-              {s.title}
-            </div>
-            <div className="src-meta">
-              {s.kind === "article" ? (
-                <>
-                  <span className="src-favicon" />
-                  <span>{s.source}</span>
-                  {s.age && <span>• {s.age}</span>}
-                </>
-              ) : (
-                <>
-                  {s.kind === "entity" && <Icon name="malware" size={14} />}
-                  <span>{s.tags?.join(" • ")}</span>
-                </>
-              )}
-            </div>
-            {s.kind === "article" && s.tags && (
-              <div className="src-meta">
-                <Icon name="star" size={13} />
-                {s.tags.join(", ")}
-              </div>
-            )}
-            {s.cvss && (
-              <div className="src-meta">
-                <Icon name="bug" size={13} />
-                <span className={s.cvssHigh ? "cvss high" : "cvss"}>{s.cvss}</span>
-                <span>• CWE-693 • Patch</span>
-                {s.exploit && <span className="exploit">• Exploit</span>}
-              </div>
-            )}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ *
- * Details
- * ------------------------------------------------------------------ */
-
-function DetailsPanel({
-  templateName,
-  answers,
-  questions,
-  language,
-  setLanguage,
-  company,
-  setCompany,
-  brands,
-  brandId,
-  setBrandId,
-  onOpenTemplate,
-}: {
-  templateName: string;
-  answers: Record<string, string>;
-  questions: Question[];
-  language: string;
-  setLanguage: (v: string) => void;
-  company: string;
-  setCompany: (v: string) => void;
-  brands: Brand[];
-  brandId?: string;
-  setBrandId: (id: string | undefined) => void;
-  onOpenTemplate: () => void;
-}) {
-  const answered = questions.filter((q) => answers[q.id]);
-
-  return (
-    <div className="side-scroll">
-      <div className="field-label">Template</div>
-      <div className="field-help" style={{ marginBottom: 8 }}>
-        The template used to create this report.
-      </div>
-      <div className="row" style={{ gap: 8 }}>
-        <div className="select block" style={{ flex: 1, color: "var(--content-light)" }}>
-          <span className="truncate">{templateName}</span>
-          <span className="chev">
-            <Icon name="chevron-down" size={16} />
-          </span>
-        </div>
-        <Button icon="arrow-up-right" title="Open template" onClick={onOpenTemplate} />
-      </div>
-
-      {/* Figma "Report Builder Editor 1": what the template handed this report —
-          its parameters and its brand — is boxed together, because both are the
-          template's contribution and both can still be changed here. */}
-      <div className="detail-card">
-        {answered.length > 0 && (
-          <>
-            <div className="field-label" style={{ marginBottom: 10 }}>
-              Parameters
-            </div>
-            {answered.map((q) => (
-              <div key={q.id} style={{ marginBottom: 14 }}>
-                <span className="elicit-tag" style={{ marginBottom: 4 }}>
-                  <Icon name="braces" size={14} />
-                  {q.label}
-                </span>
-                <div className="t-body2" style={{ marginTop: 4 }}>
-                  {answers[q.id]}
-                </div>
-              </div>
-            ))}
-          </>
-        )}
-
-        <div className="field-label">Brand</div>
-        <div className="field-help" style={{ margin: "4px 0 8px" }}>
-          The brand style applied to your report. Brands are saved in the Org Profile.
-        </div>
-        <BrandPicker brands={brands} brandId={brandId} onPick={setBrandId} />
-      </div>
-
-      <div style={{ height: 1, background: "var(--border-lightest)", margin: "22px 0" }} />
-
-      <Field
-        label="Language"
-        help="The language this report was written on. Changing languages will require regeneration."
-      >
-        <Select block value={language} options={LANGUAGES} onChange={setLanguage} />
-      </Field>
-      <Field
-        label="Company Overview"
-        help="Your organization's details, sector and profile — used to assess your specific exposure. Changing the Company Overview will require regeneration."
-      >
-        <Select block value={company} options={COMPANIES} onChange={setCompany} />
-      </Field>
     </div>
   );
 }
@@ -1454,42 +1440,101 @@ function ReportCanvas({
   title,
   template,
   brand,
+  header,
+  footer,
+  bandMode,
+  activeBand,
+  onActivate,
+  onTagMenu,
+  insertRef,
 }: {
   phase: Phase;
   title: string;
   template: Template;
   brand?: Brand;
+  header: ReportBand;
+  footer: ReportBand;
+  bandMode: "plain" | "hint" | "edit";
+  activeBand: BandKind | null;
+  onActivate: (k: BandKind) => void;
+  onTagMenu: (k: BandKind, el: HTMLElement) => void;
+  insertRef: React.MutableRefObject<((what: DocInsert, clientY: number) => boolean) | null>;
 }) {
   const generated = phase === "done";
   const generating = phase === "generating";
-  /* The bands are the template's, carried into every report it writes. Here
-     they are not editable — the report shows what the template set.
-
-     They arrive with the finished report rather than with the skeleton: a cover
-     banner and a wordmark over a page of grey bars reads as a broken document,
-     and the branding is part of the result, not part of the waiting. */
-  const header = generated ? (template.header ?? EMPTY_BAND) : EMPTY_BAND;
-  const footer = generated ? (template.footer ?? EMPTY_BAND) : EMPTY_BAND;
+  const [docDrop, setDocDrop] = useState(false);
+  /* Version C: the bands are the report's own, built and edited right here.
+     They arrive with the finished report rather than with the skeleton. */
+  const mode = generated ? bandMode : "plain";
+  const hb = generated ? header.band : EMPTY_BAND;
+  const fb = generated ? footer.band : EMPTY_BAND;
 
   return (
     /* Figma: the document sits in a page inset 32px from the canvas, and the
        skeleton is there from the moment the editor opens. */
-    <div className="report-page" style={{ ...brandVars(brand), ...bandVars(header, footer, brand) }}>
-      <PageBandEditor kind="header" band={header} brand={brand} mode="plain" onChange={() => {}} />
+    <div className="report-page" style={{ ...brandVars(brand), ...bandVars(hb, fb, brand) }}>
+      <PageBandEditor
+        kind="header"
+        band={hb}
+        brand={brand}
+        mode={mode}
+        objects
+        active={activeBand === "header"}
+        onActivate={() => onActivate("header")}
+        onChange={header.setBand}
+        tagLabel={header.label ?? "Header"}
+        onTagMenu={(el) => onTagMenu("header", el)}
+      />
       {generated ? (
-        <ReportBody title={title} template={template} />
+        <div
+          className={`report-drop ${docDrop ? "drop-over" : ""}`}
+          onDragOver={(e) => {
+            const label = dragLabel(e.dataTransfer);
+            if (label === null) return;
+            if (label && !DOC_DROPPABLE.has(label) && !isAssetLabel(label)) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "copy";
+            setDocDrop(true);
+          }}
+          onDragLeave={(e) => {
+            if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+            setDocDrop(false);
+          }}
+          onDrop={(e) => {
+            setDocDrop(false);
+            const assetId = readAssetDrag(e.dataTransfer);
+            const asset = assetId ? brand?.assets.find((a) => a.id === assetId) : undefined;
+            if (asset) {
+              e.preventDefault();
+              insertRef.current?.({ image: asset.src, name: asset.name }, e.clientY);
+              return;
+            }
+            const block = readBlockDrag(e.dataTransfer);
+            if (!block?.doc) return;
+            e.preventDefault();
+            insertRef.current?.(block.label, e.clientY);
+          }}
+        >
+          <BrandContext.Provider value={brand}>
+            <ReportBody title={title} template={template} insertRef={insertRef} />
+          </BrandContext.Provider>
+        </div>
       ) : (
-        generating ? (
-          <SkeletonReport streaming title={title} template={template} />
-        ) : (
-          /* Nothing is being written while the questions are open, so the
-             page stays empty apart from the card that shows what it is
-             waiting on. */
-          <WaitAnimation />
-        )
+        <SkeletonReport streaming={generating} title={title} template={template} />
       )}
 
-      <PageBandEditor kind="footer" band={footer} brand={brand} mode="plain" onChange={() => {}} />
+      <PageBandEditor
+        kind="footer"
+        band={fb}
+        brand={brand}
+        mode={mode}
+        objects
+        active={activeBand === "footer"}
+        onActivate={() => onActivate("footer")}
+        onChange={footer.setBand}
+        tagLabel={footer.label ?? "Footer"}
+        onTagMenu={(el) => onTagMenu("footer", el)}
+      />
     </div>
   );
 }
@@ -1592,7 +1637,9 @@ function TemplatePreview({
           }
         }}
       >
-        <span className="tp-name">{template.name}</span>
+        <span className="tp-name">
+          <span className="tp-label">Template:</span> {template.name}
+        </span>
         {template.audience && <span className="badge">{template.audience}</span>}
         <span className="spacer" />
         <span className="tp-toggle" aria-hidden="true">
@@ -1620,7 +1667,7 @@ Templates cannot be edited during report creation.
           <h1>Report title</h1>
           {template.blocks.map((b) => (
             <div className="tp-block" key={b.id}>
-              <h2>{b.heading}</h2>
+              {b.heading && <h2>{b.heading}</h2>}
               {b.prompts.map((prompt, i) => (
                 <div className="tp-prompt" key={i}>
                   <PromptText text={prompt} highlight={activeParam} values={values} />
@@ -1647,13 +1694,10 @@ const SKELETON_GROUPS: { head: string; lines: string[] }[] = [
 
 function SkeletonReport({
   streaming,
-  still,
   title,
   template,
 }: {
   streaming: boolean;
-  /** Waiting on answers, not writing, so the bars don't shimmer. */
-  still?: boolean;
   title: string;
   template: Template;
 }) {
@@ -1665,7 +1709,7 @@ function SkeletonReport({
       {streaming && (
         <ReportBody title={title} template={template} sections={1} />
       )}
-      <div className={`skeleton-doc ${still ? "still" : ""}`}>
+      <div className="skeleton-doc">
         {SKELETON_GROUPS.slice(written).map((g, i) => (
           <div className="skeleton-group" key={i}>
             <div className="skeleton head" style={{ width: g.head }} />
@@ -1683,9 +1727,11 @@ function ReportBody({
   title,
   template,
   sections,
+  insertRef,
 }: {
   title: string;
   template: Template;
+  insertRef?: React.MutableRefObject<((what: DocInsert, clientY: number) => boolean) | null>;
   /** Render only the first n sections, while the rest is still being written. */
   sections?: number;
 }) {
@@ -1721,6 +1767,7 @@ function ReportBody({
         meta={meta}
         nodes={nodes}
         editable={!sections}
+        insertRef={insertRef}
       />
     </div>
   );
